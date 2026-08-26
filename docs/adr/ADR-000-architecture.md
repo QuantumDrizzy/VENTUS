@@ -247,26 +247,34 @@ to ΔT = V²/(2·cp) with **constant** cp, so using γ = 1.376 applies the hot c
 (1.0505) across the entire 220 → 600 K rise, where the true cp starts at 1.003.
 It overstates the correction by roughly 4×.
 
+**[UPDATED for the r4 re-baseline: M 3.50 / 26 km, T∞ = 222.65 K.]**
+
 | Model | cp [kJ/kg·K] | T₀ | T_aw (r = 0.89) |
 |---|---|---|---|
-| Calorically perfect, γ = 1.4 | 1.0047 (const) | 617.8 K | 573.4 K |
-| γ(T₀) = 1.376 in the constant-γ formula — **wrong method** | 1.0505 (const) | 594.0 K | 552.9 K |
-| **Thermally perfect, h0 = h + V²/2** — **correct** | 1.0195 (interval mean) | **612.0 K** | **569.0 K** |
+| Calorically perfect, γ = 1.4 | 1.0047 (const) | 768.1 K | 708.1 K |
+| γ(T₀) ≈ 1.358 in the constant-γ formula — **wrong method** | 1.088 (const) | 711.4 K | 657.5 K |
+| **Thermally perfect, h0 = h + V²/2** — **correct** | 1.0337 (interval mean) | **752.8 K** | **694.5 K** |
 
-Real delta: **−5.7 K (−0.9 %)**, not −24 K. Derivation in `docs/design-point.md` §3.
-Consequence: the titanium-vs-superalloy conclusion is **robust, not marginal**.
-6 K decides nothing between Ti-6Al-4V (~350–400 °C sustained) and a superalloy.
+Real delta: **−15.3 K (−2.0 %)**. The wrong method gives −56.7 K, overstating the
+correction by a factor of 2.7 — the same failure mode as at M 3.0, where it
+overstated a −5.7 K correction as −24 K. Derivation in `docs/design-point.md` §3.1.
 
-**Where γ = 1.4 does break down and must be flagged:**
+**The consequence changed with the re-baseline.** At M 3.0 the material conclusion
+was robust: T_aw = 296 °C against a Ti-6Al-4V limit of 350–400 °C, and the γ
+correction moved it by 4 K. At M 3.5, **T_aw = 421 °C sits above that limit**, so
+the material answer now depends on where radiative equilibrium lands — M5's
+calculation. The γ correction is worth 13 K of that, which is no longer noise.
+
+**Where γ = 1.4 breaks down and must be flagged (r4 values):**
 
 | Station | T | cp | γ | γ = 1.4 acceptable? |
 |---|---|---|---|---|
-| Freestream | 220.65 K | 1.003 | 1.400 | yes |
-| Inlet / shock train | 220–450 K | 1.003–1.020 | 1.400–1.393 | yes |
-| Post normal shock, M = 3 | ~591 K | ~1.049 | ~1.377 | **[TO QUANTIFY] in M2** |
-| Compressor face / stagnation | ~612 K | ~1.053 | ~1.375 | −0.9 % on T₀, documented |
+| Freestream | 222.65 K | 1.003 | 1.400 | yes |
+| Inlet / shock train | 222–500 K | 1.003–1.029 | 1.400–1.387 | yes, marginally |
+| Post normal shock, M = 3.5 | **~738 K** | ~1.086 | ~1.359 | **no — [TO QUANTIFY] in M2.** At M 3.0 this station was 591 K and borderline; at M 3.5 it is squarely outside |
+| Compressor face / stagnation | ~753 K | ~1.088 | ~1.358 | −2.0 % on T₀, documented |
 | **Burner** | 1700 K | ~1.21–1.23 | **~1.30–1.31** | **no** — and it is combustion products, not air |
-| **Nozzle expansion** | 1700 → ~600 K | varies | varies | **no** — falsifies specific work and thrust |
+| **Nozzle expansion** | 1700 → ~700 K | varies | varies | **no** — falsifies specific work and thrust |
 
 **Baseline stays calorically perfect for M1–M3.** The decision is to *document
 where it breaks*, with the error quantified, not to complicate M2. M4 must use

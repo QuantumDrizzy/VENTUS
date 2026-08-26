@@ -1,49 +1,21 @@
 # ADR-000 D10 — where the calorically perfect assumption holds and where it breaks.
 #
-# [CORRECTED 2026-08-27] The first draft of this file used a third status,
-# `fail_if_used`, and used `known_limit` to mean "this file documents a
-# limitation". Implementing the harness showed both were wrong:
+# UPDATED for the r4 re-baseline: M 3.50 / 26 km, T_inf = 222.65 K.
+# The NACA 1135 table checks live in naca1135.toml; this file is only about the
+# validity boundary of gamma = 1.4.
+#
+# [CORRECTED 2026-08-27] An earlier draft used a third status, `fail_if_used`,
+# and used `known_limit` loosely to mean "this file documents a limitation".
+# Implementing the harness showed both were wrong:
 #
 #   - `fail_if_used` behaved identically to `normal` (a failure breaks the
 #     build), so it was a distinction with no mechanism behind it. Removed.
-#   - `known_limit` now has exactly one meaning: THIS CASE IS EXPECTED TO FAIL,
-#     and the failure is accepted and explained. A `known_limit` that passes is
-#     reported as STALE_KNOWN_LIMIT, because the limit no longer reproduces.
-#     It is therefore NOT a TODO marker; deferred work belongs in the ADR.
-#
-# Documenting a limitation that the module must nonetheless get right belongs
-# on a `normal` case with a `reason`.
+#   - `known_limit` means exactly one thing: THIS CASE IS EXPECTED TO FAIL, and
+#     the failure is accepted and explained. A `known_limit` that passes is
+#     reported as STALE_KNOWN_LIMIT. It is NOT a TODO marker; deferred work
+#     belongs in the ADR.
 
-# --- Must pass: perfect-gas relations against the published table ------------
-
-[[case]]
-name    = "normal_shock_M3_perfect_gas"
-source  = "NACA Report 1135, normal shock tables, M1 = 3.0, gamma = 1.4"
-reason  = """
-Tolerance is set by the PRECISION OF THE PUBLISHED TABLE, not by double
-precision. NACA 1135 prints these to five significant figures, so the largest
-rounding gap against the closed form is 3.2e-5 (on p2/p1). Asserting 1e-12
-against a five-digit table would be asserting digits the yardstick does not
-have. A tighter closed-form check belongs in a separate case with an
-independent implementation behind it, and does not exist yet.
-"""
-inputs  = { mach = 3.0, gamma = 1.4 }
-expect  = { pressure_ratio = 10.333, temperature_ratio = 2.6790, mach_downstream = 0.47519, total_pressure_ratio = 0.32834 }
-rel_tol = 1e-4
-
-[[case]]
-name    = "post_normal_shock_temperature_M3"
-source  = "NACA Report 1135, T2/T1 = 2.6790 at M1 = 3.0, applied to the design point T1 = 220.65 K"
-reason  = """
-T2 = 591.1 K. At that temperature cp is already ~1.049 (gamma ~ 1.377), so the
-constant-cp Rankine-Hugoniot over-predicts the enthalpy rise across the shock.
-The real-gas value has not been computed: it requires iterating the jump
-conditions on h(T). [TO QUANTIFY in M2] — tracked in ADR-000 D10, not faked as
-a failing case here.
-"""
-inputs  = { mach = 3.0, upstream_temperature_k = 220.65, gamma = 1.4 }
-expect  = { downstream_temperature_k = 591.1 }
-rel_tol = 1e-3
+# --- Must pass: the gas model itself ---------------------------------------
 
 [[case]]
 name    = "burner_gamma_at_1700k"
@@ -59,29 +31,82 @@ inputs  = { temperature_k = 1700.0 }
 expect  = { gamma = 1.304 }
 rel_tol = 1e-2
 
+[[case]]
+name    = "gamma_at_freestream_222k"
+source  = "Air ideal-gas cp tables: cp(222.65 K) = 1.003 kJ/kg/K, R_air = 0.28705307"
+reason  = """
+At the freestream the calorically perfect assumption is not an approximation
+worth arguing about: gamma comes out at 1.400 to three decimals. This case is
+the lower anchor of the validity range, so a gas model that drifts at cold
+temperatures fails here rather than silently biasing M1 through M3.
+"""
+inputs  = { temperature_k = 222.65 }
+expect  = { gamma = 1.400 }
+rel_tol = 1e-3
+
 # --- Expected to fail: the documented breakdown ------------------------------
 
 [[case]]
-name    = "stagnation_M3_h24km_calorically_imperfect"
-source  = "docs/design-point.md section 3.1; air ideal-gas enthalpy tables (h(220 K) = 219.97, h(610 K) = 617.53, h(620 K) = 628.07 kJ/kg)"
+name    = "stagnation_M35_h26km_calorically_imperfect"
+source  = "docs/design-point.md section 3.1; air ideal-gas enthalpy tables (h(220 K) = 219.97, h(700 K) = 713.27, h(800 K) = 821.95 kJ/kg) [TO VERIFY]"
 status  = "known_limit"
 reason  = """
-Expected 612.0 K is the thermally perfect result from energy conservation,
-h0 = h_inf + V^2/2 with V^2/2 = 399.03 kJ/kg and interval-mean cp = 1.0195.
-A calorically perfect model with gamma = 1.4 returns 617.8 K, so this case fails
-by +0.95 % for as long as M2 is perfect-gas only. That is the documented limit,
+Expected 752.8 K is the thermally perfect result from energy conservation,
+h0 = h_inf + V^2/2 with V^2/2 = 548.05 kJ/kg and interval-mean cp = 1.0337.
+A calorically perfect model with gamma = 1.4 returns 768.1 K, so this case fails
+by +2.0 % for as long as M2 is perfect-gas only. That is the documented limit,
 and it disappears the day a cp(T) model lands — at which point the harness will
 report STALE_KNOWN_LIMIT and this annotation should be deleted.
 
 NOTE the wrong fix, recorded so it is not attempted twice: substituting
-gamma(T0) = 1.376 back into T0/T = 1 + (gamma-1)/2*M^2 gives 594.0 K. That
-formula is DT = V^2/(2*cp) with CONSTANT cp, so it applies the hot cp (1.0505)
-across the whole 220 -> 600 K rise where the true cp starts at 1.003. It
-overstates the correction by roughly 4x.
+gamma(T0) ~ 1.358 back into T0/T = 1 + (gamma-1)/2*M^2 gives 711.4 K. That
+formula is DT = V^2/(2*cp) with CONSTANT cp, so it applies the hot cp (1.088)
+across the whole 222 -> 750 K rise where the true cp starts at 1.003. It
+overstates the correction by a factor of 2.7 (-56.7 K against the true -15.3 K).
+The same error at the old M 3.0 design point overstated -5.7 K as -24 K.
 
-Consequence for M5: the margin to the Ti-6Al-4V creep limit is 55-105 K and
-moves by 4 K under this correction. Robust, not marginal.
+CONSEQUENCE FOR M5, and this is what the re-baseline changed. At M 3.0 the
+material conclusion was robust: T_aw = 296 C against a Ti-6Al-4V limit of
+350-400 C, a margin the gas model moved by 4 K. At M 3.5, T_aw = 421 C sits
+ABOVE that limit, and this correction is worth 13 K of the gap. It is no longer
+noise.
 """
-inputs  = { mach = 3.0, static_temperature_k = 220.65 }
-expect  = { stagnation_temperature_k = 612.0 }
-rel_tol = 1e-3
+inputs  = { mach = 3.5, static_temperature_k = 222.65 }
+expect  = { stagnation_temperature_k = 752.8 }
+rel_tol = 2e-3
+
+[[case]]
+name    = "post_normal_shock_M35_calorically_imperfect"
+source  = "Rankine-Hugoniot solved with real enthalpy h(T) rather than constant cp, at M = 3.5, T1 = 222.65 K, by an independent implementation (analysis, Python). Air ideal-gas enthalpy tables [TO VERIFY]"
+status  = "known_limit"
+reason  = """
+[QUANTIFIED 2026-08-27] This was carried as [TO QUANTIFY] for one revision. It is
+now solved rather than estimated, so no invented number sits in this file.
+
+Solving mass, momentum and energy across the shock with h(T) instead of constant
+cp, closing on p = rho*R*T:
+
+    quantity     perfect gas    real h(T)      delta
+    u2           245.712 m/s    240.252 m/s    -2.2 %
+    T2           738.10 K       726.27 K       -11.8 K, -1.60 %
+    p2           30412.45 Pa    30605.01 Pa    +0.63 %
+    rho2/rho1    4.2609         4.3577         +2.3 %
+    M2           0.45115        0.44471        -1.4 %
+
+All three conservation residuals close to exactly zero, which is what validates
+the solve. The physical reading: a calorically imperfect gas absorbs part of the
+compression into vibrational modes, so it heats LESS and compresses MORE than the
+constant-cp model predicts.
+
+This station is the one the re-baseline moved decisively. At M 3.0 it sat at
+591 K, where gamma = 1.4 was borderline and arguably tolerable. At M 3.5 it is
+738 K, squarely outside.
+
+The perfect-gas module returns 738.10 K, so this case fails by 1.63e-2 until M2
+grows a cp(T) path. Tolerance 5e-3 is loose enough to absorb the linear
+interpolation of the enthalpy table on its 100 K grid, and tight enough that the
+perfect-gas answer cannot pass.
+"""
+inputs  = { mach = 3.5, upstream_temperature_k = 222.65 }
+expect  = { downstream_temperature_k = 726.27 }
+rel_tol = 5e-3

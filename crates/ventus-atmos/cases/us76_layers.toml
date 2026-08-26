@@ -134,6 +134,17 @@ rel_tol = 1e-12
 # --- Geopotential versus geometric ----------------------------------------
 
 [[case]]
+name    = "geopotential_vs_geometric_at_26km"
+source  = "NASA-TM-X-74335, eq. (18): Z = r*H/(r - H), r = 6356766 m, at the r4 design altitude"
+reason  = """
+The offset at the design altitude is 106.78 m, larger than the 91.0 m at 24 km.
+Confusing the two altitudes costs about 1 % in density.
+"""
+inputs  = { geopotential_altitude_m = 26000.0 }
+expect  = { geometric_altitude_m = 26106.780127396905 }
+rel_tol = 1e-12
+
+[[case]]
 name    = "geopotential_vs_geometric_at_24km"
 source  = "NASA-TM-X-74335, eq. (18): Z = r*H/(r - H), r = 6356766 m"
 reason  = """
@@ -157,7 +168,28 @@ rel_tol = 1e-8
 # --- The design point ------------------------------------------------------
 
 [[case]]
-name    = "design_point_h24km"
+name    = "design_point_h26km"
+source  = "NASA-TM-X-74335 defining equations evaluated at h = 26 km by an INDEPENDENT implementation (Python, platform libm), cross-checking the Rust implementation"
+reason  = """
+The VENTUS-1 r4 cruise altitude (M 3.50 / 26 km). Every number in
+docs/design-point.md section 1 comes from here, so this case is what keeps that
+document honest.
+
+Cross-implementation check, not a published-table check: both sides evaluate the
+same US76 defining equations in different languages with different math
+libraries, so the only admissible difference is floating-point noise. The two
+agree to the last bit on every quantity except density, where they differ by one
+ULP — which is exactly what a 1e-12 tolerance is for.
+"""
+inputs  = { geopotential_altitude_m = 26000.0 }
+expect  = { temperature_k = 222.65, pressure_pa = 2153.093757051989, density_kg_m3 = 0.03368821834105901, speed_of_sound_m_s = 299.12758663786013, dynamic_viscosity_pa_s = 1.4543942041456979e-5 }
+rel_tol = 1e-12
+
+# Retained from r3. The old design point is still a valid US76 evaluation, and
+# keeping it means the re-baseline cannot silently break the 24 km numbers that
+# earlier revisions of docs/design-point.md quoted.
+[[case]]
+name    = "design_point_h24km_superseded_r3"
 source  = "NASA-TM-X-74335 defining equations evaluated at h = 24 km by an INDEPENDENT implementation (Python, platform libm), cross-checking the Rust implementation"
 reason  = """
 The VENTUS-1 cruise altitude. Every number in docs/design-point.md section 1
