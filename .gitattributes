@@ -1,0 +1,6 @@
+# Determinism (ADR-000 D9): golden files and reports get hashed. CRLF would
+# change those hashes between machines. Normalise everything to LF.
+* text=auto eol=lf
+*.npy binary
+*.png binary
+*.pdf binary
