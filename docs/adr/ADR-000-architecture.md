@@ -109,6 +109,26 @@ deliverable, as much as the code.
 a mandatory `reason`. It counts as a visible failure in the report but does not
 break the build. Limits are shown, not hidden.
 
+**[CORRECTED] — `known_limit` has exactly one meaning, and there is no third
+status.** The first draft of `gamma_validity.toml` used a third status,
+`fail_if_used`, and used `known_limit` loosely to mean "this file documents a
+limitation". Implementing the harness showed both were wrong:
+
+- `fail_if_used` behaved identically to `Normal` — a failure breaks the build —
+  so it was a distinction with no mechanism behind it. Removed. Two statuses.
+- `known_limit` now means **this case is expected to fail**, and the failure is
+  accepted and explained. Consequently a `known_limit` that *passes* is news:
+  the harness reports `STALE_KNOWN_LIMIT`, because the limit no longer
+  reproduces and the annotation should be deleted. It is therefore **not a TODO
+  marker** — deferred work belongs in this ADR, not in a case file that fakes a
+  failure. Documenting a limitation the module must nonetheless get right
+  belongs on a `Normal` case with a `reason` (which is optional there, mandatory
+  on `known_limit`).
+
+A case is also refused at load if it supplies no tolerance, has an empty
+`expect`, or carries a non-finite or negative tolerance: each of those asserts
+nothing and would pass forever.
+
 **Report/manifest linkage (r2).** A report without a git hash is not
 reproducible. `report.md` carries `run_id`, git hash and clean/dirty tree state
 in its header — the same identity as the D9 manifest, not a second loose artifact.

@@ -2,25 +2,63 @@
 //!
 //! Every module contributes `cases/*.toml` carrying a reference value, a
 //! tolerance, and a cited `source`. The harness REFUSES to load a case with no
-//! `source` field: no yardstick, no module — enforced by execution, not prose.
+//! `source`: no yardstick, no module — enforced by execution, not prose.
 //!
-//! Emits a Markdown + CSV report whose header carries `run_id`, git hash and
-//! clean/dirty tree state, so the report and the D9 manifest are one identity
-//! rather than two loose artifacts (ADR-000 D4 r2).
+//! Dependencies: `ventus-units` only, so every module can dev-depend on this
+//! without creating a cycle (ADR-000 D5).
 //!
-//! A case may be marked `status = "known_limit"` with a mandatory `reason`.
-//! It shows as a visible failure in the report but does not break the build.
+//! Acceptance for the harness itself lives in `tests/`. It is the only module
+//! that can legitimately be validated against itself, and it is validated by
+//! **negative** cases plus a positive control:
+//!   1. a deliberately false case must report failure,
+//!   2. a case with no `source` must be refused at load,
+//!   3. the `.npy` writer must match numpy byte-for-byte,
+//!   4. a true case must pass — without this, a harness that always failed
+//!      would satisfy 1-3.
 //!
-//! Dependencies: ventus-units only, so every module can dev-depend on this
-//! without creating a cycle.
+//! Usage from a physics module:
 //!
-//! Acceptance for the harness itself (negative cases — the only module that can
-//! legitimately be validated against itself):
-//!   1. deliberately false case  -> must report failure
-//!   2. case with no `source`    -> must be refused at load
-//!   3. `.npy` writer            -> must round-trip through a real numpy.load
-//!      (little-endian, C order, fortran_order: False, header padded to 64 B)
+//! ```no_run
+//! use std::collections::BTreeMap;
+//! use ventus_validate::{case, check, ExpectValue};
+//!
+//! let cases = case::load_dir(std::path::Path::new("cases")).unwrap();
+//! for c in &cases {
+//!     let mut computed = BTreeMap::new();
+//!     computed.insert("temperature_k".to_string(), ExpectValue::Float(216.65));
+//!     let outcome = check::check(c, &computed);
+//!     assert!(!outcome.breaks_build(), "{}: {}", c.name, outcome.label());
+//! }
+//! ```
 #![forbid(unsafe_code)]
 
-// TODO(step-0): Case/Expect/Verdict types, TOML loader with source enforcement,
-// report writer, npy writer + round-trip test.
+pub mod case;
+pub mod check;
+pub mod npy;
+pub mod report;
+
+pub use case::{Case, ExpectValue, LoadError, Status, Tolerance};
+pub use check::{check, Mismatch, Outcome, Summary};
+pub use report::{Entry, Provenance};
+
+/// Convenience for building a `computed` map in module tests.
+#[macro_export]
+macro_rules! computed {
+    ($($key:expr => $value:expr),* $(,)?) => {{
+        let mut m = ::std::collections::BTreeMap::new();
+        $( m.insert(::std::string::String::from($key), $crate::ExpectValue::from($value)); )*
+        m
+    }};
+}
+
+impl From<f64> for ExpectValue {
+    fn from(v: f64) -> Self {
+        ExpectValue::Float(v)
+    }
+}
+
+impl From<bool> for ExpectValue {
+    fn from(v: bool) -> Self {
+        ExpectValue::Bool(v)
+    }
+}

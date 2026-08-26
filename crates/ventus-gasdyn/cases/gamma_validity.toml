@@ -1,51 +1,87 @@
-# ADR-000 D10 — where the calorically perfect assumption breaks.
-# This file is a contract, not a test result. The harness does not exist yet.
+# ADR-000 D10 — where the calorically perfect assumption holds and where it breaks.
+#
+# [CORRECTED 2026-08-27] The first draft of this file used a third status,
+# `fail_if_used`, and used `known_limit` to mean "this file documents a
+# limitation". Implementing the harness showed both were wrong:
+#
+#   - `fail_if_used` behaved identically to `normal` (a failure breaks the
+#     build), so it was a distinction with no mechanism behind it. Removed.
+#   - `known_limit` now has exactly one meaning: THIS CASE IS EXPECTED TO FAIL,
+#     and the failure is accepted and explained. A `known_limit` that passes is
+#     reported as STALE_KNOWN_LIMIT, because the limit no longer reproduces.
+#     It is therefore NOT a TODO marker; deferred work belongs in the ADR.
+#
+# Documenting a limitation that the module must nonetheless get right belongs
+# on a `normal` case with a `reason`.
+
+# --- Must pass: perfect-gas relations against the published table ------------
 
 [[case]]
-name    = "stagnation_M3_h24km"
-source  = "docs/design-point.md section 3.1; air ideal-gas enthalpy tables (Cengel A-17 lineage) [TO VERIFY against NIST-JANAF or NASA Glenn coefficients]"
+name    = "normal_shock_M3_perfect_gas"
+source  = "NACA Report 1135, normal shock tables, M1 = 3.0, gamma = 1.4"
+reason  = """
+Tolerance is set by the PRECISION OF THE PUBLISHED TABLE, not by double
+precision. NACA 1135 prints these to five significant figures, so the largest
+rounding gap against the closed form is 3.2e-5 (on p2/p1). Asserting 1e-12
+against a five-digit table would be asserting digits the yardstick does not
+have. A tighter closed-form check belongs in a separate case with an
+independent implementation behind it, and does not exist yet.
+"""
+inputs  = { mach = 3.0, gamma = 1.4 }
+expect  = { pressure_ratio = 10.333, temperature_ratio = 2.6790, mach_downstream = 0.47519, total_pressure_ratio = 0.32834 }
+rel_tol = 1e-4
+
+[[case]]
+name    = "post_normal_shock_temperature_M3"
+source  = "NACA Report 1135, T2/T1 = 2.6790 at M1 = 3.0, applied to the design point T1 = 220.65 K"
+reason  = """
+T2 = 591.1 K. At that temperature cp is already ~1.049 (gamma ~ 1.377), so the
+constant-cp Rankine-Hugoniot over-predicts the enthalpy rise across the shock.
+The real-gas value has not been computed: it requires iterating the jump
+conditions on h(T). [TO QUANTIFY in M2] — tracked in ADR-000 D10, not faked as
+a failing case here.
+"""
+inputs  = { mach = 3.0, upstream_temperature_k = 220.65, gamma = 1.4 }
+expect  = { downstream_temperature_k = 591.1 }
+rel_tol = 1e-3
+
+[[case]]
+name    = "burner_gamma_at_1700k"
+source  = "Air ideal-gas cp(T) tables, Cengel A-2b polynomial fit, 1700 K [TO VERIFY against NIST-JANAF or NASA Glenn coefficients]"
+reason  = """
+gamma = 1.4 is a FAILURE in the M4 burner and nozzle, not a known limit, so this
+is a `normal` case the gas model must satisfy. Published cp(1700 K) values span
+roughly 1.21-1.23 kJ/kg/K depending on source, giving gamma 1.304-1.310; the 1 %
+tolerance reflects that spread, not sloppiness. The working fluid there is
+combustion products, not air, which M4 must handle separately.
+"""
+inputs  = { temperature_k = 1700.0 }
+expect  = { gamma = 1.304 }
+rel_tol = 1e-2
+
+# --- Expected to fail: the documented breakdown ------------------------------
+
+[[case]]
+name    = "stagnation_M3_h24km_calorically_imperfect"
+source  = "docs/design-point.md section 3.1; air ideal-gas enthalpy tables (h(220 K) = 219.97, h(610 K) = 617.53, h(620 K) = 628.07 kJ/kg)"
 status  = "known_limit"
 reason  = """
-Calorically perfect gamma = 1.4 gives T0 = 617.8 K. Energy conservation with
-real enthalpy (h0 = h + V^2/2, mean cp = 1.0195 kJ/kg/K over 220.65 -> 612.0 K)
-gives T0 = 612.0 K. Error = +5.7 K, +0.93 %.
+Expected 612.0 K is the thermally perfect result from energy conservation,
+h0 = h_inf + V^2/2 with V^2/2 = 399.03 kJ/kg and interval-mean cp = 1.0195.
+A calorically perfect model with gamma = 1.4 returns 617.8 K, so this case fails
+by +0.95 % for as long as M2 is perfect-gas only. That is the documented limit,
+and it disappears the day a cp(T) model lands — at which point the harness will
+report STALE_KNOWN_LIMIT and this annotation should be deleted.
 
-NOTE the common wrong fix: substituting gamma(T0) = 1.376 back into the
-constant-gamma formula gives 594.0 K. That formula is DT = V^2/(2*cp) with
-CONSTANT cp, so it applies the hot cp (1.0505) across the whole 220 -> 600 K
-rise where the true cp starts at 1.003. It overstates the correction ~4x.
-That value is recorded here so the mistake is not made twice.
+NOTE the wrong fix, recorded so it is not attempted twice: substituting
+gamma(T0) = 1.376 back into T0/T = 1 + (gamma-1)/2*M^2 gives 594.0 K. That
+formula is DT = V^2/(2*cp) with CONSTANT cp, so it applies the hot cp (1.0505)
+across the whole 220 -> 600 K rise where the true cp starts at 1.003. It
+overstates the correction by roughly 4x.
 
-Consequence: the M5 material conclusion (titanium, not superalloy) has a
-55-105 K margin and moves by 4 K under this correction. Robust, not marginal.
+Consequence for M5: the margin to the Ti-6Al-4V creep limit is 55-105 K and
+moves by 4 K under this correction. Robust, not marginal.
 """
 inputs  = { mach = 3.0, static_temperature_k = 220.65 }
 expect  = { stagnation_temperature_k = 612.0 }
-rel_tol = 2e-3
-
-[[case]]
-name    = "post_normal_shock_M3"
-source  = "NACA Report 1135, normal shock tables, M1 = 3.0 (T2/T1 = 2.6790)"
-status  = "known_limit"
-reason  = """
-[TO QUANTIFY in M2] Perfect-gas T2 = 2.6790 * 220.65 = 591.1 K. At that
-temperature cp is already ~1.049 (gamma ~ 1.377), so the constant-cp Rankine-
-Hugoniot over-predicts the enthalpy rise. Magnitude not yet computed. Requires
-iterating the jump conditions on h(T). Placeholder until M2 closes.
-"""
-inputs  = { mach = 3.0, gamma = 1.4 }
-expect  = { temperature_ratio = 2.6790 }
-rel_tol = 1e-9
-
-[[case]]
-name    = "burner_1700k"
-source  = "docs/design-point.md section 3.1; ADR-000 D10 table"
-status  = "fail_if_used"
-reason  = """
-NOT a known limit: a FAILURE. At 1700 K, gamma ~ 1.30-1.31 and the working
-fluid is combustion products, not air. Using gamma = 1.4 in the M4 burner or
-nozzle falsifies specific work and therefore thrust. M4 must reject it.
-"""
-inputs  = { temperature_k = 1700.0 }
-expect  = { gamma_upper_bound = 1.32 }
-rel_tol = 1e-2
+rel_tol = 1e-3
