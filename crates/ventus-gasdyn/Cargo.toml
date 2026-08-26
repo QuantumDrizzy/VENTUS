@@ -7,6 +7,8 @@ license.workspace = true
 
 [dependencies]
 ventus-units = { path = "../ventus-units" }
+libm = "0.2"
 
 [dev-dependencies]
 ventus-validate = { path = "../ventus-validate" }
+toml.workspace = true

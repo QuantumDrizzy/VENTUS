@@ -32,13 +32,39 @@ expect  = { gamma = 1.304 }
 rel_tol = 1e-2
 
 [[case]]
-name    = "gamma_at_freestream_222k"
-source  = "Air ideal-gas cp tables: cp(222.65 K) = 1.003 kJ/kg/K, R_air = 0.28705307"
+name    = "gamma_at_300k"
+source  = "Air ideal-gas cp correlation (Cengel A-2b cubic fit), 300 K [TO VERIFY]"
 reason  = """
-At the freestream the calorically perfect assumption is not an approximation
-worth arguing about: gamma comes out at 1.400 to three decimals. This case is
-the lower anchor of the validity range, so a gas model that drifts at cold
-temperatures fails here rather than silently biasing M1 through M3.
+The cold anchor of the validity range. gamma comes out at 1.4005, so at ordinary
+temperatures the calorically perfect assumption is not an approximation worth
+arguing about. A gas model that drifted cold would fail here rather than silently
+biasing M1 through M3.
+"""
+inputs  = { temperature_k = 300.0 }
+expect  = { gamma = 1.400 }
+rel_tol = 1e-3
+
+[[case]]
+name    = "gamma_at_design_point_freestream"
+source  = "Cengel A-2b cubic fit, stated valid 273-1800 K, evaluated at the r4 freestream T = 222.65 K"
+status  = "known_limit"
+reason  = """
+[FOUND WHILE BUILDING M2] THE DESIGN POINT FREESTREAM IS COLDER THAN THE GAS
+MODEL IS FITTED FOR. T_inf = 222.65 K at 26 km; the correlation is stated valid
+from 273 K. `gamma_air` refuses rather than extrapolating, so this case reports a
+missing key rather than a wrong number — which is the correct behaviour and the
+reason it is carried as a known limit instead of being quietly deleted.
+
+Extrapolating the cubic to 222.65 K returns gamma = 1.4067, which is 0.5 % ABOVE
+the true cold-air value of ~1.400. Note the direction: the error would flatter
+the calorically perfect assumption exactly where this project relies on it being
+sound. That is the worst possible direction for a silent extrapolation.
+
+Consequence: nothing today, because M1 through M3 use the constant gamma = 1.4
+and never call the correlation at freestream temperature. It becomes real if a
+later module tries to use gamma(T) end to end. Resolution is a cp source valid
+below 273 K — NIST-JANAF or the NASA Glenn coefficients, which is the same
+[TO VERIFY] already open on the correlation itself.
 """
 inputs  = { temperature_k = 222.65 }
 expect  = { gamma = 1.400 }

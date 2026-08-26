@@ -196,6 +196,8 @@ dependencies = [
 name = "ventus-gasdyn"
 version = "0.0.0"
 dependencies = [
+ "libm",
+ "toml",
  "ventus-units",
  "ventus-validate",
 ]
@@ -269,5 +271,6 @@ dependencies = [
  "serde",
  "toml",
  "ventus-atmos",
+ "ventus-gasdyn",
  "ventus-validate",
 ]

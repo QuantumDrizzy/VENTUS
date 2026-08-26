@@ -14,6 +14,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use ventus_gasdyn as gasdyn;
 use ventus_validate::case::{self, Case, ExpectValue};
 use ventus_validate::check::{check, Outcome, Summary};
 use ventus_validate::report::{self, Entry, Provenance};
@@ -51,7 +52,6 @@ fn repo_root() -> PathBuf {
 /// than silently red. Each entry moves from `pending` to `wired` when its module
 /// lands.
 const PENDING_MODULES: &[&str] = &[
-    "ventus-gasdyn",
     "ventus-inlet",
     "ventus-propulsion",
     "ventus-aero",
@@ -89,6 +89,63 @@ fn evaluate_atmos(c: &Case) -> BTreeMap<String, ExpectValue> {
         ("lapse_rate_k_per_m", state.lapse_rate_k_per_m),
     ] {
         m.insert(k.to_string(), ExpectValue::Float(v));
+    }
+    m
+}
+
+/// M2. Emits whatever the case inputs make computable; the harness ignores keys
+/// a case does not name, and a key a relation refuses to produce is simply
+/// absent, which the harness reports as "never computed" rather than as a wrong
+/// number. That is how `gamma_at_design_point_freestream` shows up as a known
+/// limit instead of silently extrapolating a curve fit.
+fn evaluate_gasdyn(c: &Case) -> BTreeMap<String, ExpectValue> {
+    let mut m = BTreeMap::new();
+    let mut put = |k: &str, v: f64| {
+        m.insert(k.to_string(), ExpectValue::Float(v));
+    };
+    let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
+
+    let gamma = f("gamma").unwrap_or(1.4);
+
+    if let Some(t) = f("temperature_k") {
+        if let Ok(g) = gasdyn::gamma_air(t) {
+            put("gamma", g);
+        }
+        if let Ok(cp) = gasdyn::specific_heat_air_j_kg_k(t) {
+            put("specific_heat_j_kg_k", cp);
+        }
+    }
+
+    let Some(mach) = f("mach") else { return m };
+
+    if let Ok(r) = gasdyn::stagnation_temperature_ratio(mach, gamma) {
+        put("stagnation_temperature_ratio", r);
+        if let Some(t1) = f("static_temperature_k") {
+            put("stagnation_temperature_k", t1 * r);
+        }
+    }
+    if let Ok(r) = gasdyn::stagnation_pressure_ratio(mach, gamma) {
+        put("stagnation_pressure_ratio_isentropic", r);
+    }
+    if let Ok(r) = gasdyn::area_ratio(mach, gamma) {
+        put("area_ratio", r);
+    }
+    if let Ok(s) = gasdyn::normal_shock(mach, gamma) {
+        put("pressure_ratio", s.pressure_ratio);
+        put("temperature_ratio", s.temperature_ratio);
+        put("density_ratio", s.density_ratio);
+        put("mach_downstream", s.mach_downstream);
+        put("stagnation_pressure_ratio", s.stagnation_pressure_ratio);
+        if let Some(t1) = f("upstream_temperature_k") {
+            put("downstream_temperature_k", t1 * s.temperature_ratio);
+        }
+    }
+    if let Ok(nu) = gasdyn::prandtl_meyer_rad(mach, gamma) {
+        put("prandtl_meyer_deg", nu.to_degrees());
+    }
+    if let Ok((theta, beta)) = gasdyn::max_deflection_rad(mach, gamma) {
+        put("max_deflection_deg", theta.to_degrees());
+        put("max_deflection_wave_angle_deg", beta.to_degrees());
     }
     m
 }
@@ -137,7 +194,13 @@ fn validate() -> ExitCode {
     let outcomes: Vec<Outcome> = cases
         .iter()
         .map(|c| {
-            let computed = evaluate_atmos(c);
+            // Dispatch on the crate the case came from, not on guessing from its
+            // inputs: a case belongs to the module that owns its yardstick.
+            let computed = if c.file.components().any(|p| p.as_os_str() == "ventus-atmos") {
+                evaluate_atmos(c)
+            } else {
+                evaluate_gasdyn(c)
+            };
             check(c, &computed)
         })
         .collect();

@@ -16,9 +16,18 @@ pub const EARTH_EFFECTIVE_RADIUS_M: f64 = 6_356_766.0;
 /// Source: NASA-TM-X-74335, Table 2.
 pub const R_UNIVERSAL_J_KMOL_K: f64 = 8_314.32;
 
+/// The same constant per mole [J/(mol*K)]. Both forms are kept because US76
+/// writes its equations per kilomole while the gas-property polynomials in
+/// `ventus-gasdyn` are per mole; converting at every call site is how a factor
+/// of a thousand eventually gets lost.
+pub const R_UNIVERSAL_J_MOL_K: f64 = R_UNIVERSAL_J_KMOL_K / 1000.0;
+
 /// Mean molar mass of dry air at sea level [kg/kmol].
 /// Source: NASA-TM-X-74335, Table 2.
 pub const M_AIR_KG_KMOL: f64 = 28.964_4;
+
+/// The same molar mass per mole [kg/mol].
+pub const M_AIR_KG_MOL: f64 = M_AIR_KG_KMOL / 1000.0;
 
 /// Specific gas constant of dry air [J/(kg*K)], DERIVED from the US76 pair
 /// above rather than quoted, so that M1 is self-consistent with the US76 table.
