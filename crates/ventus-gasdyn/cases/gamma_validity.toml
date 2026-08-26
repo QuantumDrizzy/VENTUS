@@ -1,0 +1,51 @@
+# ADR-000 D10 — where the calorically perfect assumption breaks.
+# This file is a contract, not a test result. The harness does not exist yet.
+
+[[case]]
+name    = "stagnation_M3_h24km"
+source  = "docs/design-point.md section 3.1; air ideal-gas enthalpy tables (Cengel A-17 lineage) [TO VERIFY against NIST-JANAF or NASA Glenn coefficients]"
+status  = "known_limit"
+reason  = """
+Calorically perfect gamma = 1.4 gives T0 = 617.8 K. Energy conservation with
+real enthalpy (h0 = h + V^2/2, mean cp = 1.0195 kJ/kg/K over 220.65 -> 612.0 K)
+gives T0 = 612.0 K. Error = +5.7 K, +0.93 %.
+
+NOTE the common wrong fix: substituting gamma(T0) = 1.376 back into the
+constant-gamma formula gives 594.0 K. That formula is DT = V^2/(2*cp) with
+CONSTANT cp, so it applies the hot cp (1.0505) across the whole 220 -> 600 K
+rise where the true cp starts at 1.003. It overstates the correction ~4x.
+That value is recorded here so the mistake is not made twice.
+
+Consequence: the M5 material conclusion (titanium, not superalloy) has a
+55-105 K margin and moves by 4 K under this correction. Robust, not marginal.
+"""
+inputs  = { mach = 3.0, static_temperature_k = 220.65 }
+expect  = { stagnation_temperature_k = 612.0 }
+rel_tol = 2e-3
+
+[[case]]
+name    = "post_normal_shock_M3"
+source  = "NACA Report 1135, normal shock tables, M1 = 3.0 (T2/T1 = 2.6790)"
+status  = "known_limit"
+reason  = """
+[TO QUANTIFY in M2] Perfect-gas T2 = 2.6790 * 220.65 = 591.1 K. At that
+temperature cp is already ~1.049 (gamma ~ 1.377), so the constant-cp Rankine-
+Hugoniot over-predicts the enthalpy rise. Magnitude not yet computed. Requires
+iterating the jump conditions on h(T). Placeholder until M2 closes.
+"""
+inputs  = { mach = 3.0, gamma = 1.4 }
+expect  = { temperature_ratio = 2.6790 }
+rel_tol = 1e-9
+
+[[case]]
+name    = "burner_1700k"
+source  = "docs/design-point.md section 3.1; ADR-000 D10 table"
+status  = "fail_if_used"
+reason  = """
+NOT a known limit: a FAILURE. At 1700 K, gamma ~ 1.30-1.31 and the working
+fluid is combustion products, not air. Using gamma = 1.4 in the M4 burner or
+nozzle falsifies specific work and therefore thrust. M4 must reject it.
+"""
+inputs  = { temperature_k = 1700.0 }
+expect  = { gamma_upper_bound = 1.32 }
+rel_tol = 1e-2

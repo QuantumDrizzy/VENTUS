@@ -1,0 +1,12 @@
+[package]
+name = "ventus-gasdyn"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ventus-units = { path = "../ventus-units" }
+
+[dev-dependencies]
+ventus-validate = { path = "../ventus-validate" }

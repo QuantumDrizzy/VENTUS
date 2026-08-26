@@ -1,0 +1,15 @@
+[package]
+name = "ventus-thermal"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ventus-units = { path = "../ventus-units" }
+ventus-gasdyn = { path = "../ventus-gasdyn" }
+ventus-atmos = { path = "../ventus-atmos" }
+ventus-aero = { path = "../ventus-aero" }
+
+[dev-dependencies]
+ventus-validate = { path = "../ventus-validate" }

@@ -1,0 +1,14 @@
+[package]
+name = "ventus-fsw"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ventus-units = { path = "../ventus-units" }
+ventus-atmos = { path = "../ventus-atmos" }
+ventus-dynamics = { path = "../ventus-dynamics" }
+
+[dev-dependencies]
+ventus-validate = { path = "../ventus-validate" }

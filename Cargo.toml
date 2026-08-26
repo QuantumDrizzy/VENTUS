@@ -1,0 +1,33 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ventus-units",
+    "crates/ventus-atmos",
+    "crates/ventus-gasdyn",
+    "crates/ventus-inlet",
+    "crates/ventus-propulsion",
+    "crates/ventus-aero",
+    "crates/ventus-thermal",
+    "crates/ventus-mass",
+    "crates/ventus-dynamics",
+    "crates/ventus-fsw",
+    "crates/ventus-validate",
+    "crates/xtask",
+]
+
+[workspace.package]
+version      = "0.0.0"
+edition      = "2021"
+rust-version = "1.85"
+license      = "UNLICENSED"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+toml  = "0.8"
+
+# Determinism: the physics core must produce identical results across builds.
+# No fast-math, no target-cpu=native in checked-in profiles.
+[profile.release]
+lto           = "thin"
+codegen-units = 1
+panic         = "abort"

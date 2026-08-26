@@ -1,0 +1,9 @@
+/target/
+/out/
+/native/build/
+*.npy
+*.png
+*.pdf
+__pycache__/
+.venv/
+CLAUDE.md

@@ -1,0 +1,33 @@
+# M1 — U.S. Standard Atmosphere 1976, layer by layer.
+# Contract only. Values below are the design-point anchors; the full table is
+# populated from data/reference/us76.csv when M1 starts.
+
+[[case]]
+name    = "us76_h20000m_layer_base"
+source  = "NASA-TM-X-74335 (U.S. Standard Atmosphere 1976), Table I, h = 20 km geopotential"
+inputs  = { geopotential_altitude_m = 20000.0 }
+expect  = { temperature_k = 216.650, pressure_pa = 5474.89, density_kg_m3 = 0.0880349 }
+rel_tol = 1e-6
+
+[[case]]
+name    = "us76_h24000m_design_point"
+source  = "NASA-TM-X-74335, layer 20-32 km: T = 216.65 + 1.0*(h - 20 km); barometric exponent g0*M/(R*L) = 34.1632"
+inputs  = { geopotential_altitude_m = 24000.0 }
+expect  = { temperature_k = 220.650, pressure_pa = 2930.4, density_kg_m3 = 0.046266 }
+rel_tol = 1e-4
+
+# The classic bug: `<` vs `<=` in layer selection. T must be continuous across
+# the boundary, dT/dh must not be.
+[[case]]
+name    = "us76_gradient_discontinuity_at_20km"
+source  = "NASA-TM-X-74335, layer boundary 20 km: lapse changes 0.0 -> +1.0 K/km"
+inputs  = { probe_altitudes_m = [19999.0, 20000.0, 20001.0] }
+expect  = { temperature_continuous = true, lapse_below_k_per_km = 0.0, lapse_above_k_per_km = 1.0 }
+rel_tol = 1e-9
+
+[[case]]
+name    = "geopotential_vs_geometric_at_24km"
+source  = "NASA-TM-X-74335, h_geom = h_geop*r/(r - h_geop), r = 6356766 m"
+inputs  = { geopotential_altitude_m = 24000.0 }
+expect  = { geometric_altitude_m = 24090.3 }
+rel_tol = 1e-5
