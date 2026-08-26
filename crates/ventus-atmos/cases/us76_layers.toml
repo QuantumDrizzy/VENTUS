@@ -1,33 +1,174 @@
-# M1 — U.S. Standard Atmosphere 1976, layer by layer.
-# Contract only. Values below are the design-point anchors; the full table is
-# populated from data/reference/us76.csv when M1 starts.
+# M1 — U.S. Standard Atmosphere 1976, checked against the published table.
+#
+# Source for every case: NASA-TM-X-74335 (U.S. Standard Atmosphere, 1976).
+#
+# Tolerances are set by the precision the published table actually has, not by
+# what double precision could deliver. Cases are split by that precision rather
+# than lumped together, so a seven-figure check is never weakened to accommodate
+# a five-figure one at the same altitude. Density lives in us76_density.toml.
+#
+# Every case takes `geopotential_altitude_m` or `geometric_altitude_m` and is
+# checked against the full atmospheric state; keys a case does not name are
+# ignored by the harness.
+
+# --- Sea level: the defining values --------------------------------------
 
 [[case]]
-name    = "us76_h20000m_layer_base"
-source  = "NASA-TM-X-74335 (U.S. Standard Atmosphere 1976), Table I, h = 20 km geopotential"
+name    = "us76_sea_level_defining"
+source  = "NASA-TM-X-74335, Table 2: T0 = 288.15 K and P0 = 101325 Pa are DEFINED, not measured"
+reason  = "Defined inputs of the standard, so they must come back bit-exact."
+inputs  = { geopotential_altitude_m = 0.0 }
+expect  = { temperature_k = 288.15, pressure_pa = 101325.0, lapse_rate_k_per_m = -0.0065, geometric_altitude_m = 0.0 }
+ulp_tol = 0
+
+[[case]]
+name    = "us76_sea_level_speed_of_sound"
+source  = "NASA-TM-X-74335, Table I: Cs0 = 340.294 m/s at h = 0 (six figures)"
+inputs  = { geopotential_altitude_m = 0.0 }
+expect  = { speed_of_sound_m_s = 340.294 }
+rel_tol = 1.5e-6
+
+[[case]]
+name    = "us76_sea_level_viscosity"
+source  = "NASA-TM-X-74335, eq. (51) and Table I: mu0 = 1.7894e-5 Pa*s (five figures)"
+reason  = "Published to five significant figures; M1 computes 1.789380e-5."
+inputs  = { geopotential_altitude_m = 0.0 }
+expect  = { dynamic_viscosity_pa_s = 1.7894e-5 }
+rel_tol = 2.8e-5
+
+# --- Every layer base: temperature, pressure, gradient --------------------
+# The seven numbers the whole model rests on. M1 derives the base pressures by
+# forward integration from sea level; the published table is the check.
+
+[[case]]
+name    = "us76_h11000_layer_base"
+source  = "NASA-TM-X-74335, Table I, h = 11 km geopotential (tropopause), p = 22632.06 Pa"
+inputs  = { geopotential_altitude_m = 11000.0 }
+expect  = { temperature_k = 216.65, pressure_pa = 22632.06, lapse_rate_k_per_m = 0.0 }
+rel_tol = 2.3e-7
+abs_tol = 1e-15
+
+[[case]]
+name    = "us76_h20000_layer_base"
+source  = "NASA-TM-X-74335, Table I, h = 20 km geopotential, p = 5474.889 Pa"
 inputs  = { geopotential_altitude_m = 20000.0 }
-expect  = { temperature_k = 216.650, pressure_pa = 5474.89, density_kg_m3 = 0.0880349 }
-rel_tol = 1e-6
+expect  = { temperature_k = 216.65, pressure_pa = 5474.889, lapse_rate_k_per_m = 0.001 }
+rel_tol = 9.2e-8
 
 [[case]]
-name    = "us76_h24000m_design_point"
-source  = "NASA-TM-X-74335, layer 20-32 km: T = 216.65 + 1.0*(h - 20 km); barometric exponent g0*M/(R*L) = 34.1632"
-inputs  = { geopotential_altitude_m = 24000.0 }
-expect  = { temperature_k = 220.650, pressure_pa = 2930.4, density_kg_m3 = 0.046266 }
-rel_tol = 1e-4
+name    = "us76_h32000_layer_base"
+source  = "NASA-TM-X-74335, Table I, h = 32 km geopotential, p = 868.0187 Pa"
+inputs  = { geopotential_altitude_m = 32000.0 }
+expect  = { temperature_k = 228.65, pressure_pa = 868.0187, lapse_rate_k_per_m = 0.0028 }
+rel_tol = 5.8e-7
 
-# The classic bug: `<` vs `<=` in layer selection. T must be continuous across
-# the boundary, dT/dh must not be.
 [[case]]
-name    = "us76_gradient_discontinuity_at_20km"
-source  = "NASA-TM-X-74335, layer boundary 20 km: lapse changes 0.0 -> +1.0 K/km"
-inputs  = { probe_altitudes_m = [19999.0, 20000.0, 20001.0] }
-expect  = { temperature_continuous = true, lapse_below_k_per_km = 0.0, lapse_above_k_per_km = 1.0 }
-rel_tol = 1e-9
+name    = "us76_h47000_layer_base"
+source  = "NASA-TM-X-74335, Table I, h = 47 km geopotential (stratopause), p = 110.9063 Pa"
+inputs  = { geopotential_altitude_m = 47000.0 }
+expect  = { temperature_k = 270.65, pressure_pa = 110.9063, lapse_rate_k_per_m = 0.0 }
+rel_tol = 4.5e-7
+abs_tol = 1e-15
+
+[[case]]
+name    = "us76_h51000_layer_base"
+source  = "NASA-TM-X-74335, Table I, h = 51 km geopotential, p = 66.93887 Pa"
+inputs  = { geopotential_altitude_m = 51000.0 }
+expect  = { temperature_k = 270.65, pressure_pa = 66.93887, lapse_rate_k_per_m = -0.0028 }
+rel_tol = 7.5e-7
+
+[[case]]
+name    = "us76_h71000_layer_base"
+source  = "NASA-TM-X-74335, Table I, h = 71 km geopotential, p = 3.956420 Pa"
+inputs  = { geopotential_altitude_m = 71000.0 }
+expect  = { temperature_k = 214.65, pressure_pa = 3.956420, lapse_rate_k_per_m = -0.002 }
+rel_tol = 1.3e-7
+
+[[case]]
+name    = "us76_model_top"
+source  = "NASA-TM-X-74335, Table I, h = 84.852 km geopotential: T = 186.946 K, p = 0.37338 Pa"
+reason  = """
+The upper bound of this implementation. Above it US76 switches to a
+molecular-diffusion formulation with varying mean molar mass, which M1 does not
+implement: `at_geopotential` returns AboveModelTop rather than extrapolating.
+The temperature here is the molecular-scale temperature, which is the quantity
+US76 tabulates below 86 km; the kinetic temperature differs above ~80 km.
+"""
+inputs  = { geopotential_altitude_m = 84852.0 }
+expect  = { temperature_k = 186.946, pressure_pa = 0.37338 }
+rel_tol = 1.4e-5
+
+# --- The `<` versus `<=` bug at a layer boundary --------------------------
+# Temperature is continuous through 20 km; the lapse rate is not.
+# A boundary altitude belongs to the layer it STARTS.
+
+[[case]]
+name    = "us76_boundary_below_20km"
+source  = "NASA-TM-X-74335, Table 4: the 11-20 km layer is isothermal at 216.65 K"
+inputs  = { geopotential_altitude_m = 19999.0 }
+expect  = { temperature_k = 216.65, lapse_rate_k_per_m = 0.0 }
+rel_tol = 1e-12
+abs_tol = 1e-15
+
+[[case]]
+name    = "us76_boundary_exactly_20km"
+source  = "NASA-TM-X-74335, Table 4: the 20 km boundary starts the +1.0 K/km layer"
+reason  = """
+The discriminating case. Temperature is continuous — both layers give 216.65 K —
+so a wrong `<` versus `<=` is invisible in temperature and shows only here, in
+the lapse rate. Getting it backwards biases every pressure above 20 km,
+including the design point.
+"""
+inputs  = { geopotential_altitude_m = 20000.0 }
+expect  = { temperature_k = 216.65, lapse_rate_k_per_m = 0.001 }
+rel_tol = 1e-12
+abs_tol = 1e-15
+
+[[case]]
+name    = "us76_boundary_above_20km"
+source  = "NASA-TM-X-74335, Table 4: T = 216.65 + 1.0e-3 * (h - 20000)"
+inputs  = { geopotential_altitude_m = 20001.0 }
+expect  = { temperature_k = 216.651, lapse_rate_k_per_m = 0.001 }
+rel_tol = 1e-12
+
+# --- Geopotential versus geometric ----------------------------------------
 
 [[case]]
 name    = "geopotential_vs_geometric_at_24km"
-source  = "NASA-TM-X-74335, h_geom = h_geop*r/(r - h_geop), r = 6356766 m"
+source  = "NASA-TM-X-74335, eq. (18): Z = r*H/(r - H), r = 6356766 m"
+reason  = """
+[CORRECTED 2026-08-27] An earlier revision of docs/design-point.md claimed
+24090.3 m and called the offset 90.3 m. The correct values are 24090.9555 m and
+91.0 m. The wrong figure survived a line-by-line review as verified; it was
+caught only when M1 computed it. This case exists so the number is computed,
+never remembered.
+"""
 inputs  = { geopotential_altitude_m = 24000.0 }
-expect  = { geometric_altitude_m = 24090.3 }
-rel_tol = 1e-5
+expect  = { geometric_altitude_m = 24090.9555 }
+rel_tol = 1e-8
+
+[[case]]
+name    = "geometric_input_at_24090m"
+source  = "NASA-TM-X-74335, eq. (19): H = r*Z/(r + Z), the inverse of eq. (18)"
+inputs  = { geometric_altitude_m = 24090.9555 }
+expect  = { geopotential_altitude_m = 24000.0, temperature_k = 220.65 }
+rel_tol = 1e-8
+
+# --- The design point ------------------------------------------------------
+
+[[case]]
+name    = "design_point_h24km"
+source  = "NASA-TM-X-74335 defining equations evaluated at h = 24 km by an INDEPENDENT implementation (Python, platform libm), cross-checking the Rust implementation"
+reason  = """
+The VENTUS-1 cruise altitude. Every number in docs/design-point.md section 1
+comes from here, so this case is what keeps that document honest.
+
+This is a cross-implementation check, not a published-table check: both sides
+evaluate the same US76 defining equations, in different languages with different
+math libraries. The tolerance is therefore tight, because the only
+admissible difference is floating-point noise (1e-12). The published-table checks are
+the layer-base cases above.
+"""
+inputs  = { geopotential_altitude_m = 24000.0 }
+expect  = { temperature_k = 220.65, pressure_pa = 2930.492169305817, density_kg_m3 = 0.046267329624187684, speed_of_sound_m_s = 297.78106804506353, dynamic_viscosity_pa_s = 1.4435101083953802e-5 }
+rel_tol = 1e-12

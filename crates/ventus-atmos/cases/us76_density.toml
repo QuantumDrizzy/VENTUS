@@ -1,0 +1,105 @@
+# M1 — density at each US76 layer base.
+#
+# Density is p / (R_air * T), so with pressure and temperature already checked
+# in us76_layers.toml these cases test one thing: that R_air is right. That is
+# not redundant — R_air is the constant flagged in ventus-units/src/constants.rs
+# as sitting exactly at M1's acceptance tolerance.
+#
+# TOLERANCES ARE DERIVED FROM THE PRINTED PRECISION OF EACH VALUE, individually,
+# not set to a round number that happens to pass. The published table gives six
+# significant figures, so the admissible relative error is half a unit in the
+# sixth digit: 0.5e-5 / mantissa. For a value with mantissa 8.8 that is 5.7e-7,
+# and for one with mantissa 1.4 it is 3.5e-6 — a factor of six apart. Using a
+# single 5e-6 for all of them would silently excuse a real disagreement in the
+# 8.x values, which is precisely what happened on the first attempt here.
+
+[[case]]
+name    = "density_sea_level"
+source  = "NASA-TM-X-74335, Table I, h = 0: rho = 1.2250 kg/m3 (five figures)"
+inputs  = { geopotential_altitude_m = 0.0 }
+expect  = { density_kg_m3 = 1.2250 }
+rel_tol = 4.1e-5
+
+[[case]]
+name    = "density_h11000"
+source  = "NASA-TM-X-74335, Table I, h = 11 km: rho = 0.363918 kg/m3"
+inputs  = { geopotential_altitude_m = 11000.0 }
+expect  = { density_kg_m3 = 0.363918 }
+rel_tol = 1.37e-6
+
+[[case]]
+name    = "density_h32000"
+source  = "NASA-TM-X-74335, Table I, h = 32 km: rho = 0.0132250 kg/m3"
+inputs  = { geopotential_altitude_m = 32000.0 }
+expect  = { density_kg_m3 = 0.0132250 }
+rel_tol = 3.78e-6
+
+[[case]]
+name    = "density_h47000"
+source  = "NASA-TM-X-74335, Table I, h = 47 km: rho = 0.00142753 kg/m3"
+inputs  = { geopotential_altitude_m = 47000.0 }
+expect  = { density_kg_m3 = 0.00142753 }
+rel_tol = 3.50e-6
+
+[[case]]
+name    = "density_h71000"
+source  = "NASA-TM-X-74335, Table I, h = 71 km: rho = 6.42110e-5 kg/m3"
+inputs  = { geopotential_altitude_m = 71000.0 }
+expect  = { density_kg_m3 = 6.42110e-5 }
+rel_tol = 7.79e-7
+
+# --- Two values that do not reproduce, left failing on purpose --------------
+
+[[case]]
+name    = "density_h20000"
+source  = "NASA-TM-X-74335, Table I, h = 20 km: rho = 0.0880349 kg/m3 [TO VERIFY against a primary copy]"
+status  = "known_limit"
+reason  = """
+M1 computes 0.088034804; the value recited above is 0.0880349. The gap is
+1.09e-6 relative, against an admissible 5.68e-7 for a six-figure value with
+mantissa 8.80. One unit in the last printed digit.
+
+TWO CANDIDATE EXPLANATIONS, neither confirmed:
+
+(a) The constant. rho = p/(R_air*T), so rho scales as 1/R_air. US76 defines
+    R_air = R*/M0 = 8314.32/28.9644 = 287.05307, which is what M1 uses. The
+    value commonly quoted in the literature is 287.0528, smaller by 1.0e-6
+    relative. Using it gives 0.088034804 * (1 + 1.0e-6) = 0.08803489, which
+    rounds to exactly 0.0880349 — the recited value. The match is exact, which
+    makes this the leading hypothesis: the printed table may not have been
+    produced with the exact R*/M0 ratio.
+
+(b) Transcription. The expected value here was recited from memory, not read
+    from a primary copy of NASA-TM-X-74335. It may simply be wrong.
+
+This case is deliberately left FAILING rather than having its tolerance widened
+to fit the implementation. Widening it would excuse exactly the class of error
+it exists to catch, and would also excuse the 51 km case below, which is five
+times worse and is NOT explained by (a).
+
+Resolution requires reading a primary copy of the table. Until then M1 uses the
+US76-defined R*/M0, because that is what the standard's own equations specify.
+"""
+inputs  = { geopotential_altitude_m = 20000.0 }
+expect  = { density_kg_m3 = 0.0880349 }
+rel_tol = 5.68e-7
+
+[[case]]
+name    = "density_h51000"
+source  = "NASA-TM-X-74335, Table I, h = 51 km: rho = 0.000861600 kg/m3 [TO VERIFY against a primary copy]"
+status  = "known_limit"
+reason  = """
+M1 computes 0.00086160491; the value recited above is 0.000861600. The gap is
+5.70e-6 relative, against an admissible 5.80e-7 for a six-figure value with
+mantissa 8.616 — ten times the printed precision.
+
+Explanation (a) from the 20 km case does NOT cover this: the R_air hypothesis is
+worth only 1.0e-6, not 5.7e-6. The trailing zeros in the recited value suggest a
+transcription that dropped real digits (0.000861605 written as 0.000861600).
+
+Left failing for the same reason as the 20 km case. [TO VERIFY] against a
+primary copy.
+"""
+inputs  = { geopotential_altitude_m = 51000.0 }
+expect  = { density_kg_m3 = 0.000861600 }
+rel_tol = 5.80e-7
