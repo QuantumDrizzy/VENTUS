@@ -19,4 +19,18 @@
 #![no_std]
 #![forbid(unsafe_code)]
 
-// TODO(M4): cycle stations, bleed/bypass (J58-style), ram mode, thrust book.
+#[cfg(test)]
+extern crate std;
+
+pub mod ramjet;
+
+pub use ramjet::{ideal_ramjet, Cycle, CycleError, BURNER_PRESSURE_RATIO, KEROSENE_LHV_J_KG};
+
+// DONE: ideal ramjet cycle with gamma(T) in the burner and nozzle (ramjet.rs).
+//
+// TODO(M4): the component THRUST SPLIT (inlet 54 % / nozzle 29 % / engine 17 %
+// on the SR-71) is an axial force accounting over the flowpath, not a cycle
+// result. It needs the pressure distribution on the compression surfaces and
+// the cowl, which a quasi-1D model does not carry. Declared as a gap rather
+// than approximated. Also: J58-style bleed/bypass, and the turbo-to-ram
+// transition schedule.

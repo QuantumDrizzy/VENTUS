@@ -52,13 +52,7 @@ fn repo_root() -> PathBuf {
 /// module is listed here explicitly and its cases are reported as PENDING rather
 /// than silently red. Each entry moves from `pending` to `wired` when its module
 /// lands.
-const PENDING_MODULES: &[&str] = &[
-    "ventus-inlet",
-    "ventus-propulsion",
-    "ventus-mass",
-    "ventus-dynamics",
-    "ventus-fsw",
-];
+const PENDING_MODULES: &[&str] = &["ventus-mass", "ventus-dynamics", "ventus-fsw"];
 
 /// M1. Every field of the state is exposed; the harness ignores what a case
 /// does not name.
@@ -227,6 +221,92 @@ fn evaluate_thermal(c: &Case) -> BTreeMap<String, ExpectValue> {
     m
 }
 
+/// M3.
+fn evaluate_inlet(c: &Case) -> BTreeMap<String, ExpectValue> {
+    let mut m = BTreeMap::new();
+    let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
+    let Some(mach) = f("mach") else { return m };
+
+    m.insert(
+        "mil_recovery".into(),
+        ExpectValue::Float(ventus_inlet::mil_e_5008b_recovery(mach)),
+    );
+
+    let Some(n) = c.inputs.get("ramp_count").and_then(toml::Value::as_integer) else {
+        return m;
+    };
+    let gamma = f("gamma").unwrap_or(1.4);
+
+    // A "zero ramp" case is the degenerate single normal shock, used to show
+    // that the train reduces to it.
+    let train = if c
+        .inputs
+        .get("zero_ramp")
+        .and_then(toml::Value::as_bool)
+        .unwrap_or(false)
+    {
+        ventus_inlet::shock_train(mach, &[0.0], gamma).ok()
+    } else {
+        ventus_inlet::optimise_ramps(mach, n as usize, gamma)
+            .ok()
+            .map(|(_, t)| t)
+    };
+
+    if let Some(t) = train {
+        m.insert(
+            "total_recovery".into(),
+            ExpectValue::Float(t.total_recovery),
+        );
+        m.insert(
+            "total_turning_deg".into(),
+            ExpectValue::Float(t.total_turning_rad.to_degrees()),
+        );
+        m.insert(
+            "mach_before_terminal".into(),
+            ExpectValue::Float(t.mach_before_terminal),
+        );
+    }
+    m
+}
+
+/// M4. Builds the freestream from M1 so the cycle cannot drift from the
+/// atmosphere the rest of the project uses.
+fn evaluate_propulsion(c: &Case) -> BTreeMap<String, ExpectValue> {
+    let mut m = BTreeMap::new();
+    let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
+    let (Some(h), Some(mach)) = (f("geopotential_altitude_m"), f("mach")) else {
+        return m;
+    };
+    let Ok(a) = ventus_atmos::at_geopotential(h) else {
+        return m;
+    };
+
+    if let Ok(cycle) = ventus_propulsion::ideal_ramjet(
+        mach,
+        a.temperature_k,
+        a.pressure_pa,
+        mach * a.speed_of_sound_m_s,
+        f("inlet_recovery").unwrap_or(0.7416),
+        f("burner_exit_temperature_k").unwrap_or(1700.0),
+        f("gamma").unwrap_or(1.4),
+    ) {
+        for (k, v) in [
+            (
+                "temperature_headroom_ratio",
+                cycle.temperature_headroom_ratio,
+            ),
+            ("burner_gamma", cycle.burner_gamma),
+            ("specific_impulse_s", cycle.specific_impulse_s),
+            ("specific_thrust_n_s_kg", cycle.specific_thrust_n_s_kg),
+            ("fuel_air_ratio", cycle.fuel_air_ratio),
+            ("exit_velocity_m_s", cycle.exit_velocity_m_s),
+        ] {
+            m.insert(k.to_string(), ExpectValue::Float(v));
+        }
+    }
+    m
+}
+
 fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
     // Dispatch on the crate the case came from, not on guessing from its inputs:
     // a case belongs to the module that owns its yardstick.
@@ -237,6 +317,10 @@ fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
         evaluate_aero(c)
     } else if owner("ventus-thermal") {
         evaluate_thermal(c)
+    } else if owner("ventus-inlet") {
+        evaluate_inlet(c)
+    } else if owner("ventus-propulsion") {
+        evaluate_propulsion(c)
     } else {
         evaluate_gasdyn(c)
     }

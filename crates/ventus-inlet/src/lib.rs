@@ -20,4 +20,17 @@
 #![no_std]
 #![forbid(unsafe_code)]
 
-// TODO(M3): oblique shock train, capture/spill, recovery, unstart criterion.
+#[cfg(test)]
+extern crate std;
+
+pub mod shock_train;
+
+pub use shock_train::{
+    mil_e_5008b_recovery, optimise_ramps, shock_train, InletError, ShockTrain, Station, MAX_RAMPS,
+};
+
+// DONE: oblique shock train, optimal ramp angles, total-pressure recovery
+// (shock_train.rs).
+//
+// TODO(M3): capture area and spillage drag, unstart criterion, the moving spike
+// schedule that holds the shock system across the flight envelope.

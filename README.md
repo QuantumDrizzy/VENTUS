@@ -53,8 +53,8 @@ VENTUS answers it structurally rather than by care:
 | Step 0 | Validation harness | negative cases + numpy byte-equality | **done** |
 | M1 | U.S. Standard Atmosphere 1976 | the published table, layer by layer | **done** |
 | M2 | Compressible flow, parameterised in γ | NACA Report 1135 + analytic identities | **done** |
-| M3 | Mixed-compression inlet | MIL-E-5008B recovery, SR-71 thrust split | next |
-| M4 | Turboramjet cycle | SR-71 cruise thrust accounting | next |
+| M3 | Inlet shock train, optimal ramps | MIL-E-5008B recovery; Oswatitsch, verified not assumed | **done** |
+| M4 | Ideal ramjet cycle, gamma(T) | specific-work collapse, ramjet Isp band | **done** |
 | M5 | Radiation-equilibrium skin, material selection | SR-71 skin 250-300 C at M 3.2 | **done** |
 | M6a | Compressible boundary layer | Blasius, Reynolds analogy (both exact) | **done** |
 | M6b | Wave drag, area rule, L/D | Concorde, SR-71, Küchemann bound | blocked on geometry |
@@ -64,9 +64,14 @@ VENTUS answers it structurally rather than by care:
 | M10 | Flight software | declared latency budget | pending |
 
 ```
-cargo test --workspace     107 tests
-cargo xtask validate       57 cases: 52 pass, 0 fail, 5 known limit, 0 stale
+cargo test --workspace     123 tests
+cargo xtask validate       64 cases: 58 pass, 0 fail, 6 known limit, 0 stale
 ```
+
+**New here?** [`docs/PRIMER.md`](docs/PRIMER.md) walks the whole causal chain —
+why a Mach number fixes the altitude, which fixes the material, which fixes the
+engine architecture — using this repository's own numbers. It is the document to
+read if you want to understand high-speed flight rather than this codebase.
 
 The five known limits are not failures being tolerated. Each is a case that is
 **expected to fail**, with a written reason, and the harness reports a
@@ -127,6 +132,24 @@ pass vacuously. Rewritten divided through by M².
 by a fixed 0.1 % and asserted every case turned red. One case legitimately
 carries a 1 % tolerance, so it correctly survived. The perturbation is now
 derived from each case's own tolerance.
+
+**A physics identity catching a numerical-methods bug.** The inlet optimiser used
+a golden-section line search. Ramp angles that detach the shock evaluate to
+negative infinity, so the recovery surface has large infeasible plateaus, and
+golden section assumes unimodality: with both probes on the plateau the bracket
+always walks the same way and converges to the infeasible boundary. At M 2.5 it
+returned its own starting point unchanged and reported it as an optimum. Nothing
+about the recovery number looked wrong. What caught it was Oswatitsch's
+criterion — the optimum should have equal-strength shocks, and this one did not.
+The true optimum recovers 0.9225 against the 0.9131 being reported.
+
+**Two guesses the model overruled.** A test asserted three inlet ramps would
+clear the MIL-E-5008B target; they give 0.7311 against 0.7416, and it takes four.
+Another asserted that ramjet specific thrust rises monotonically with Mach; it
+peaks and then collapses, because the burner temperature limit caps exit velocity
+while flight speed keeps rising — which is precisely why a ramjet has a design
+Mach number. Both assertions were written before the module could answer, and
+both were wrong.
 
 Full record in `docs/adr/`, in the case files, and in the commit messages. Every
 correction is marked `[CORRECTED]` where it lives.

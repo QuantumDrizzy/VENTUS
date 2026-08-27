@@ -1,0 +1,56 @@
+# M3 - inlet total-pressure recovery.
+#
+# The strongest check in this module is not a case: it is the unit test showing
+# that the numerically optimal ramp angles come out EQUAL-STRENGTH, which is
+# Oswatitsch's criterion, discovered rather than imposed. These cases carry the
+# external anchor and the design-point numbers.
+
+[[case]]
+name    = "mil_e_5008b_at_design_mach"
+source  = "MIL-E-5008B inlet total-pressure recovery envelope, pi_d = 1 - 0.075 (M-1)^1.35. The SOURCE IS THE FORMULA."
+reason  = """
+The reference a practical inlet is held to. It is an envelope fitted to flight
+and tunnel data, so it INCLUDES the viscous, bleed and diffuser losses this
+module does not model.
+"""
+inputs  = { mach = 3.5 }
+expect  = { mil_recovery = 0.7416072791138517 }
+rel_tol = 1e-12
+
+[[case]]
+name    = "four_ramps_bound_the_empirical_curve_from_above"
+source  = "Inviscid shock-train optimum against the MIL-E-5008B envelope at M 3.5"
+reason  = """
+An inviscid model must BEAT the empirical curve, because it has no mechanism for
+the losses the curve includes. Four ramps give 0.8092 against an empirical
+0.7416. If this ever fell below, the model would be losing total pressure it has
+no physics to lose.
+"""
+inputs  = { mach = 3.5, ramp_count = 4 }
+expect  = { total_recovery = 0.8092 }
+rel_tol = 5e-3
+
+[[case]]
+name    = "three_ramps_fall_short_of_the_empirical_curve"
+source  = "Inviscid shock-train optimum at M 3.5 with three ramps"
+reason  = """
+[CORRECTED] An earlier revision asserted that three ramps would clear the
+MIL-E-5008B target. They do not: 0.7311 against 0.7416. It takes four oblique
+ramps plus the terminal shock to beat it inviscidly, and that costs about 48
+degrees of total flow turning - which is why real Mach 3 inlets fold some of
+their shocks inside the duct rather than turning the flow that far outside.
+"""
+inputs  = { mach = 3.5, ramp_count = 3 }
+expect  = { total_recovery = 0.7311, total_turning_deg = 43.9 }
+rel_tol = 5e-3
+
+[[case]]
+name    = "single_normal_shock_at_design_mach"
+source  = "NACA Report 1135 normal shock table, M = 3.5: p02/p01 = 0.21295"
+reason  = """
+The baseline the whole inlet exists to beat. A ratio of 0.7416 to 0.21295 is the
+factor of 3.48 quoted throughout this project.
+"""
+inputs  = { mach = 3.5, ramp_count = 1, zero_ramp = true }
+expect  = { total_recovery = 0.21295 }
+rel_tol = 2.3e-5

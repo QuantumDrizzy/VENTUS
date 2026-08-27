@@ -207,6 +207,7 @@ dependencies = [
 name = "ventus-inlet"
 version = "0.0.0"
 dependencies = [
+ "libm",
  "ventus-atmos",
  "ventus-gasdyn",
  "ventus-units",
@@ -225,6 +226,7 @@ dependencies = [
 name = "ventus-propulsion"
 version = "0.0.0"
 dependencies = [
+ "libm",
  "ventus-atmos",
  "ventus-gasdyn",
  "ventus-inlet",
@@ -275,6 +277,8 @@ dependencies = [
  "ventus-aero",
  "ventus-atmos",
  "ventus-gasdyn",
+ "ventus-inlet",
+ "ventus-propulsion",
  "ventus-thermal",
  "ventus-validate",
 ]

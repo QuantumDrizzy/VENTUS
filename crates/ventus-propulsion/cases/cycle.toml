@@ -1,0 +1,47 @@
+# M4 - ideal ramjet cycle at the design point.
+#
+# Anchored on identities and on the ADR numbers rather than on a published
+# engine deck, which does not exist for this vehicle.
+
+[[case]]
+name    = "temperature_headroom_at_the_design_point"
+source  = "T4max = 1700 K over the ram total temperature. ADR-000 D10 and docs/design-point.md section 4."
+reason  = """
+The number that decides whether a turbomachine is worth carrying. At sea level
+static the ratio is 5.90; at the design point it is 2.213 with calorically
+perfect ram compression (2.258 against the thermally perfect T0 of 752.8 K).
+Ram compression has eaten the temperature budget before a compressor could use
+it, which is a thermodynamic limit rather than a materials one.
+"""
+inputs  = { geopotential_altitude_m = 26000.0, mach = 3.5, inlet_recovery = 0.7416, burner_exit_temperature_k = 1700.0 }
+expect  = { temperature_headroom_ratio = 2.213 }
+rel_tol = 5e-3
+
+[[case]]
+name    = "the_burner_runs_on_hot_gamma"
+source  = "ADR-000 D10: gamma = 1.4 is a FAILURE in the burner and nozzle, not a known limit"
+reason  = """
+Asserted as a case so the requirement is enforced by the build rather than by
+the ADR text. At 1700 K the gas model gives 1.304.
+"""
+inputs  = { geopotential_altitude_m = 26000.0, mach = 3.5, inlet_recovery = 0.7416, burner_exit_temperature_k = 1700.0 }
+expect  = { burner_gamma = 1.304 }
+rel_tol = 1e-2
+
+[[case]]
+name    = "specific_impulse_in_the_published_ramjet_band"
+source  = "Hydrocarbon ramjet specific impulse near M 3, published range roughly 900-2000 s [TO CITE]"
+status  = "known_limit"
+reason  = """
+THE WEAKEST ANCHOR IN THE PROJECT, and it is marked as such rather than dressed
+up. The band is recited from memory, it is wide, and no primary source has been
+checked. The expected value below is its midpoint with a tolerance covering the
+whole width, which is barely a test at all.
+
+It is carried as a `known_limit` not because the model fails it - the model lands
+inside - but because a case this loose should not be counted among the passes.
+Resolving it needs a cited engine deck or a primary text.
+"""
+inputs  = { geopotential_altitude_m = 26000.0, mach = 3.5, inlet_recovery = 0.7416, burner_exit_temperature_k = 1700.0 }
+expect  = { specific_impulse_s = 1450.0 }
+rel_tol = 1e-4
