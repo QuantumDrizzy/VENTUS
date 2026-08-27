@@ -218,6 +218,7 @@ dependencies = [
 name = "ventus-mass"
 version = "0.0.0"
 dependencies = [
+ "libm",
  "ventus-units",
  "ventus-validate",
 ]

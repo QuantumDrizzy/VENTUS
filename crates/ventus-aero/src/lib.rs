@@ -20,16 +20,25 @@
 extern crate std;
 
 pub mod boundary_layer;
+pub mod drag;
+pub mod geometry;
 
 pub use boundary_layer::{
     adiabatic_wall_temperature_k, film_state, recovery_factor, reference_temperature_k,
     skin_friction_coefficient, stanton_number, BoundaryLayerError, EdgeState, FilmState, Regime,
     PRANDTL_AIR,
 };
+pub use drag::{breakdown, kuchemann_bound, DragBreakdown, DragError};
+pub use geometry::{ventus1, Geometry};
 
 // DONE: compressible flat-plate boundary layer by the reference-temperature
 // method (boundary_layer.rs). It needs only the local edge state and a running
 // length, so it is buildable while the geometry-dependent half is not.
 //
-// TODO(M6): wave drag (linearised supersonic), Sears-Haack, drag polar, L/D.
-// All still BLOCKED ON GEOMETRY.
+// DONE: geometry derived from the design point (geometry.rs), and supersonic
+// drag with Sears-Haack wave drag, linearised drag due to lift and
+// reference-temperature friction (drag.rs). The geometry gap declared in
+// ADR-000 and design-point.md 5.2 is closed.
+//
+// TODO(M6): area ruling beyond the Sears-Haack ideal, and integrating skin
+// friction along the body rather than taking one station.

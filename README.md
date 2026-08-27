@@ -57,8 +57,8 @@ VENTUS answers it structurally rather than by care:
 | M4 | Ideal ramjet cycle, gamma(T) | specific-work collapse, ramjet Isp band | **done** |
 | M5 | Radiation-equilibrium skin, material selection | SR-71 skin 250-300 C at M 3.2 | **done** |
 | M6a | Compressible boundary layer | Blasius, Reynolds analogy (both exact) | **done** |
-| M6b | Wave drag, area rule, L/D | Concorde, SR-71, Küchemann bound | blocked on geometry |
-| M7 | Mass fractions, range | SR-71 mass breakdown | blocked on geometry |
+| M6b | Geometry, wave drag, L/D | Küchemann bound; L/D in the 5.0-6.0 target | **done** |
+| M7 | Mass fractions, Breguet range | SR-71 unrefuelled range - the end-to-end check | **done** |
 | M8 | 6-DOF flight dynamics | integrator energy conservation | pending |
 | M9 | CUDA 2-D Euler solver | exact oblique-shock angles from M2 | pending |
 | M10 | Flight software | declared latency budget | pending |
