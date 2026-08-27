@@ -155,6 +155,7 @@ checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 name = "ventus-aero"
 version = "0.0.0"
 dependencies = [
+ "libm",
  "ventus-atmos",
  "ventus-gasdyn",
  "ventus-units",
@@ -235,6 +236,7 @@ dependencies = [
 name = "ventus-thermal"
 version = "0.0.0"
 dependencies = [
+ "libm",
  "ventus-aero",
  "ventus-atmos",
  "ventus-gasdyn",
@@ -270,7 +272,9 @@ version = "0.0.0"
 dependencies = [
  "serde",
  "toml",
+ "ventus-aero",
  "ventus-atmos",
  "ventus-gasdyn",
+ "ventus-thermal",
  "ventus-validate",
 ]

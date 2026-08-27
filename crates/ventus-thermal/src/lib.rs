@@ -27,5 +27,19 @@
 #![no_std]
 #![forbid(unsafe_code)]
 
-// TODO(M5): recovery temperature, radiative equilibrium, material limits,
-// thermal expansion.
+#[cfg(test)]
+extern crate std;
+
+pub mod radiative_equilibrium;
+
+pub use radiative_equilibrium::{
+    lightest_survivor, radiation_equilibrium_wall, survivors, thermal_growth_per_metre, Material,
+    RadiationBalance, ThermalError, CANDIDATES, TITANIUM_EXPANSION_PER_K,
+};
+
+// DONE: recovery temperature, radiative equilibrium, material selection and
+// thermal growth (radiative_equilibrium.rs).
+//
+// TODO(M5): stagnation-point and leading-edge heating, which need a different
+// correlation (Fay-Riddell) than the flat plate; internal conduction and the
+// transient during acceleration.

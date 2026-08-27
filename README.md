@@ -55,16 +55,17 @@ VENTUS answers it structurally rather than by care:
 | M2 | Compressible flow, parameterised in γ | NACA Report 1135 + analytic identities | **done** |
 | M3 | Mixed-compression inlet | MIL-E-5008B recovery, SR-71 thrust split | next |
 | M4 | Turboramjet cycle | SR-71 cruise thrust accounting | next |
-| M5 | Thermal, material selection | SR-71 skin temperatures | pending |
-| M6 | Wave drag, area rule, L/D | Concorde, SR-71, Küchemann bound | blocked on geometry |
+| M5 | Radiation-equilibrium skin, material selection | SR-71 skin 250-300 C at M 3.2 | **done** |
+| M6a | Compressible boundary layer | Blasius, Reynolds analogy (both exact) | **done** |
+| M6b | Wave drag, area rule, L/D | Concorde, SR-71, Küchemann bound | blocked on geometry |
 | M7 | Mass fractions, range | SR-71 mass breakdown | blocked on geometry |
 | M8 | 6-DOF flight dynamics | integrator energy conservation | pending |
 | M9 | CUDA 2-D Euler solver | exact oblique-shock angles from M2 | pending |
 | M10 | Flight software | declared latency budget | pending |
 
 ```
-cargo test --workspace     88 tests
-cargo xtask validate       50 cases: 45 pass, 0 fail, 5 known limit, 0 stale
+cargo test --workspace     107 tests
+cargo xtask validate       57 cases: 52 pass, 0 fail, 5 known limit, 0 stale
 ```
 
 The five known limits are not failures being tolerated. Each is a case that is
@@ -143,7 +144,8 @@ Full derivation and provenance in [`docs/design-point.md`](docs/design-point.md)
 | V∞ | 1 046.95 m·s⁻¹ (3 769 km·h⁻¹) |
 | q∞ | 18.463 kPa |
 | T₀ | **752.8 K** (thermally perfect; 768.1 K if γ = 1.4) |
-| T_aw | **694.5 K / 421.4 °C** |
+| T_aw | **709.3 K / 436.2 °C** (no radiation) |
+| **Skin, radiating** | **548.3 K / 275.2 °C** at 10 m — computed, ε = 0.85 |
 | Inlet recovery | 0.742, against 0.213 for a normal shock — **a factor of 3.48** |
 
 **Why M 3.5 and not M 3.75.** Above roughly M 3.35 there is no public vehicle to
@@ -155,11 +157,18 @@ chosen to hold dynamic pressure constant against the earlier M 3.0 baseline, and
 holds it to 0.004 % — so the re-baseline hardens the thermal and propulsive
 problems without touching the structural loads case.
 
-**What that costs.** At M 3.0 the material answer was comfortable: T_aw = 296 °C
-against a Ti-6Al-4V sustained limit of 350–400 °C. At M 3.5, T_aw = 421 °C sits
-*above* that limit, so whether the airframe can be Ti-6Al-4V now depends entirely
-on where radiative equilibrium lands. M5 is therefore a decision, not a
-confirmation.
+**What that cost, and how it resolved.** At M 3.0 the material answer was
+comfortable. At M 3.5 the recovery temperature sits *above* the Ti-6Al-4V
+sustained limit, so the answer came to depend entirely on the radiation balance.
+M5 computed it: the radiating wall settles 75 K *below* the limit, and radiation
+is worth 161 K. **The margin belongs to the radiation term, not to the
+material** — which means buried or low-emissivity structure does not get it and
+needs β-titanium. That is a design constraint the recovery temperature alone
+would never have surfaced.
+
+The same model at the SR-71 cruise condition gives 270 °C at 1 m against its
+published 250–300 °C skin band, and falls below the band aft of ~8 m — which is
+the model stating its own scope rather than being tuned to agree.
 
 ---
 

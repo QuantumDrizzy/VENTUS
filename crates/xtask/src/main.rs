@@ -14,6 +14,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use ventus_aero::boundary_layer::{self as bl, EdgeState, Regime, PRANDTL_AIR};
 use ventus_gasdyn as gasdyn;
 use ventus_validate::case::{self, Case, ExpectValue};
 use ventus_validate::check::{check, Outcome, Summary};
@@ -54,8 +55,6 @@ fn repo_root() -> PathBuf {
 const PENDING_MODULES: &[&str] = &[
     "ventus-inlet",
     "ventus-propulsion",
-    "ventus-aero",
-    "ventus-thermal",
     "ventus-mass",
     "ventus-dynamics",
     "ventus-fsw",
@@ -150,6 +149,99 @@ fn evaluate_gasdyn(c: &Case) -> BTreeMap<String, ExpectValue> {
     m
 }
 
+/// M6, boundary-layer half.
+fn evaluate_aero(c: &Case) -> BTreeMap<String, ExpectValue> {
+    let mut m = BTreeMap::new();
+    let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
+    let regime = match c.inputs.get("regime").and_then(toml::Value::as_str) {
+        Some("laminar") => Regime::Laminar,
+        _ => Regime::Turbulent,
+    };
+
+    if let Some(re) = f("reynolds_x") {
+        if let Ok(cf) = bl::skin_friction_coefficient(re, regime) {
+            m.insert("skin_friction".into(), ExpectValue::Float(cf));
+            m.insert(
+                "stanton".into(),
+                ExpectValue::Float(bl::stanton_number(cf, f("prandtl").unwrap_or(PRANDTL_AIR))),
+            );
+        }
+    }
+    if let Some(pr) = f("prandtl") {
+        m.insert(
+            "recovery_factor".into(),
+            ExpectValue::Float(bl::recovery_factor(pr, regime)),
+        );
+    }
+    m
+}
+
+/// M5. Builds the edge state from M1 rather than taking it as case input, so a
+/// change in the atmosphere propagates into the thermal cases automatically.
+fn evaluate_thermal(c: &Case) -> BTreeMap<String, ExpectValue> {
+    let mut m = BTreeMap::new();
+    let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
+
+    let (Some(h), Some(mach), Some(x)) = (
+        f("geopotential_altitude_m"),
+        f("mach"),
+        f("running_length_m"),
+    ) else {
+        return m;
+    };
+    let Ok(a) = ventus_atmos::at_geopotential(h) else {
+        return m;
+    };
+    let edge = EdgeState {
+        temperature_k: a.temperature_k,
+        pressure_pa: a.pressure_pa,
+        velocity_m_s: mach * a.speed_of_sound_m_s,
+        mach,
+        gamma: f("gamma").unwrap_or(1.4),
+    };
+
+    if let Ok(b) = ventus_thermal::radiation_equilibrium_wall(
+        &edge,
+        x,
+        f("emissivity").unwrap_or(0.85),
+        f("sink_temperature_k").unwrap_or(0.0),
+        PRANDTL_AIR,
+        Regime::Turbulent,
+    ) {
+        for (k, v) in [
+            ("wall_temperature_k", b.wall_temperature_k),
+            (
+                "adiabatic_wall_temperature_k",
+                b.film.adiabatic_wall_temperature_k,
+            ),
+            ("radiation_relief_k", b.radiation_relief_k()),
+            (
+                "heat_transfer_coefficient_w_m2_k",
+                b.film.heat_transfer_coefficient_w_m2_k,
+            ),
+            ("convective_flux_w_m2", b.convective_flux_w_m2),
+        ] {
+            m.insert(k.to_string(), ExpectValue::Float(v));
+        }
+    }
+    m
+}
+
+fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
+    // Dispatch on the crate the case came from, not on guessing from its inputs:
+    // a case belongs to the module that owns its yardstick.
+    let owner = |name: &str| c.file.components().any(|p| p.as_os_str() == name);
+    if owner("ventus-atmos") {
+        evaluate_atmos(c)
+    } else if owner("ventus-aero") {
+        evaluate_aero(c)
+    } else if owner("ventus-thermal") {
+        evaluate_thermal(c)
+    } else {
+        evaluate_gasdyn(c)
+    }
+}
+
 fn validate() -> ExitCode {
     let repo = repo_root();
     let crates_dir = repo.join("crates");
@@ -194,13 +286,7 @@ fn validate() -> ExitCode {
     let outcomes: Vec<Outcome> = cases
         .iter()
         .map(|c| {
-            // Dispatch on the crate the case came from, not on guessing from its
-            // inputs: a case belongs to the module that owns its yardstick.
-            let computed = if c.file.components().any(|p| p.as_os_str() == "ventus-atmos") {
-                evaluate_atmos(c)
-            } else {
-                evaluate_gasdyn(c)
-            };
+            let computed = evaluate(c);
             check(c, &computed)
         })
         .collect();
@@ -256,5 +342,85 @@ fn validate() -> ExitCode {
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Runs every checked-in case through the canonical evaluator under
+    /// `cargo test`, so the validation suite is not something that only happens
+    /// when someone remembers to type `cargo xtask validate`.
+    #[test]
+    fn every_case_in_the_repository_passes() {
+        let repo = repo_root();
+        let mut summary = Summary::default();
+        let mut failures = String::new();
+        let mut seen = 0_usize;
+
+        let mut dirs: Vec<PathBuf> = std::fs::read_dir(repo.join("crates"))
+            .expect("crates/")
+            .filter_map(Result::ok)
+            .map(|e| e.path())
+            .filter(|p| p.join("cases").is_dir())
+            .collect();
+        dirs.sort();
+
+        for dir in &dirs {
+            let name = dir.file_name().unwrap().to_string_lossy().to_string();
+            let cases = case::load_dir(&dir.join("cases")).unwrap_or_else(|e| {
+                panic!(
+                    "case file refused:
+  {e}"
+                )
+            });
+            if PENDING_MODULES.contains(&name.as_str()) {
+                continue;
+            }
+            for c in &cases {
+                seen += 1;
+                let outcome = check(c, &evaluate(c));
+                summary.record(&outcome);
+                if let Outcome::Fail {
+                    mismatches,
+                    missing,
+                } = &outcome
+                {
+                    failures.push_str(&format!(
+                        "
+{} [{}]
+",
+                        c.name,
+                        c.file.display()
+                    ));
+                    for m in mismatches {
+                        failures.push_str(&format!(
+                            "  {}: expected {}, got {} (rel {:.3e})
+",
+                            m.key, m.expected, m.actual, m.rel_err
+                        ));
+                    }
+                    for k in missing {
+                        failures.push_str(&format!(
+                            "  {k}: never computed
+"
+                        ));
+                    }
+                }
+            }
+        }
+
+        assert!(seen > 50, "expected the full case corpus, saw {seen}");
+        assert!(
+            !summary.breaks_build(),
+            "{} of {} cases failed:{failures}",
+            summary.fail,
+            summary.total()
+        );
+        assert_eq!(
+            summary.stale_known_limit, 0,
+            "a known-limit annotation now passes and should be removed"
+        );
     }
 }

@@ -1,0 +1,58 @@
+# M6 (boundary-layer half) - flat-plate correlations.
+#
+# The analytic identities live in the unit tests: the Blasius constant is exact,
+# the Reynolds analogy is exact at Pr = 1, and T_aw reduces to T0 at Pr = 1.
+# These cases carry the EXTERNAL anchors and the design-point values.
+
+[[case]]
+name    = "blasius_laminar_skin_friction_at_re_1e6"
+source  = "Blasius flat-plate solution: cf_x = 0.664 / sqrt(Re_x), exact"
+reason  = """
+Exact, not tabulated, so the tolerance is the limit of double precision rather
+than the precision of a printed table.
+"""
+inputs  = { reynolds_x = 1.0e6, regime = "laminar" }
+expect  = { skin_friction = 6.64e-4 }
+rel_tol = 1e-14
+
+[[case]]
+name    = "prandtl_schlichting_is_implemented_correctly"
+source  = "Prandtl-Schlichting power-law fit, cf_x = 0.0592 Re_x^(-1/5). The SOURCE IS THE FORMULA, not a tabulated value."
+reason  = """
+An earlier revision of this case asserted a recited spot value of 3.73e-3 at
+Re_x = 1e6 to three significant figures. That was wrong twice over.
+
+Wrong in the digit: the formula gives 3.735267e-3, which rounds to 3.74 at three
+figures, not 3.73.
+
+Wrong in kind, which matters more: that spot value is not an independent
+yardstick at all. It is this same formula evaluated. Checking it proves only that
+two evaluations of one expression agree.
+
+What the formula IS is a published correlation, so this case checks that the
+implementation reproduces it exactly. The genuine external uncertainty - that
+different published correlations disagree with each other - is measured and
+recorded in the module documentation and in ventus-thermal, not faked as a
+tolerance here.
+"""
+inputs  = { reynolds_x = 1.0e6, regime = "turbulent" }
+expect  = { skin_friction = 3.7352674793227444e-3 }
+rel_tol = 1e-14
+
+[[case]]
+name    = "turbulent_recovery_factor_for_air"
+source  = "r = Pr^(1/3) for a turbulent boundary layer, Pr = 0.71 -> 0.89211"
+reason  = """
+This is the 0.89 quoted throughout docs/design-point.md. Pinning it here means
+the design point and the model cannot drift apart on it.
+"""
+inputs  = { prandtl = 0.71, regime = "turbulent" }
+expect  = { recovery_factor = 0.892112 }
+rel_tol = 1e-5
+
+[[case]]
+name    = "laminar_recovery_factor_for_air"
+source  = "r = sqrt(Pr) for a laminar boundary layer, Pr = 0.71 -> 0.842615"
+inputs  = { prandtl = 0.71, regime = "laminar" }
+expect  = { recovery_factor = 0.842615 }
+rel_tol = 1e-5

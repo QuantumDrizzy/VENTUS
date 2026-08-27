@@ -16,5 +16,20 @@
 #![no_std]
 #![forbid(unsafe_code)]
 
-// TODO(M6): wave drag (linearised supersonic), Sears-Haack, skin friction via
-// reference temperature, drag polar, L/D.
+#[cfg(test)]
+extern crate std;
+
+pub mod boundary_layer;
+
+pub use boundary_layer::{
+    adiabatic_wall_temperature_k, film_state, recovery_factor, reference_temperature_k,
+    skin_friction_coefficient, stanton_number, BoundaryLayerError, EdgeState, FilmState, Regime,
+    PRANDTL_AIR,
+};
+
+// DONE: compressible flat-plate boundary layer by the reference-temperature
+// method (boundary_layer.rs). It needs only the local edge state and a running
+// length, so it is buildable while the geometry-dependent half is not.
+//
+// TODO(M6): wave drag (linearised supersonic), Sears-Haack, drag polar, L/D.
+// All still BLOCKED ON GEOMETRY.

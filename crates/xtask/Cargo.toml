@@ -8,6 +8,8 @@ license.workspace = true
 [dependencies]
 ventus-atmos = { path = "../ventus-atmos" }
 ventus-gasdyn = { path = "../ventus-gasdyn" }
+ventus-aero = { path = "../ventus-aero" }
+ventus-thermal = { path = "../ventus-thermal" }
 ventus-validate = { path = "../ventus-validate" }
 serde.workspace = true
 toml.workspace  = true

@@ -1,0 +1,52 @@
+# M5 - radiation-equilibrium skin temperature.
+#
+# The anchor is the SR-71: published skin temperatures of 250-300 C over most of
+# the airframe at M 3.2 cruise, nose around 315 C. This model is a flat plate, so
+# it is checked where a flat plate is a fair representation.
+
+[[case]]
+name    = "sr71_forward_body_skin_temperature"
+source  = "SR-71 cruise skin temperature, published as 250-300 C over most of the airframe at M 3.2 / ~24 km [TO CITE]"
+reason  = """
+THE ANCHOR FOR M5. Flat-plate radiation balance at the SR-71 cruise condition,
+1 m from the leading edge, gives 543.4 K = 270.2 C - inside the published band.
+
+The expected value below is the midpoint of the published band, 275 C = 548.15 K,
+and the tolerance is +/- 25 C expressed as a relative 4.6e-2, which is the HALF
+WIDTH OF THE PUBLISHED BAND ITSELF. The yardstick is a range, so the tolerance is
+that range; tightening it would be asserting a precision the source does not have.
+"""
+inputs  = { geopotential_altitude_m = 24000.0, mach = 3.2, running_length_m = 1.0, emissivity = 0.85, sink_temperature_k = 0.0 }
+expect  = { wall_temperature_k = 548.15 }
+rel_tol = 4.6e-2
+
+[[case]]
+name    = "ventus1_design_point_skin_temperature"
+source  = "Radiation balance at the r4 design point, computed by this module and cross-checked against an independent implementation in analysis/"
+reason  = """
+The number docs/design-point.md section 3.2 quotes. An earlier revision of that
+document ESTIMATED 590-640 K for the flat panels before this module existed; the
+computed answer is 548.3 K at 10 m, so the estimate was 40-90 K too high. The
+document was corrected to the computed value.
+"""
+inputs  = { geopotential_altitude_m = 26000.0, mach = 3.5, running_length_m = 10.0, emissivity = 0.85, sink_temperature_k = 0.0 }
+expect  = { wall_temperature_k = 548.3, adiabatic_wall_temperature_k = 709.3 }
+rel_tol = 1e-3
+
+[[case]]
+name    = "radiation_relief_decides_the_material"
+source  = "Ti-6Al-4V sustained service limit, creep-limited, taken as 350 C = 623 K [TO CITE]"
+reason  = """
+THE RESULT OF THE MODULE, expressed as a number the harness can check.
+
+At the design point the adiabatic wall sits at 709.3 K, ABOVE the Ti-6Al-4V
+limit of 623 K. The radiating wall sits at 548.3 K, BELOW it. The gap between
+them - what radiation is worth - is 161 K, and it is the entire reason the flat
+panels can be conventional titanium rather than beta-titanium or a superalloy.
+
+If this number ever falls below about 90 K the material conclusion flips, so it
+is asserted rather than left as prose.
+"""
+inputs  = { geopotential_altitude_m = 26000.0, mach = 3.5, running_length_m = 10.0, emissivity = 0.85, sink_temperature_k = 0.0 }
+expect  = { radiation_relief_k = 161.0 }
+rel_tol = 2e-2
