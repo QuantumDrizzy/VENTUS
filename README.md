@@ -59,13 +59,14 @@ VENTUS answers it structurally rather than by care:
 | M6a | Compressible boundary layer | Blasius, Reynolds analogy (both exact) | **done** |
 | M6b | Geometry, wave drag, L/D | Küchemann bound; L/D in the 5.0-6.0 target | **done** |
 | M7 | Mass fractions, Breguet range | SR-71 unrefuelled range - the end-to-end check | **done** |
-| M8 | 6-DOF flight dynamics | integrator energy conservation | pending |
-| M9 | CUDA 2-D Euler solver | exact oblique-shock angles from M2 | pending |
-| M10 | Flight software | declared latency budget | pending |
+| M8 | 6-DOF rigid-body dynamics | energy drift < 1e-10 over 1e6 steps | **done** |
+| M9 | 2-D Euler solver | shock angle 0.006 deg vs exact theta-beta-M | **physics done**, GPU build blocked |
+| M10 | Flight software | shares M1 bit-for-bit with the twin | **done** |
 
 ```
-cargo test --workspace     123 tests
+cargo test --workspace     158 tests
 cargo xtask validate       64 cases: 58 pass, 0 fail, 6 known limit, 0 stale
+nativeuild_cpu.bat       M9 level D: shock angle 0.006 deg against exact
 ```
 
 **New here?** [`docs/PRIMER.md`](docs/PRIMER.md) walks the whole causal chain —

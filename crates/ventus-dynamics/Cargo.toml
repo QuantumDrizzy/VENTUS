@@ -7,6 +7,7 @@ license.workspace = true
 
 [dependencies]
 ventus-units = { path = "../ventus-units" }
+libm = "0.2"
 ventus-atmos = { path = "../ventus-atmos" }
 ventus-aero = { path = "../ventus-aero" }
 ventus-mass = { path = "../ventus-mass" }

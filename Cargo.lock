@@ -175,6 +175,7 @@ dependencies = [
 name = "ventus-dynamics"
 version = "0.0.0"
 dependencies = [
+ "libm",
  "ventus-aero",
  "ventus-atmos",
  "ventus-mass",
@@ -187,6 +188,7 @@ dependencies = [
 name = "ventus-fsw"
 version = "0.0.0"
 dependencies = [
+ "libm",
  "ventus-atmos",
  "ventus-dynamics",
  "ventus-units",
