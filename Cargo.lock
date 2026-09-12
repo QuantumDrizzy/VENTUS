@@ -177,6 +177,7 @@ version = "0.0.0"
 dependencies = [
  "libm",
  "ventus-atmos",
+ "ventus-mass",
  "ventus-validate",
 ]
 

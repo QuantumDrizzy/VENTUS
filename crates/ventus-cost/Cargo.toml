@@ -12,4 +12,5 @@ libm = "0.2"
 
 [dev-dependencies]
 ventus-atmos = { path = "../ventus-atmos" }
+ventus-mass = { path = "../ventus-mass" }
 ventus-validate = { path = "../ventus-validate" }

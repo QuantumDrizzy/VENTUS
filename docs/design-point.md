@@ -226,10 +226,56 @@ defined (§5.2).
 | M6 (boundary layer) | Blasius c_f·sqrt(Re) = 0.664 exact; Reynolds analogy exact at Pr = 1 | **DONE** — the geometry-free half |
 | M5 | SR-71 skin 250–300 °C at M 3.2 | **DONE** — 270.2 °C at 1 m, 253.6 °C at 5 m, inside the band |
 | M6 (wave drag) | Concorde L/D ≈ 7.5 @ M 2.04, SR-71 ≈ 6 @ M 3.2; Küchemann bound 4(M+3)/M = **7.43** at M 3.5 | target **5.0–6.0**. **Two-sided: > 7.4 exceeds the Küchemann bound and is a bug; < 3.5 is a bug OR a bad configuration — the harness must distinguish them** |
-| M7 | SR-71 empty mass / MTOW / unrefuelled range **[TO CITE]** | pinned to a primary source in `ventus-mass/cases/` |
+| M7 | SR-71 empty mass / MTOW / unrefuelled range **[TO CITE]** | in `ventus-mass/cases/`; the empty fraction now carries the empty-mass derivation too (§ 4b) |
 | M8 | Energy conservation of the integrator, ballistic, no atmosphere | drift ≤ 1e-10 relative over 10⁶ steps |
 | M9 | Oblique shock angle vs exact θ-β-M from M2 | ≤ 0.5° |
 | M9 | CPU vs GPU | ADR-000 D3, levels A–D |
+
+## 4b. Mass, and what the aircraft can actually do
+
+Added when M7 derived an empty mass, which had been a `[TO COMPUTE]` blocking
+M11. Everything here follows from the 28 t cruise mass M6b declares — the one
+chosen scale in the whole chain — plus one anchored ratio.
+
+| Quantity | Value | Provenance |
+|---|---|---|
+| Cruise mass (start of cruise) | 28 000 kg | M6b, **chosen**, not derived |
+| Empty-mass fraction | 0.5564 | SR-71: 30 600 / 55 000 kg **[TO CITE]** |
+| **Empty mass** | **15 578 kg** | derived, M7 |
+| Payload + reserve | 1 000 kg | **chosen** (demonstrator instrumentation) |
+| Fuel fraction of cruise mass | 0.4079 | derived |
+| **Cruise range** | **4 376 km** | Breguet: V from M1, L/D 5.5 from M6b, Isp 1450 s from M4 |
+
+### The requirement that failed
+
+**A 5 000 km cruise requirement does not close.** The fuel it demands leaves
+15 384 kg at the end of cruise against an empty airframe of 15 578 kg: the
+aircraft arrives 194 kg lighter than it can possibly be, carrying nothing at all.
+
+`close_cruise` returns `MissionDoesNotClose` rather than a negative payload,
+because a negative payload propagates as a number and looks like one. What the
+aircraft can do with a tonne aboard is **4 376 km**, 12 % short of the round
+figure that had been assumed.
+
+This is the first time in this project that a **requirement** failed rather than
+a model. The chain M1 — M4 — M6b — M7 is now tight enough that the aircraft can
+say no, and that is what a design point is for.
+
+### What the derivation rests on, stated plainly
+
+One uncited ratio. Both of its numbers are `[TO CITE]`, and there is a further
+ambiguity inside them: M7’s own doc comment calls 55 t the *mid-cruise* mass
+while the case passes it as the *start-of-cruise* mass. Those differ by the
+cruise fuel, which is not small. Read as start-of-cruise, as here, the
+denominator is larger and the empty fraction smaller — **the direction that
+flatters the result.** `[TO VERIFY]` against a primary mass schedule.
+
+The textbook alternative is worse. Raymer’s jet-fighter empty-weight correlation
+over-predicts the SR-71’s empty fraction by 24 %, so a real aircraft inside the
+regime beats a correlation fitted outside it — the same argument M11 makes about
+DAPCA IV. It is carried as a case rather than as a remark.
+
+---
 
 ## 5. Declared gaps
 

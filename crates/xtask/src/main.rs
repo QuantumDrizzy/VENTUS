@@ -516,6 +516,48 @@ fn evaluate_mass(c: &Case) -> BTreeMap<String, ExpectValue> {
     m
 }
 
+/// M7, the empty-mass half. Separate from the Breguet evaluator because these
+/// cases take a different input set entirely, and dispatching on which keys
+/// happen to be present is how a case ends up silently answered by the wrong
+/// model.
+fn evaluate_mass_empty(c: &Case) -> BTreeMap<String, ExpectValue> {
+    let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
+    let mut m = BTreeMap::new();
+
+    if let (Some(cruise), Some(frac)) = (f("cruise_mass_kg"), f("empty_fraction")) {
+        if let Ok(e) = ventus_mass::empty_mass_from_cruise_anchor(cruise, frac) {
+            m.insert("empty_mass_kg".to_string(), ExpectValue::Float(e));
+        }
+    }
+    if let Some(w0) = f("takeoff_mass_kg") {
+        m.insert(
+            "raymer_empty_fraction".to_string(),
+            ExpectValue::Float(ventus_mass::raymer_jet_fighter_empty_fraction(w0)),
+        );
+    }
+    if let (Some(cruise), Some(empty), Some(load)) = (
+        f("cruise_mass_kg"),
+        f("empty_mass_kg"),
+        f("payload_and_reserve_kg"),
+    ) {
+        let v = f("velocity_m_s").unwrap_or_else(|| panic!("case `{}` needs velocity_m_s", c.name));
+        let ld =
+            f("lift_to_drag").unwrap_or_else(|| panic!("case `{}` needs lift_to_drag", c.name));
+        let isp = f("specific_impulse_s")
+            .unwrap_or_else(|| panic!("case `{}` needs specific_impulse_s", c.name));
+        if let Ok(cl) = ventus_mass::close_cruise(cruise, empty, load, v, ld, isp) {
+            for (k, val) in [
+                ("range_m", cl.range_m),
+                ("fuel_fraction", cl.fuel_fraction),
+                ("final_mass_kg", cl.final_mass_kg),
+            ] {
+                m.insert(k.to_string(), ExpectValue::Float(val));
+            }
+        }
+    }
+    m
+}
+
 fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
     // Dispatch on the crate the case came from, not on guessing from its inputs:
     // a case belongs to the module that owns its yardstick.
@@ -531,7 +573,16 @@ fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
     } else if owner("ventus-propulsion") {
         evaluate_propulsion(c)
     } else if owner("ventus-mass") {
-        evaluate_mass(c)
+        // The two halves of M7 take disjoint input sets; pick by what the case
+        // names, not by what happens to parse.
+        if c.inputs.contains_key("empty_fraction")
+            || c.inputs.contains_key("takeoff_mass_kg")
+            || c.inputs.contains_key("payload_and_reserve_kg")
+        {
+            evaluate_mass_empty(c)
+        } else {
+            evaluate_mass(c)
+        }
     } else if owner("ventus-cost") {
         evaluate_cost(c)
     } else if owner("ventus-gasdyn") {

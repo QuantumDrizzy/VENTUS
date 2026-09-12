@@ -58,15 +58,15 @@ VENTUS answers it structurally rather than by care:
 | M5 | Radiation-equilibrium skin, material selection | SR-71 skin 250-300 C at M 3.2 | **done** |
 | M6a | Compressible boundary layer | Blasius, Reynolds analogy (both exact) | **done** |
 | M6b | Geometry, wave drag, L/D | Küchemann bound; L/D in the 5.0-6.0 target | **done** |
-| M7 | Mass fractions, Breguet range | SR-71 unrefuelled range - the end-to-end check | **done** |
+| M7 | Mass fractions, empty mass, Breguet range | SR-71 unrefuelled range - the end-to-end check | **done** |
 | M8 | 6-DOF rigid-body dynamics | energy drift < 1e-10 over 1e6 steps | **done** |
 | M9 | 2-D Euler solver | shock angle 0.006 deg vs exact theta-beta-M | **physics done**, GPU build blocked |
 | M10 | Flight software | shares M1 bit-for-bit with the twin | **done** |
 | M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
 
 ```
-cargo test --workspace     168 tests
-cargo xtask validate       72 cases: 65 pass, 0 fail, 7 known limit, 0 stale
+cargo test --workspace     175 tests
+cargo xtask validate       75 cases: 68 pass, 0 fail, 7 known limit, 0 stale
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 ```
 
@@ -184,6 +184,8 @@ Full derivation and provenance in [`docs/design-point.md`](docs/design-point.md)
 | T_aw | **709.3 K / 436.2 °C** (no radiation) |
 | **Skin, radiating** | **548.3 K / 275.2 °C** at 10 m — computed, ε = 0.85 |
 | Inlet recovery | 0.742, against 0.213 for a normal shock — **a factor of 3.48** |
+| Empty mass | **15 578 kg** — derived from 28 t cruise at the SR-71 empty fraction |
+| **Cruise range** | **4 376 km** with 1 t aboard — *5 000 km does not close* |
 
 **What it costs is the one question the project answers badly, and says so.**
 M11 runs DAPCA IV anchored on the SR-71. The anchor is already **1.54x past** the

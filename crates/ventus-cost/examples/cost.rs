@@ -91,19 +91,35 @@ fn main() {
         },
     );
 
-    // VENTUS-1 has no declared empty mass, so this is a SWEEP, not a result.
-    println!("VENTUS-1: empty mass is [TO COMPUTE], so this is parametric.");
-    println!("  Cruise mass is 28 t (M6b). Empty mass is not derived anywhere.\n");
-    for empty in [12_000.0, 14_000.0, 16_000.0] {
-        show(
-            &std::format!("VENTUS-1, empty {empty:.0} kg, Q = 6, titanium x1.7"),
-            &Inputs {
-                empty_mass_kg: empty,
-                max_velocity_m_s: v_ventus,
-                production_quantity: 6.0,
-                flight_test_aircraft: 2.0,
-                material_factor: MATERIAL_FACTOR_TITANIUM_LOW,
-            },
+    // [CORRECTED] This was a sweep over an undeclared empty mass. M7 now derives
+    // one - 28 t of cruise mass at the SR-71 empty fraction - so there is a
+    // single answer rather than a family of them.
+    println!(
+        "VENTUS-1 empty mass {:.0} kg, derived by M7 from M6b cruise mass.\n",
+        ventus_mass::VENTUS1_EMPTY_MASS_KG
+    );
+    let ventus = |q: f64| Inputs {
+        empty_mass_kg: ventus_mass::VENTUS1_EMPTY_MASS_KG,
+        max_velocity_m_s: v_ventus,
+        production_quantity: q,
+        flight_test_aircraft: 2.0,
+        material_factor: MATERIAL_FACTOR_TITANIUM_LOW,
+    };
+    show("VENTUS-1, Q = 6, titanium x1.7", &ventus(6.0));
+
+    // The quantity sweep is the one that still earns its place, because the run
+    // is a requirements choice and it dominates the answer.
+    println!("Quantity is a requirements choice, and it dominates:");
+    for q in [3.0, 6.0, 12.0, 32.0] {
+        let e = estimate(
+            &ventus(q),
+            &Rates::raymer_1986(),
+            &Envelope::conventional_metal(),
+        )
+        .unwrap();
+        println!(
+            "  Q = {q:5.0}   programme {:.4e}   per aircraft {:.4e} (1986 USD)",
+            e.airframe_total_usd, e.per_aircraft_usd
         );
     }
 }

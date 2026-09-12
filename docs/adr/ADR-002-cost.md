@@ -99,6 +99,35 @@ So `ventus-cost` converts internally, with its own defining constants, and its
 identifiers still carry their unit (`we_lb`, `v_knots`) — which is the part of D7
 doing the actual work.
 
+## D6 — Revised once M7 derived an empty mass
+
+M11 originally reported VENTUS-1 as a sweep over an assumed empty mass, because
+nothing derived one. M7 now does, and the headline changes shape:
+
+**VENTUS-1, airframe-only, 1986 USD, titanium x1.7, Q = 6: 2.867e9 for the
+programme, 4.779e8 per aircraft.** Still a lower bound (no engine, D4) and still
+unanchored in absolute terms (D3).
+
+The quantity sweep is the part that survives, because the production run is a
+requirements choice rather than an engineering one:
+
+| Q | programme | per aircraft |
+|---|---|---|
+| 3 | 2.450e9 | **8.167e8** |
+| 6 | 2.867e9 | 4.779e8 |
+| 12 | 3.450e9 | 2.875e8 |
+| 32 | 4.740e9 | **1.481e8** |
+
+A 5.5x swing in unit cost across a range of quantities any of which a programme
+might plausibly buy.
+
+**It also sharpens the earlier result rather than confirming it.** At Q = 32,
+VENTUS-1 costs 1.481e8 per aircraft against the SR-71 anchor’s 2.339e8 — the
+lighter aircraft is the cheaper one, as it should be. The "smaller aircraft costs
+more" finding was **entirely a quantity effect** and not a statement about the
+vehicle at all. The test now asserts both halves, because the first assertion
+alone reads as something false.
+
 ## Consequences — the two results that came out of it
 
 **The model cannot see what makes M 3.5 expensive.** Same airframe, same
@@ -129,6 +158,8 @@ need more of them**, which is a requirements decision, not an engineering one.
 - `[TO CITE]` the SR-71 programme cost, dollar-year and scope — the unblock for
   D3.
 - `[TO CITE]` SR-71 empty mass and production quantity, shared with M7.
-- `[TO COMPUTE]` a VENTUS-1 empty mass. M6b declares a 28 t cruise mass and
-  nothing derives an empty mass from it, so every VENTUS figure in
-  `examples/cost.rs` is a **sweep, not a result**, and is labelled as one.
+- ~~`[TO COMPUTE]` a VENTUS-1 empty mass.~~ **CLOSED.** M7 derives 15 578 kg:
+  M6b’s declared 28 t cruise mass at the SR-71 empty fraction
+  (30 600 / 55 000). `examples/cost.rs` now reports one answer instead of a
+  sweep. The derivation rests on a single uncited ratio and says so — see
+  `ventus-mass/cases/breguet_range.toml`.

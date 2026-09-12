@@ -78,3 +78,78 @@ reason  = "Degenerate by construction, so the answer is exact and the tolerance 
 inputs  = { velocity_m_s = 1046.95, lift_to_drag = 5.5, specific_impulse_s = 1450.0, initial_mass_kg = 28000.0, final_mass_kg = 28000.0 }
 expect  = { range_m = 0.0 }
 ulp_tol = 0
+
+# --- Empty mass: closing the [TO COMPUTE] M11 was carrying -----------------
+
+[[case]]
+name    = "ventus1_empty_mass_from_the_sr71_anchor"
+source  = "SR-71 empty mass 30 600 kg over a start-of-cruise mass of 55 000 kg [TO CITE], applied to the 28 t cruise mass M6b declares"
+reason  = """
+THE DERIVATION, AND WHAT IT RESTS ON. M6b declares 28 t of cruise mass as the one
+number in the geometry that is chosen rather than derived. Everything downstream
+of it - wing area, L/D, range - follows. Empty mass did not, and M11 could
+therefore only emit a family of answers.
+
+This closes it with a ratio from an aircraft that exists rather than a second
+free parameter. 0.5564 x 28 000 = 15 578 kg.
+
+IT IS THE WEAKEST DERIVATION IN THE PROJECT AND IT IS MARKED AS SUCH. One uncited
+ratio carries it. Both of its numbers are [TO CITE], and there is a further
+ambiguity inside them: the doc comment on the SR-71 range test calls 55 t the
+MID-cruise mass while the case passes it as the START-of-cruise mass. Those
+differ by the cruise fuel, which is not small. Read as start-of-cruise, as here,
+the denominator is larger and the empty fraction smaller - the direction that
+FLATTERS the result. [TO VERIFY] against a primary mass schedule.
+
+Not a known_limit, because the arithmetic is exact and the inputs are declared;
+the uncertainty is in the inputs, and it is written down where a reader meets the
+number rather than where they would have to go looking.
+"""
+inputs  = { cruise_mass_kg = 28000.0, empty_fraction = 0.5563636363636364 }
+expect  = { empty_mass_kg = 15578.18181818182 }
+rel_tol = 1e-15
+
+[[case]]
+name    = "the_design_range_is_what_closes_not_what_was_hoped_for"
+source  = "Breguet at the design point (V from M1, L/D from M6b, Isp from M4) with the derived empty mass and one tonne of payload and reserve"
+reason  = """
+THE RESULT OF DERIVING THE EMPTY MASS, AND IT IS A NEGATIVE ONE.
+
+A 5000 km cruise requirement DOES NOT CLOSE. The fuel it demands leaves 15 384 kg
+at the end of cruise against an empty airframe of 15 578 kg: the aircraft arrives
+194 kg lighter than it can possibly be, carrying nothing. `close_cruise` returns
+`MissionDoesNotClose` rather than a negative payload, because a negative payload
+propagates as a number and looks like one.
+
+What the aircraft can actually do with a tonne aboard is 4376 km. That is the
+figure the design point should carry, and it is 12 % short of the round number
+that had been assumed.
+
+It is also the first time this project has had a REQUIREMENT fail rather than a
+model. The chain M1 -> M4 -> M6b -> M7 is now tight enough that the aircraft can
+say no.
+"""
+inputs  = { cruise_mass_kg = 28000.0, empty_mass_kg = 15578.18181818182, payload_and_reserve_kg = 1000.0, velocity_m_s = 1046.946565, lift_to_drag = 5.5, specific_impulse_s = 1450.0 }
+expect  = { range_m = 4376062.110824616, fuel_fraction = 0.4079220779220779, final_mass_kg = 16578.18181818182 }
+rel_tol = 1e-15
+
+[[case]]
+name    = "the_jet_fighter_correlation_does_not_reach_this_regime"
+source  = "Raymer empty-weight fraction for a jet fighter, We/W0 = 2.34 W0^-0.13 with W0 in pounds. THE SOURCE IS THE FORMULA. [TO VERIFY]"
+reason  = """
+Present to show why it is NOT the route used. At the SR-71 gross mass it returns
+0.4882 against an actual 0.3923 [TO CITE]: it over-predicts the empty fraction by
+24 %. Fighters are a different kind of object from a vehicle that is more than
+half fuel and made of titanium.
+
+The direction is worth noting. Over-predicting empty mass under-predicts fuel,
+which under-predicts range, so the correlation would have made VENTUS-1 look
+WORSE rather than better. It is still not used: a number being conservative is
+not the same as it being right, and a 24 % error swamps what is being computed.
+
+Same argument M11 makes about DAPCA IV, and the same conclusion - a real aircraft
+inside the regime beats a correlation fitted outside it.
+"""
+inputs  = { takeoff_mass_kg = 78000.0 }
+expect  = { raymer_empty_fraction = 0.48821386090502666 }
+rel_tol = 1e-15

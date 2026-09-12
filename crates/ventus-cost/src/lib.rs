@@ -221,7 +221,8 @@ mod tests {
 
     fn ventus() -> Inputs {
         Inputs {
-            empty_mass_kg: 14_000.0,
+            // M7 derives this: 28 t cruise mass at the SR-71 empty fraction.
+            empty_mass_kg: 15_578.181_818_181_82,
             max_velocity_m_s: V_VENTUS_M_S,
             production_quantity: 6.0,
             flight_test_aircraft: 2.0,
@@ -281,13 +282,35 @@ mod tests {
         let v = run(&ventus());
 
         assert!(
-            ventus().empty_mass_kg < 0.5 * sr71().empty_mass_kg,
+            ventus().empty_mass_kg < 0.6 * sr71().empty_mass_kg,
             "this test is only interesting if VENTUS is much the lighter aircraft"
         );
         assert!(
             v.per_aircraft_usd > anchor.per_aircraft_usd,
-            "half the aircraft over a sixth of the run came out cheaper per unit, which would mean the quantity exponent is not being applied: {:.3e} against {:.3e}",
+            "the lighter aircraft over a sixth of the run came out cheaper per unit, which would mean the quantity exponent is not being applied: {:.3e} against {:.3e}",
             v.per_aircraft_usd,
+            anchor.per_aircraft_usd
+        );
+
+        // AND THE HALF THAT MAKES THE CLAIM PRECISE. Run the two at the SAME
+        // quantity and the ordering inverts: VENTUS is the lighter aircraft and
+        // comes out the cheaper one. So the result above is ENTIRELY a quantity
+        // effect, not a statement about the vehicle. Without this half, the
+        // first assertion reads as "small aircraft cost more", which is false.
+        let matched = run(&Inputs {
+            production_quantity: 32.0,
+            ..ventus()
+        });
+        assert!(
+            matched.per_aircraft_usd < anchor.per_aircraft_usd,
+            "at equal quantity the lighter aircraft should be cheaper: {:.3e} against {:.3e}",
+            matched.per_aircraft_usd,
+            anchor.per_aircraft_usd
+        );
+        std::println!(
+            "per aircraft: VENTUS at Q=6 {:.3e}, at Q=32 {:.3e}, SR-71 at Q=32 {:.3e}",
+            v.per_aircraft_usd,
+            matched.per_aircraft_usd,
             anchor.per_aircraft_usd
         );
     }
