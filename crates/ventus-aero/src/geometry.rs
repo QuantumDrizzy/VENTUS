@@ -19,7 +19,16 @@
 //! number in this module that is not derived:
 //!
 //! **Declared choice: cruise mass 28 000 kg.** A demonstrator at roughly half
-//! the SR-71's mid-cruise mass. Everything below follows from it.
+//! the SR-71's start-of-cruise mass. Everything below follows from it, and since
+//! M7 it also fixes the empty mass, so this is the scale of the whole aircraft.
+//!
+//! [CORRECTED] This said *mid-cruise* mass. **No number changes** - the 55 t it
+//! refers to was always used as the start-of-cruise value, which is the
+//! like-for-like comparison because `CRUISE_MASS_KG` is itself a start-of-cruise
+//! mass. Only the label was wrong, and it was wrong in three places at once.
+//! Corrected here because M7 now divides by that quantity to derive an empty
+//! mass, where the two readings differ by 29 %. See
+//! `ventus_mass::SR71_EMPTY_FRACTION_OF_CRUISE_MASS`.
 //!
 //! Aspect ratio 1.7 is taken from the SR-71 **[TO CITE]**, because a slender
 //! supersonic delta has very little freedom there — span costs wave drag and
@@ -38,6 +47,11 @@ pub const CRUISE_MASS_KG: f64 = 28_000.0;
 
 /// Cruise lift coefficient, from the SR-71 back-calculation in
 /// `docs/design-point.md` §5.2. **[TO CITE]** on the SR-71 mass and wing area.
+///
+/// That back-calculation uses the SR-71 at its START-of-cruise mass, matched
+/// against [`CRUISE_MASS_KG`] which is also a start-of-cruise mass. Taking the
+/// SR-71 at 77 t instead, which the discarded mid-cruise reading implied, would
+/// give C_L = 0.215 rather than 0.154.
 pub const CRUISE_LIFT_COEFFICIENT: f64 = 0.154;
 
 /// Wing aspect ratio, SR-71 class. **[TO CITE]**

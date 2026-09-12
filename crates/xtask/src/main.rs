@@ -529,6 +529,14 @@ fn evaluate_mass_empty(c: &Case) -> BTreeMap<String, ExpectValue> {
             m.insert("empty_mass_kg".to_string(), ExpectValue::Float(e));
         }
     }
+    if let (Some(a), Some(end)) = (f("anchor_mass_kg"), f("end_of_cruise_mass_kg")) {
+        // If the anchor were the geometric mid-cruise mass, the start of cruise
+        // would be a^2/end. The case checks that against the max gross mass.
+        m.insert(
+            "geometric_mid_cruise_implied_start_kg".to_string(),
+            ExpectValue::Float(a * a / end),
+        );
+    }
     if let Some(w0) = f("takeoff_mass_kg") {
         m.insert(
             "raymer_empty_fraction".to_string(),
@@ -578,6 +586,7 @@ fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
         if c.inputs.contains_key("empty_fraction")
             || c.inputs.contains_key("takeoff_mass_kg")
             || c.inputs.contains_key("payload_and_reserve_kg")
+            || c.inputs.contains_key("anchor_mass_kg")
         {
             evaluate_mass_empty(c)
         } else {

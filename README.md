@@ -65,8 +65,8 @@ VENTUS answers it structurally rather than by care:
 | M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
 
 ```
-cargo test --workspace     175 tests
-cargo xtask validate       75 cases: 68 pass, 0 fail, 7 known limit, 0 stale
+cargo test --workspace     177 tests
+cargo xtask validate       76 cases: 69 pass, 0 fail, 7 known limit, 0 stale
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 ```
 

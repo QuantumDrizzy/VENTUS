@@ -153,8 +153,19 @@ mod tests {
     /// product is compared against the SR-71's unrefuelled range of about
     /// 5400 km. **[TO CITE]**
     ///
-    /// The SR-71's own numbers: mid-cruise mass about 55 t against an empty mass
-    /// near 30 t, so a mass ratio near 1.8.
+    /// The SR-71's own numbers: **start-of-cruise** mass about 55 t falling to
+    /// about 33 t, against an empty mass near 30 t. Mass ratio 1.67.
+    ///
+    /// [CORRECTED] This comment used to call 55 t the MID-cruise mass while the
+    /// call below passed it as `initial_mass_kg`, which is the start of cruise.
+    /// Those are different quantities and the gap between them is the cruise
+    /// fuel, which is 22 t. The error was invisible here - the range assertion is
+    /// wide enough to survive either - and became load-bearing the moment
+    /// `SR71_EMPTY_FRACTION_OF_CRUISE_MASS` started dividing by this number:
+    /// the two readings differ by 29 % in VENTUS-1's derived empty mass.
+    ///
+    /// **The model settles it; no citation was needed.** See
+    /// `the_mid_cruise_reading_of_the_anchor_is_refuted_two_ways`.
     #[test]
     fn the_chain_reproduces_the_sr71_unrefuelled_range() {
         // SR-71 class: M 3.2, L/D about 6, turboramjet Isp about 1900 s at
@@ -402,14 +413,34 @@ mod tests {
 /// uses. **[TO CITE]**, and it is the anchor the whole empty-mass derivation
 /// rests on, so it is the most load-bearing uncited number in this crate.
 ///
-/// **[TO VERIFY] — an ambiguity in this module's own inputs.** The doc comment
-/// on `the_chain_reproduces_the_sr71_unrefuelled_range` calls 55 t the
-/// *mid-cruise* mass, while the case passes it as `initial_mass_kg`, which is
-/// the mass at the *start* of cruise. Those are different quantities and the
-/// gap between them is the cruise fuel, which is not small. Reading it as
-/// start-of-cruise, as done here, gives the LARGER denominator and therefore the
-/// SMALLER empty fraction - the direction that flatters the derived empty mass.
-/// Resolving it needs a primary source for the SR-71 mass schedule.
+/// [CORRECTED] **The start-of-cruise / mid-cruise ambiguity is resolved**, and
+/// it was resolved by the model rather than by a citation. The doc comment on
+/// the range check used to call 55 t the *mid-cruise* mass while the case passed
+/// it as the *start* of cruise; the gap between those is the cruise fuel, 22 t,
+/// and it moves this fraction from 0.5564 to 0.3974 - a 29 % swing in VENTUS-1's
+/// derived empty mass. Both mid-cruise readings fail, for unrelated reasons:
+///
+/// - As the **geometric** mean, the natural reading under Breguet, 55 t implies
+///   91 667 kg at the start of cruise, above the SR-71's max gross of ~78 t.
+///   Impossible, not merely unlikely.
+/// - As the **arithmetic** mean it implies 77 t, which is possible, so it has to
+///   be killed on performance instead: it gives 9 204 km against a published
+///   5 400 km, 70 % over. Start-of-cruise gives 5 549 km, 2.8 % over.
+///
+/// See `the_mid_cruise_reading_of_the_anchor_is_refuted_two_ways`.
+///
+/// **[TO CITE] remains** on the three masses themselves (30 600, 55 000, 78 000).
+/// What is settled is which quantity 55 t names, not where it came from.
+///
+/// # Do not substitute the familiar number
+///
+/// The commonly quoted SR-71 empty fraction is ~0.392, which is empty over
+/// **MTOW**. This constant is empty over **start-of-cruise mass**, because M6b
+/// declares VENTUS-1's 28 t as cruise mass and a fraction must be taken against
+/// the same reference as the mass it multiplies. Swapping in 0.392 would look
+/// like a correction and would shrink the derived empty mass by 29 %, in the
+/// flattering direction. Guarded by
+/// `the_fraction_must_be_taken_against_cruise_mass_not_gross_mass`.
 ///
 /// # Why not a statistical correlation
 ///
@@ -695,5 +726,115 @@ mod empty_mass_tests {
                 "fraction {bad} was accepted"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod anchor_reading_tests {
+    use super::*;
+
+    const V: f64 = 952.899_424_000_000_1; // M1, M 3.2 at 24 km
+    const LD: f64 = 6.0; // [TO CITE]
+    const ISP: f64 = 1900.0; // [TO CITE]
+
+    /// SR-71 maximum gross mass, about 78 t. **[TO CITE]**
+    const SR71_MAX_GROSS_KG: f64 = 78_000.0;
+    const SR71_END_OF_CRUISE_KG: f64 = 33_000.0;
+    const SR71_ANCHOR_KG: f64 = 55_000.0;
+
+    /// RESOLVING AN AMBIGUITY IN THIS MODULE'S OWN INPUTS, WITHOUT A CITATION.
+    ///
+    /// The doc comment on the range check called 55 t the mid-cruise mass; the
+    /// call passed it as the start of cruise. Nothing in the module distinguished
+    /// them, and once the empty-mass derivation began dividing by that number the
+    /// difference stopped being cosmetic: 0.5564 against 0.3974, which is 15 578
+    /// kg against 11 127 kg of VENTUS-1 empty mass, a 29 % swing.
+    ///
+    /// Both mid-cruise readings die, for unrelated reasons, which is what makes
+    /// the conclusion safe.
+    #[test]
+    fn the_mid_cruise_reading_of_the_anchor_is_refuted_two_ways() {
+        // Reading B1: mid-cruise as the geometric mean, which is the one Breguet
+        // makes natural because range goes as the log of the mass ratio.
+        let implied_start = SR71_ANCHOR_KG * SR71_ANCHOR_KG / SR71_END_OF_CRUISE_KG;
+        assert!(
+            implied_start > SR71_MAX_GROSS_KG,
+            "the geometric reading implies {implied_start:.0} kg at the start of cruise, \
+             which should be above the max gross mass of {SR71_MAX_GROSS_KG:.0} kg"
+        );
+
+        // Reading B2: mid-cruise as the arithmetic mean. This one is not
+        // impossible — it implies 77 t, just under max gross — so it has to be
+        // killed on performance instead.
+        let implied_start_b2 = 2.0 * SR71_ANCHOR_KG - SR71_END_OF_CRUISE_KG;
+        assert!(
+            implied_start_b2 < SR71_MAX_GROSS_KG,
+            "B2 should be possible"
+        );
+        let range_b2 =
+            breguet_range_m(V, LD, ISP, implied_start_b2, SR71_END_OF_CRUISE_KG).unwrap();
+        assert!(
+            range_b2 > 9.0e6,
+            "B2 range came out {:.0} km",
+            range_b2 / 1000.0
+        );
+
+        // Reading A: 55 t is the start of cruise. The only one that reproduces
+        // the published range.
+        let range_a = breguet_range_m(V, LD, ISP, SR71_ANCHOR_KG, SR71_END_OF_CRUISE_KG).unwrap();
+        let published = 5.4e6;
+        assert!(
+            (range_a / published - 1.0).abs() < 0.05,
+            "reading A should land within 5 % of the published range, got {:.0} km",
+            range_a / 1000.0
+        );
+        assert!(
+            range_b2 / published > 1.5,
+            "reading B2 should be far outside it"
+        );
+
+        std::println!(
+            "A start-of-cruise: {:.0} km ({:+.1} %). B2 mid-cruise: {:.0} km ({:+.1} %). \
+             B1 mid-cruise: {:.0} kg at cruise start, above a {:.0} kg max gross.",
+            range_a / 1000.0,
+            100.0 * (range_a / published - 1.0),
+            range_b2 / 1000.0,
+            100.0 * (range_b2 / published - 1.0),
+            implied_start,
+            SR71_MAX_GROSS_KG
+        );
+    }
+
+    /// THE OTHER HALF, AND THE ONE A WELL-MEANING READER IS LIKELIER TO BREAK.
+    ///
+    /// Even with the SR-71 numbers settled, the fraction must be taken against
+    /// the same reference as the mass it is applied to. M6b declares VENTUS-1's
+    /// 28 t as CRUISE mass, so the anchor must be empty-over-cruise-mass
+    /// (0.5564) and not the more commonly quoted empty-over-MTOW (0.3923).
+    ///
+    /// Substituting the familiar number would look like a correction and would
+    /// shrink the derived empty mass by 29 %, in the flattering direction.
+    #[test]
+    fn the_fraction_must_be_taken_against_cruise_mass_not_gross_mass() {
+        let over_cruise = 30_600.0 / SR71_ANCHOR_KG;
+        let over_gross = 30_600.0 / SR71_MAX_GROSS_KG;
+
+        assert_eq!(over_cruise, SR71_EMPTY_FRACTION_OF_CRUISE_MASS);
+        assert!(
+            over_gross < 0.75 * over_cruise,
+            "the two references should be far apart, or this test is not guarding anything"
+        );
+
+        let right = empty_mass_from_cruise_anchor(VENTUS1_CRUISE_MASS_KG, over_cruise).unwrap();
+        let wrong = empty_mass_from_cruise_anchor(VENTUS1_CRUISE_MASS_KG, over_gross).unwrap();
+        assert!(
+            wrong < right,
+            "the gross-mass fraction must be the flattering one, or the warning is backwards"
+        );
+        assert!(
+            (right / wrong - 1.0) > 0.25,
+            "the two readings should differ by about 29 %, got {:.1} %",
+            100.0 * (right / wrong - 1.0)
+        );
     }
 }

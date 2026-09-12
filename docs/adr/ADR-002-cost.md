@@ -162,4 +162,7 @@ need more of them**, which is a requirements decision, not an engineering one.
   M6b’s declared 28 t cruise mass at the SR-71 empty fraction
   (30 600 / 55 000). `examples/cost.rs` now reports one answer instead of a
   sweep. The derivation rests on a single uncited ratio and says so — see
-  `ventus-mass/cases/breguet_range.toml`.
+  `ventus-mass/cases/breguet_range.toml`. The start-of-cruise / mid-cruise
+  ambiguity that derivation originally carried is closed: both mid-cruise
+  readings are refuted, one by a max-gross inequality and one by a 70 % range
+  error, so no citation was needed to settle it.

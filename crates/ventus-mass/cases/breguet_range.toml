@@ -94,12 +94,17 @@ This closes it with a ratio from an aircraft that exists rather than a second
 free parameter. 0.5564 x 28 000 = 15 578 kg.
 
 IT IS THE WEAKEST DERIVATION IN THE PROJECT AND IT IS MARKED AS SUCH. One uncited
-ratio carries it. Both of its numbers are [TO CITE], and there is a further
-ambiguity inside them: the doc comment on the SR-71 range test calls 55 t the
-MID-cruise mass while the case passes it as the START-of-cruise mass. Those
-differ by the cruise fuel, which is not small. Read as start-of-cruise, as here,
-the denominator is larger and the empty fraction smaller - the direction that
-FLATTERS the result. [TO VERIFY] against a primary mass schedule.
+ratio carries it, and both of its numbers are [TO CITE].
+
+[CORRECTED] It used to carry a second and worse problem: it was not settled which
+quantity the 55 t names. The doc comment said MID-cruise, the case passed it as
+START-of-cruise, and the two differ by 22 t of cruise fuel - 0.5564 against
+0.3974, which is 15 578 kg against 11 127 kg of derived empty mass. That is
+resolved: both mid-cruise readings fail, on a max-gross inequality and on a 70 %
+range error respectively, and neither needed a citation. See
+`the_anchor_mass_is_start_of_cruise_not_mid_cruise`.
+
+What remains open is where the three masses came from, not what they mean.
 
 Not a known_limit, because the arithmetic is exact and the inputs are declared;
 the uncertainty is in the inputs, and it is written down where a reader meets the
@@ -152,4 +157,43 @@ inside the regime beats a correlation fitted outside it.
 """
 inputs  = { takeoff_mass_kg = 78000.0 }
 expect  = { raymer_empty_fraction = 0.48821386090502666 }
+rel_tol = 1e-15
+
+[[case]]
+name    = "the_anchor_mass_is_start_of_cruise_not_mid_cruise"
+source  = "SR-71 max gross mass about 78 000 kg [TO CITE], against the start-of-cruise mass the geometric mid-cruise reading would require"
+reason  = """
+AN AMBIGUITY IN THIS PROJECT'S OWN INPUTS, SETTLED BY THE MODEL RATHER THAN BY A
+CITATION.
+
+M7's doc comment called 55 t the MID-cruise mass while the case passed it as
+`initial_mass_kg`, the START of cruise. The gap between those is the cruise fuel,
+22 t. It was invisible for as long as 55 t only fed a range check with a wide
+band, and became load-bearing the moment `SR71_EMPTY_FRACTION_OF_CRUISE_MASS`
+started dividing by it: 0.5564 against 0.3974, which is 15 578 kg against
+11 127 kg of VENTUS-1 empty mass. A 29 % swing in a number M11 then prices.
+
+BOTH MID-CRUISE READINGS FAIL, FOR UNRELATED REASONS, which is what makes the
+conclusion safe rather than merely convenient:
+
+  geometric mean   55^2/33 = 91 667 kg at cruise start, ABOVE a max gross of
+                   78 000 kg. Impossible, and it is the reading Breguet makes
+                   natural, since range goes as the log of the mass ratio.
+
+  arithmetic mean  2(55) - 33 = 77 000 kg, which IS possible, so it dies on
+                   performance instead: 9 204 km against a published 5 400 km,
+                   70 % over.
+
+  start of cruise  5 549 km, 2.8 % over. The only reading that survives.
+
+This case asserts the first of those, because it is the one that is settled by an
+inequality rather than by a tolerance. The second is asserted in
+`the_mid_cruise_reading_of_the_anchor_is_refuted_two_ways`.
+
+[CORRECTED] closes the [TO VERIFY] this repository carried on the empty-mass
+derivation. The masses themselves remain [TO CITE]: what is settled is which
+quantity 55 t names, not where the number came from.
+"""
+inputs  = { anchor_mass_kg = 55000.0, end_of_cruise_mass_kg = 33000.0 }
+expect  = { geometric_mid_cruise_implied_start_kg = 91666.66666666667 }
 rel_tol = 1e-15

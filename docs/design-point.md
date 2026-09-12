@@ -263,12 +263,28 @@ say no, and that is what a design point is for.
 
 ### What the derivation rests on, stated plainly
 
-One uncited ratio. Both of its numbers are `[TO CITE]`, and there is a further
-ambiguity inside them: M7’s own doc comment calls 55 t the *mid-cruise* mass
-while the case passes it as the *start-of-cruise* mass. Those differ by the
-cruise fuel, which is not small. Read as start-of-cruise, as here, the
-denominator is larger and the empty fraction smaller — **the direction that
-flatters the result.** `[TO VERIFY]` against a primary mass schedule.
+One uncited ratio. Both of its numbers are `[TO CITE]`.
+
+**[CORRECTED] The reference of the 55 t is now settled, and the model settled it
+without a citation.** M7’s doc comment called it the *mid-cruise* mass while the
+case passed it as the *start of cruise*; those differ by 22 t of cruise fuel, and
+the fraction by 0.5564 against 0.3974 — a 29 % swing in the derived empty mass.
+Both mid-cruise readings fail, for unrelated reasons:
+
+| Reading | Implies | Verdict |
+|---|---|---|
+| Geometric mean (natural under Breguet) | 91 667 kg at cruise start | above a ~78 t max gross — **impossible** |
+| Arithmetic mean | 77 000 kg at cruise start | 9 204 km against a published 5 400 — **70 % over** |
+| **Start of cruise** | 55 000 kg | 5 549 km, **2.8 % over** — the only survivor |
+
+What remains open is where the three masses came from, not what they mean.
+
+**Do not substitute the familiar number.** The commonly quoted SR-71 empty
+fraction is ~0.392, which is empty over *MTOW*. The 0.5564 here is empty over
+*start-of-cruise mass*, because M6b declares VENTUS-1’s 28 t as cruise mass and a
+fraction must be taken against the same reference as the mass it multiplies.
+Swapping in 0.392 would look like a correction and would shrink the empty mass by
+29 %, in the flattering direction.
 
 The textbook alternative is worse. Raymer’s jet-fighter empty-weight correlation
 over-predicts the SR-71’s empty fraction by 24 %, so a real aircraft inside the
@@ -321,10 +337,19 @@ W/S = q · C_L
 ```
 
 Back-calculating the SR-71 at its own cruise condition (M 3.2, 24 km → q = 21.0 kPa;
-mid-cruise mass ≈ 55 t, S = 167.2 m² **[TO CITE]**) gives W/S = 3.23 kPa and
+**start-of-cruise** mass ≈ 55 t, S = 167.2 m² **[TO CITE]**) gives W/S = 3.23 kPa and
 **C_L ≈ 0.154**. So C_L = 0.10 describes a lighter, larger-winged aircraft than the
 SR-71; **282 kg/m² is the SR-71-like figure, not 188**. Carry both until M6 picks
 one, and pick it for a stated reason.
+
+> [CORRECTED] This said *mid-cruise* mass. It is the start-of-cruise mass, and
+> **no number above changes**: the arithmetic always used 55 t as the
+> start-of-cruise value, which is the like-for-like comparison, because M6b
+> applies VENTUS-1’s C_L at its own 28 t start-of-cruise mass. Only the label was
+> wrong. Had the mid-cruise reading been taken literally the SR-71 would start
+> cruise at 77 t and this back-calculation would give C_L ≈ 0.215, which is not
+> what is asserted here — so the text and the arithmetic disagreed, and the
+> arithmetic was right. See `ventus-mass`, `SR71_EMPTY_FRACTION_OF_CRUISE_MASS`.
 
 ## 6. Reproduction
 
