@@ -186,7 +186,7 @@ ventus-propulsion ->  units, gasdyn, atmos, inlet
 ventus-aero       ->  units, gasdyn, atmos
 ventus-thermal    ->  units, gasdyn, atmos, aero
 ventus-mass       ->  units
-ventus-cost       ->  (none)                         dev: atmos, for the example only
+ventus-cost       ->  (none)                         dev: atmos, mass (example only)
 ventus-dynamics   ->  units, atmos, aero, mass, propulsion
 ventus-fsw        ->  units, atmos, dynamics          (no_std, no alloc in hot path)
 ventus-validate   ->  units                            (dev-dependency of every module)
