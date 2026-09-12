@@ -1,0 +1,80 @@
+# M7 - Breguet cruise range, and the end-to-end check.
+#
+# This module is where the chain closes: V comes from M1, L/D from M6, Isp from
+# M4, and the mass ratio from here. Nothing else in the project multiplies four
+# modules together and compares the product against a real aircraft.
+#
+# It is also the corpus entry most exposed to its own inputs, and the tolerances
+# below say so rather than hiding it.
+
+# --- The end-to-end check -------------------------------------------------
+
+[[case]]
+name    = "sr71_unrefuelled_range"
+source  = "SR-71 unrefuelled cruise range, about 5400 km, at M 3.2 with L/D about 6 and turboramjet Isp about 1900 s [TO CITE]"
+reason  = """
+THE TOLERANCE HERE IS NOT SET BY THE PRINTED PRECISION OF THE SOURCE, and that
+departure has to be argued rather than assumed.
+
+The model returns 5 549 km against a recited 5 400 km: 2.77 % high. Two
+significant figures in "5400" would admit about 0.93 %, so at the precision rule
+this project uses everywhere else, this case would fail.
+
+It is not carried as a known_limit, because the gap is not a limitation of the
+model. It is the uncertainty of the inputs, and that is measurable:
+
+    L/D = 5.5   ->  5 087 km      Isp = 1800 s  ->  5 257 km
+    L/D = 6.0   ->  5 549 km      Isp = 1900 s  ->  5 549 km
+    L/D = 6.2   ->  5 734 km      Isp = 2000 s  ->  5 842 km
+
+L/D = 5.84 reproduces the recited 5 400 km exactly. The whole 2.77 % gap is
+inside the difference between "about 6" and 5.84 - smaller than the rounding
+already present in the word "about". Three of the five inputs carry [TO CITE];
+asserting the range to six-figure precision would be asserting precision that
+none of them have.
+
+So rel_tol = 0.05 is the uncertainty of the inputs, stated. It is a real check
+even so: it rejects a model that is wrong by a factor, by a sign, by a missing
+logarithm, or by a g0 that did not cancel - which is the class of error an
+end-to-end test exists to catch. It would NOT catch a 3 % error, and that is
+the honest limit of what this case can claim.
+"""
+inputs  = { velocity_m_s = 952.96, lift_to_drag = 6.0, specific_impulse_s = 1900.0, initial_mass_kg = 55000.0, final_mass_kg = 33000.0 }
+expect  = { range_m = 5.4e6 }
+rel_tol = 0.05
+
+# --- Analytic identities: the source is the formula -----------------------
+
+[[case]]
+name    = "required_fuel_fraction_inverts_breguet"
+source  = "R = V (L/D) Isp ln(1/(1-f)) inverted for f. THE SOURCE IS THE FORMULA: the round trip must return the fraction it started from."
+reason  = """
+A closed-form inverse, so the only interesting answer is the exact one. The
+round trip loses half an ulp in exp(log(x)) and nothing else: 1.23e-16, which is
+one ulp at 0.45.
+
+[CORRECTED] The range input was first written to six decimal places, and the
+case failed at 3.6e-14. The model was right; the CASE was truncating its own
+input. Breguet inverted is f = 1 - exp(-R/K), so df/dR = exp(-R/K)/K, and with
+K = V (L/D) Isp = 8.349e6 a rounding of 1e-6 m in R moves f by about 7e-14.
+The number below is the full double, and the tolerance is now the arithmetic
+rather than the transcription. Worth recording because the failure looked like
+a physics error and was a data-entry error, which is the pattern that makes
+people widen tolerances instead of reading them.
+
+This is the check that keeps `required_fuel_fraction` honest. It is the function
+a designer actually calls - "how much fuel does this range cost?" - and it is
+the one place a sign or a reciprocal error would be invisible, because the
+answer is a plausible number between 0 and 1 either way.
+"""
+inputs  = { velocity_m_s = 1046.95, lift_to_drag = 5.5, specific_impulse_s = 1450.0, range_m = 4991595.947330247 }
+expect  = { fuel_fraction = 0.45 }
+rel_tol = 2e-16
+
+[[case]]
+name    = "zero_fuel_gives_exactly_zero_range"
+source  = "R = V (L/D) Isp ln(Wi/Wf) with Wi = Wf: ln(1) = 0 exactly in IEEE 754, for any finite V, L/D and Isp."
+reason  = "Degenerate by construction, so the answer is exact and the tolerance is zero ulp. It pins the one boundary where a range model can quietly return a small positive number instead of nothing."
+inputs  = { velocity_m_s = 1046.95, lift_to_drag = 5.5, specific_impulse_s = 1450.0, initial_mass_kg = 28000.0, final_mass_kg = 28000.0 }
+expect  = { range_m = 0.0 }
+ulp_tol = 0

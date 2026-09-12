@@ -65,7 +65,7 @@ VENTUS answers it structurally rather than by care:
 
 ```
 cargo test --workspace     159 tests
-cargo xtask validate       64 cases: 58 pass, 0 fail, 6 known limit, 0 stale
+cargo xtask validate       67 cases: 61 pass, 0 fail, 6 known limit, 0 stale
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 ```
 
@@ -73,6 +73,15 @@ native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 why a Mach number fixes the altitude, which fixes the material, which fixes the
 engine architecture — using this repository's own numbers. It is the document to
 read if you want to understand high-speed flight rather than this codebase.
+
+Not every module belongs in that corpus, and the reason is declared per crate
+rather than left to inference. The corpus holds claims traceable to a **published
+external number**; M8's yardsticks are conservation laws and a convergence order,
+and M10's is bit-for-bit agreement with M1, which is a cross-check against this
+project's own code. Neither is a citation, so forcing them in would mean writing
+a `source` field that cites ourselves — the exact drift the mandatory source
+exists to stop. `xtask validate` prints those modules and the argument for each,
+and refuses a crate that declares no route at all (ADR-000 D12).
 
 The six known limits are not failures being tolerated. Each is a case that is
 **expected to fail**, with a written reason. If one ever starts passing, the
@@ -228,7 +237,9 @@ Decisions and their trade-offs live in [`docs/adr/`](docs/adr/). The load-bearin
 crates/          Rust workspace: units, atmos, gasdyn, inlet, propulsion,
                  aero, thermal, mass, dynamics, fsw, validate, xtask
 native/          C++17/CUDA, sm_120 — M9 only
-data/reference/  external yardsticks as cited CSV
+crates/*/cases/  the external yardsticks themselves, as TOML. Each case
+                 carries its own source, tolerance and reason; there is no
+                 separate reference directory (ADR-000 D11).
 analysis/        Python. Plots and one-off cross-checks. Quarantined:
                  nothing in crates/ or native/ may depend on it.
 docs/adr/        architecture decisions, including the corrected ones

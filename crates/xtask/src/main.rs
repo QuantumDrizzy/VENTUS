@@ -45,14 +45,114 @@ fn repo_root() -> PathBuf {
         .to_path_buf()
 }
 
-/// Which modules can answer cases today.
+/// How each crate in the workspace is validated.
 ///
-/// A module with cases but no evaluator would report every case as FAIL with
-/// missing keys, which is indistinguishable from a broken module. So an unwired
-/// module is listed here explicitly and its cases are reported as PENDING rather
-/// than silently red. Each entry moves from `pending` to `wired` when its module
-/// lands.
-const PENDING_MODULES: &[&str] = &["ventus-mass", "ventus-dynamics", "ventus-fsw"];
+/// [CORRECTED] This replaces `PENDING_MODULES`, which listed ventus-mass,
+/// ventus-dynamics and ventus-fsw as "modules with cases but no evaluator". All
+/// three were finished, none of them had a single case, and the runner printed
+/// `pending : 0` every time - a line that said nothing about three modules the
+/// README called done. The label was wrong in both directions at once.
+///
+/// The replacement forces the question to be answered per crate, because the
+/// real distinction is not "done or not". It is whether a module HAS AN EXTERNAL
+/// NUMBER TO CITE. The case corpus exists to hold claims traceable to a
+/// published source; a module whose yardstick is an analytic identity does not
+/// belong in it, and forcing it in would weaken the contract that makes `source`
+/// mandatory for everything else.
+///
+/// An unlisted crate is an error, so adding one is a decision rather than an
+/// omission.
+const ROUTES: &[(&str, Route)] = &[
+    ("ventus-atmos", Route::Cases),
+    ("ventus-gasdyn", Route::Cases),
+    ("ventus-inlet", Route::Cases),
+    ("ventus-propulsion", Route::Cases),
+    ("ventus-aero", Route::Cases),
+    ("ventus-thermal", Route::Cases),
+    ("ventus-mass", Route::Cases),
+    (
+        "ventus-dynamics",
+        Route::Identities(concat!(
+            "M8 has no published trajectory to check against. Its yardsticks are ",
+            "conservation laws and a convergence order: energy drift below 1e-10 over 1e6 ",
+            "steps, angular momentum conserved in direction as well as magnitude, RK4 ",
+            "shown to be fourth order, and the intermediate-axis instability appearing ",
+            "from the equations rather than being added as a correction. None of those is ",
+            "a citation; all of them are exact, and they are asserted in the module's own ",
+            "tests.",
+        )),
+    ),
+    (
+        "ventus-fsw",
+        Route::Identities(concat!(
+            "M10's claim is bit-for-bit agreement with M1, which is a cross-check between ",
+            "two of this project's own modules, not an external number. Putting it in the ",
+            "corpus would mean writing a `source` field that cites ourselves, which is ",
+            "exactly the drift the mandatory source exists to stop. It is asserted by ",
+            "equality tests in the module.",
+        )),
+    ),
+    (
+        "ventus-units",
+        Route::Identities(concat!(
+            "Conversions and float helpers. The yardstick is the SI definition of each ",
+            "unit, exact by construction, so the tests assert exact round trips rather ",
+            "than tolerances.",
+        )),
+    ),
+    (
+        "ventus-validate",
+        Route::Identities(concat!(
+            "The harness itself, and the one module that cannot be validated by the ",
+            "harness without circularity. Its acceptance suite is negative: it asserts ",
+            "that malformed cases are refused and wrong numbers are failed, plus a ",
+            "positive control, so a harness that refused everything would not pass.",
+        )),
+    ),
+    ("xtask", Route::NotAModule),
+];
+
+/// The validation route a crate takes. Every crate declares one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Route {
+    /// Cases in `cases/`, each citing an external source, evaluated by
+    /// [`evaluate`].
+    Cases,
+    /// No external number to cite, so no cases. Validated by identities in the
+    /// module's own tests. The reason is mandatory and is printed by
+    /// `xtask validate --routes`.
+    Identities(&'static str),
+    /// Build tooling, not physics.
+    NotAModule,
+}
+
+/// Greedy word wrap. The route reasons are the load-bearing documentation of
+/// why a module is absent from the corpus, so they are printed in full rather
+/// than truncated.
+fn wrap(text: &str, width: usize) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut line = String::new();
+    for word in text.split_whitespace() {
+        if !line.is_empty() && line.len() + 1 + word.len() > width {
+            out.push(core::mem::take(&mut line));
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(word);
+    }
+    if !line.is_empty() {
+        out.push(line);
+    }
+    out
+}
+
+fn route_of(crate_name: &str) -> Option<Route> {
+    ROUTES
+        .iter()
+        .find(|(n, _)| *n == crate_name)
+        .map(|(_, r)| *r)
+}
 
 /// The floor under the wired corpus.
 ///
@@ -328,6 +428,30 @@ fn evaluate_propulsion(c: &Case) -> BTreeMap<String, ExpectValue> {
     m
 }
 
+/// M7. Breguet in both directions: a case gives the masses and asks for the
+/// range, or gives the range and asks what fuel fraction it costs.
+fn evaluate_mass(c: &Case) -> BTreeMap<String, ExpectValue> {
+    let mut m = BTreeMap::new();
+    let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
+    let need = |k: &str| f(k).unwrap_or_else(|| panic!("case `{}` needs input `{k}`", c.name));
+
+    let v = need("velocity_m_s");
+    let ld = need("lift_to_drag");
+    let isp = need("specific_impulse_s");
+
+    if let (Some(m0), Some(m1)) = (f("initial_mass_kg"), f("final_mass_kg")) {
+        if let Ok(r) = ventus_mass::breguet_range_m(v, ld, isp, m0, m1) {
+            m.insert("range_m".to_string(), ExpectValue::Float(r));
+        }
+    }
+    if let Some(r) = f("range_m") {
+        if let Ok(frac) = ventus_mass::required_fuel_fraction(r, v, ld, isp) {
+            m.insert("fuel_fraction".to_string(), ExpectValue::Float(frac));
+        }
+    }
+    m
+}
+
 fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
     // Dispatch on the crate the case came from, not on guessing from its inputs:
     // a case belongs to the module that owns its yardstick.
@@ -342,8 +466,22 @@ fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
         evaluate_inlet(c)
     } else if owner("ventus-propulsion") {
         evaluate_propulsion(c)
-    } else {
+    } else if owner("ventus-mass") {
+        evaluate_mass(c)
+    } else if owner("ventus-gasdyn") {
         evaluate_gasdyn(c)
+    } else {
+        // [CORRECTED] This used to fall through to `evaluate_gasdyn`. A case from
+        // a module nobody had wired was therefore handed to the compressible-flow
+        // evaluator, which returned whatever it could compute from inputs it did
+        // not recognise - so a wiring omission surfaced as physics failures in
+        // the wrong module rather than as the omission it was. The dispatch now
+        // refuses, because there is no right answer to give.
+        panic!(
+            "case `{}` ({}) comes from a module with no evaluator. Add one, and list the crate in ROUTES as Route::Cases.",
+            c.name,
+            c.file.display()
+        )
     }
 }
 
@@ -355,7 +493,7 @@ fn validate() -> ExitCode {
         Ok(rd) => rd
             .filter_map(Result::ok)
             .map(|e| e.path())
-            .filter(|p| p.join("cases").is_dir())
+            .filter(|p| p.is_dir())
             .collect(),
         Err(e) => {
             eprintln!("xtask: cannot read {}: {e}", crates_dir.display());
@@ -365,10 +503,24 @@ fn validate() -> ExitCode {
     dirs.sort();
 
     let mut cases: Vec<Case> = Vec::new();
-    let mut pending = 0_usize;
+    let mut identities: Vec<(String, &'static str)> = Vec::new();
 
     for crate_dir in &dirs {
         let name = crate_dir.file_name().unwrap().to_string_lossy().to_string();
+
+        // Every crate declares how it is validated. An unlisted one stops the
+        // run: a new module must make that choice, not inherit a default.
+        let route = match route_of(&name) {
+            Some(r) => r,
+            None => {
+                eprintln!("xtask validate: crate `{name}` is not listed in ROUTES.");
+                eprintln!("  Declare how it is validated: Route::Cases if it has an");
+                eprintln!("  external number to cite, Route::Identities(reason) if its");
+                eprintln!("  yardstick is an identity, Route::NotAModule if it is tooling.");
+                return ExitCode::FAILURE;
+            }
+        };
+
         let loaded = match case::load_dir(&crate_dir.join("cases")) {
             Ok(c) => c,
             Err(e) => {
@@ -386,9 +538,27 @@ fn validate() -> ExitCode {
             eprintln!("  Delete the directory or write the cases; an empty one is not a pass.");
             return ExitCode::FAILURE;
         }
-        if PENDING_MODULES.contains(&name.as_str()) {
-            pending += loaded.len();
-            continue;
+
+        match route {
+            Route::Cases if loaded.is_empty() => {
+                eprintln!("xtask validate: {name} is declared Route::Cases but has no cases.");
+                eprintln!("  Write them, or change its route in ROUTES and say why.");
+                return ExitCode::FAILURE;
+            }
+            Route::Identities(reason) => {
+                if !loaded.is_empty() {
+                    eprintln!(
+                        "xtask validate: {name} is declared Route::Identities but ships cases."
+                    );
+                    eprintln!("  A module with an external number to cite belongs in the corpus;");
+                    eprintln!("  change its route to Route::Cases and wire an evaluator.");
+                    return ExitCode::FAILURE;
+                }
+                identities.push((name, reason));
+                continue;
+            }
+            Route::NotAModule => continue,
+            Route::Cases => {}
         }
         cases.extend(loaded.into_iter().map(|mut c| {
             c.file = c.file.strip_prefix(&repo).unwrap_or(&c.file).to_path_buf();
@@ -448,7 +618,10 @@ fn validate() -> ExitCode {
         }
     );
     println!("wired   : {} cases evaluated", summary.total());
-    println!("pending : {pending} cases in modules not yet implemented");
+    println!(
+        "identity: {} module(s) validated by identity, not by citation",
+        identities.len()
+    );
     println!(
         "verdict : {} pass, {} fail, {} known limit, {} stale",
         summary.pass, summary.fail, summary.known_limit, summary.stale_known_limit
@@ -457,6 +630,17 @@ fn validate() -> ExitCode {
         "report  : {}",
         out_dir.strip_prefix(&repo).unwrap_or(&out_dir).display()
     );
+
+    if !identities.is_empty() {
+        println!();
+        println!("Modules with no external number to cite, and why:");
+        for (name, reason) in &identities {
+            println!("  {name}");
+            for line in wrap(reason, 72) {
+                println!("    {line}");
+            }
+        }
+    }
 
     if summary.stale_known_limit > 0 {
         println!();
@@ -506,9 +690,11 @@ mod tests {
   {e}"
                 )
             });
-            if PENDING_MODULES.contains(&name.as_str()) {
-                continue;
-            }
+            assert_eq!(
+                route_of(&name),
+                Some(Route::Cases),
+                "`{name}` ships cases but is not declared Route::Cases in ROUTES"
+            );
             for c in &cases {
                 seen += 1;
                 let outcome = check(c, &evaluate(c));

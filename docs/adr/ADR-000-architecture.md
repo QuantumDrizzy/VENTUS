@@ -1,8 +1,11 @@
 # ADR-000 — Repository architecture
 
 **Status:** accepted · **Date:** 2026-08-26 · **Author:** A. Rodríguez (QuantumDrizzy)
-**Revision:** r2 — supersedes r1. Changes: D5 replaced (layer numbers → DAG check),
-D10 added (gamma parameterisation), D3 split into `validate` / `release` profiles.
+**Revision:** r3 — supersedes r2. Changes: D11 added (data/reference removed,
+yardsticks live in the case files), D12 added (every crate declares a validation
+route, replacing PENDING_MODULES). r2 changes: D5 replaced (layer numbers → DAG
+check), D10 added (gamma parameterisation), D3 split into `validate` / `release`
+profiles.
 
 ## Context
 
@@ -284,6 +287,67 @@ Enforced by `crates/ventus-gasdyn/cases/gamma_validity.toml`, `status = "known_l
 
 ---
 
+## D11 — Yardsticks live in the case files, not in `data/reference/` *(r3, new)*
+
+**Superseded plan.** `data/reference/` was to hold the external tables as cited
+CSV — `us76.csv`, `naca1135.csv`, `cp_air.csv` — each "required before the module
+that consumes them". M1, M2 and M4 all landed without them. The directory held
+nothing but a README listing three files that were never written, while the
+Layout block above described it as though it were populated.
+
+**What actually happened, and why it was right.** The case format made the CSVs
+redundant before they were needed. A case carries a mandatory `source` string, a
+tolerance derived from the printed precision of THAT value, and a `reason` when
+it is a known limit. A CSV column carries none of that: it would have given the
+numbers a home but not a provenance, and the provenance is the entire point.
+
+**What it costs, stated plainly.** A CSV would let a module check the whole
+published table rather than the handful of points transcribed into cases. M1
+checks nine altitudes against a table with hundreds of rows. That is a real
+reduction in coverage and it is not recovered by this decision.
+
+**Why it is not simply deferred.** The blocker is not effort, it is that no
+primary copy of NASA-TM-X-74335 or NACA Report 1135 has been read. Every value
+in the corpus recited from memory carries `[TO VERIFY]`, and two US76 densities
+are carried as FAILING known limits precisely because they cannot be resolved
+without one. Writing a CSV today would mean transcribing remembered numbers into
+a file that looks authoritative, which is the failure mode this project exists
+to prevent. **The directory is removed rather than left empty**, because an empty
+directory promising future rigour is a claim too.
+
+**Unblock point.** A primary copy of either report. At that point the CSV becomes
+worth writing, and it arrives with the [TO VERIFY] tags being closed rather than
+alongside them.
+
+## D12 — Every crate declares how it is validated *(r3, new)*
+
+`xtask` carried a `PENDING_MODULES` list, documented as "modules with cases but
+no evaluator". By the time M10 landed it named ventus-mass, ventus-dynamics and
+ventus-fsw — all three finished, none of them holding a single case. The runner
+printed `pending : 0` on every run, a line that said nothing at all about three
+modules the README called done.
+
+**The distinction that matters is not "done or not".** It is whether a module has
+an EXTERNAL NUMBER TO CITE. The corpus exists to hold claims traceable to a
+published source. A module whose yardstick is a conservation law or a round-trip
+identity does not have one, and forcing it in would mean writing a `source` field
+that cites this project — weakening the rule that makes `source` mandatory for
+everything else.
+
+So `ROUTES` declares a route per crate, and an unlisted crate stops the run:
+
+| Route | Meaning | Enforced |
+|---|---|---|
+| `Cases` | has external numbers; cases in `cases/`, evaluator wired | empty `cases/` fails |
+| `Identities(reason)` | no external number; validated by identity in its own tests | shipping cases fails |
+| `NotAModule` | build tooling | — |
+
+The `reason` is mandatory and is printed by `xtask validate`, so a module's
+absence from the corpus is a stated argument rather than a gap someone has to
+notice. M7 moved to `Cases` in the same change: the SR-71 unrefuelled range is a
+published external number, it is this project's declared end-to-end check, and it
+was in none of the reports.
+
 ## Layout
 
 ```
@@ -297,7 +361,6 @@ VENTUS/
 │   ├── ventus-thermal/  ventus-mass/  ventus-dynamics/
 │   ├── ventus-fsw/  ventus-validate/  xtask/
 ├── native/ventus_cfd/               # M9: 2D Euler, host+device in one .cu
-├── data/reference/                  # US76, NACA 1135 as cited CSV
 ├── analysis/                        # Python, plots only
 └── out/                             # gitignored
 ```
