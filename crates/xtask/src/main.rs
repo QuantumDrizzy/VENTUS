@@ -70,6 +70,7 @@ const ROUTES: &[(&str, Route)] = &[
     ("ventus-aero", Route::Cases),
     ("ventus-thermal", Route::Cases),
     ("ventus-mass", Route::Cases),
+    ("ventus-cost", Route::Cases),
     (
         "ventus-dynamics",
         Route::Identities(concat!(
@@ -428,6 +429,69 @@ fn evaluate_propulsion(c: &Case) -> BTreeMap<String, ExpectValue> {
     m
 }
 
+/// M11. DAPCA IV. Note what is NOT emitted: `programme_cost_usd_1986_verified`,
+/// because no primary source for one exists. The case that asks for it fails
+/// with a missing key, which is the honest answer.
+fn evaluate_cost(c: &Case) -> BTreeMap<String, ExpectValue> {
+    let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
+    let need = |k: &str| f(k).unwrap_or_else(|| panic!("case `{}` needs input `{k}`", c.name));
+
+    let inputs = ventus_cost::Inputs {
+        empty_mass_kg: need("empty_mass_kg"),
+        max_velocity_m_s: need("max_velocity_m_s"),
+        production_quantity: need("production_quantity"),
+        flight_test_aircraft: need("flight_test_aircraft"),
+        material_factor: need("material_factor"),
+    };
+    let rates = ventus_cost::Rates::raymer_1986();
+    let envelope = ventus_cost::Envelope::conventional_metal();
+
+    let mut m = BTreeMap::new();
+    m.insert(
+        "implied_learning_curve".to_string(),
+        ExpectValue::Float(ventus_cost::dapca::implied_learning_curve()),
+    );
+
+    let Ok(e) = ventus_cost::estimate(&inputs, &rates, &envelope) else {
+        return m;
+    };
+
+    for (k, v) in [
+        ("engineering_hours", e.hours.engineering),
+        ("tooling_hours", e.hours.tooling),
+        ("manufacturing_hours", e.hours.manufacturing),
+        ("quality_hours", e.hours.quality),
+        (
+            "quality_fraction_of_manufacturing",
+            e.hours.quality / e.hours.manufacturing,
+        ),
+        ("development_usd", e.development_usd),
+        ("flight_test_usd", e.flight_test_usd),
+        ("materials_usd", e.materials_usd),
+        ("labour_usd", e.labour_usd),
+        ("airframe_total_usd", e.airframe_total_usd),
+        ("per_aircraft_usd", e.per_aircraft_usd),
+    ] {
+        m.insert(k.to_string(), ExpectValue::Float(v));
+    }
+
+    m.insert(
+        "is_extrapolated".to_string(),
+        ExpectValue::Bool(e.validity.is_extrapolated()),
+    );
+    if let ventus_cost::Validity::Extrapolated(x) = e.validity {
+        m.insert(
+            "velocity_ratio".to_string(),
+            ExpectValue::Float(x.velocity_ratio),
+        );
+        m.insert(
+            "empty_weight_ratio".to_string(),
+            ExpectValue::Float(x.empty_weight_ratio),
+        );
+    }
+    m
+}
+
 /// M7. Breguet in both directions: a case gives the masses and asks for the
 /// range, or gives the range and asks what fuel fraction it costs.
 fn evaluate_mass(c: &Case) -> BTreeMap<String, ExpectValue> {
@@ -468,6 +532,8 @@ fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
         evaluate_propulsion(c)
     } else if owner("ventus-mass") {
         evaluate_mass(c)
+    } else if owner("ventus-cost") {
+        evaluate_cost(c)
     } else if owner("ventus-gasdyn") {
         evaluate_gasdyn(c)
     } else {

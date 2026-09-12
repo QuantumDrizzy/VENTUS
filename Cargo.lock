@@ -172,6 +172,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ventus-cost"
+version = "0.0.0"
+dependencies = [
+ "libm",
+ "ventus-atmos",
+ "ventus-validate",
+]
+
+[[package]]
 name = "ventus-dynamics"
 version = "0.0.0"
 dependencies = [
@@ -279,6 +288,7 @@ dependencies = [
  "toml",
  "ventus-aero",
  "ventus-atmos",
+ "ventus-cost",
  "ventus-gasdyn",
  "ventus-inlet",
  "ventus-mass",

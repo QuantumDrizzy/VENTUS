@@ -13,6 +13,7 @@ ventus-thermal = { path = "../ventus-thermal" }
 ventus-inlet = { path = "../ventus-inlet" }
 ventus-propulsion = { path = "../ventus-propulsion" }
 ventus-mass = { path = "../ventus-mass" }
+ventus-cost = { path = "../ventus-cost" }
 ventus-validate = { path = "../ventus-validate" }
 serde.workspace = true
 toml.workspace  = true

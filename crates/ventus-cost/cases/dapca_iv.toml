@@ -1,0 +1,104 @@
+# M11 - DAPCA IV.
+#
+# READ THE REASONS BEFORE THE NUMBERS. This module's absolute output cannot be
+# validated: no primary source for an SR-71 programme cost has been read, and
+# every DAPCA coefficient here is recited. What CAN be validated is the model's
+# internal structure and the size of the extrapolation, and that is what these
+# cases do. The missing anchor is carried as a known limit rather than papered
+# over with a remembered dollar figure.
+
+# --- Structure of the model. The source is the formula. -------------------
+
+[[case]]
+name    = "quality_control_is_the_defined_fraction_of_manufacturing"
+source  = "DAPCA IV: H_Q = 0.133 H_M for a non-cargo aircraft. Definitional inside the model, not a fit."
+reason  = "Exact by definition, so it is checked at zero ulp. It is the one relation in this module that cannot be wrong in the coefficients, because it has none of its own."
+inputs  = { empty_mass_kg = 30600.0, max_velocity_m_s = 952.8994240000001, production_quantity = 32.0, flight_test_aircraft = 2.0, material_factor = 1.7 }
+expect  = { quality_fraction_of_manufacturing = 0.133 }
+ulp_tol = 0
+
+[[case]]
+name    = "implied_learning_curve_on_doubling_the_run"
+source  = "DAPCA IV manufacturing hours go as Q^0.641, so per-aircraft hours go as Q^(0.641-1) and doubling the run multiplies them by 2^-0.359. THE SOURCE IS THE FORMULA: exact arithmetic from the exponent."
+reason  = """
+The one property of DAPCA IV checkable without any dollar anchor at all, which is
+why it is here.
+
+It also lands where it should: 0.7797 is a 78 % learning curve, inside the 75-85 %
+band quoted for airframe production [TO CITE]. That agreement is NOT asserted
+here, because the band is recited and a case that asserted it would be asserting
+a memory. What is asserted is the arithmetic; the agreement is recorded as the
+reason to believe the exponent was transcribed correctly.
+"""
+inputs  = { empty_mass_kg = 30600.0, max_velocity_m_s = 952.8994240000001, production_quantity = 32.0, flight_test_aircraft = 2.0, material_factor = 1.7 }
+expect  = { implied_learning_curve = 0.7797048426113233 }
+ulp_tol = 0
+
+# --- Size of the extrapolation. The real result of this module. -----------
+
+[[case]]
+name    = "the_sr71_is_already_outside_the_fit"
+source  = "DAPCA IV is presented for conventional metal aircraft; the fit sample tops out near 1200 kn [TO VERIFY]. The SR-71 at M 3.2 / 24 km is 1852.3 kn by M1."
+reason  = """
+THE POINT OF THE ANCHOR, STATED AS A CASE. The SR-71 is not a validation of this
+model. It is a measurement of how far outside the fit the answer already is
+BEFORE VENTUS-1 adds anything: 1.54x past the velocity bound, at 0.45x of the
+weight bound.
+
+The envelope is deliberately generous (ADR-002). A tighter reading would make
+this number worse, so erring wide errs against this module's own conclusion.
+"""
+inputs  = { empty_mass_kg = 30600.0, max_velocity_m_s = 952.8994240000001, production_quantity = 32.0, flight_test_aircraft = 2.0, material_factor = 1.7 }
+expect  = { is_extrapolated = true, velocity_ratio = 1.5435735809935206, empty_weight_ratio = 0.4497430148571503 }
+rel_tol = 1e-12
+
+[[case]]
+name    = "ventus1_reaches_further_out_than_the_anchor"
+source  = "Same envelope, at the VENTUS-1 design point: M 3.5 / 26 km is 2035.1 kn by M1."
+reason  = """
+1.70x past the velocity bound against the anchor's 1.54x. The gap between the
+aircraft this model can be sanity-checked against and the aircraft it is being
+asked about is only 10 % in velocity - which is the strongest argument that the
+VENTUS number is worth computing at all, and simultaneously the reason it cannot
+be believed to better than the factor the anchor itself is wrong by.
+"""
+inputs  = { empty_mass_kg = 14000.0, max_velocity_m_s = 1046.946565, production_quantity = 6.0, flight_test_aircraft = 2.0, material_factor = 1.7 }
+expect  = { is_extrapolated = true, velocity_ratio = 1.6959177618790494 }
+rel_tol = 1e-12
+
+# --- The anchor that does not exist yet -----------------------------------
+
+[[case]]
+name    = "sr71_programme_cost_against_a_primary_source"
+source  = "SR-71 / A-12 programme acquisition cost [TO CITE] - NO PRIMARY SOURCE HAS BEEN READ"
+status  = "known_limit"
+reason  = """
+THE YARDSTICK THIS MODULE IS SUPPOSED TO HAVE, AND DOES NOT.
+
+M11 computes 7.486e9 (1986 USD) airframe-only for a 32-aircraft SR-71 programme
+at titanium x1.7, or 2.34e8 per aircraft. Nothing in this repository can say
+whether that is right, because no primary source for the programme cost has been
+read, and the figures in circulation are in unstated dollar-years and unstated
+scopes (airframe only? with engines? with the tanker fleet and the infrastructure
+a fleet of these needed?).
+
+So the module DELIBERATELY DOES NOT EMIT a `programme_cost_usd_1986_verified`
+key. This case therefore fails with a missing key, exactly as
+`gamma_at_design_point_freestream` does in M2 when the correlation refuses to
+extrapolate. That is the intended behaviour: the harness reports an absent number
+rather than a wrong one.
+
+WHAT RESOLVING IT WOULD LOOK LIKE. A primary source giving programme cost, the
+dollar-year, and the scope. At that point the key gets wired, this annotation
+goes STALE, and the harness says so. Until then M11's ratios are usable and its
+absolute dollars are not, and no report from this project should quote the
+latter.
+
+A SECOND ANCHOR IS MISSING TOO: the dollar-year. Every number here is 1986 USD
+because that is what Raymer's rates are. Escalating them to present-day money
+needs a cited index, and reciting one would put a fabricated multiplier on
+everything. Deliberately not done.
+"""
+inputs  = { empty_mass_kg = 30600.0, max_velocity_m_s = 952.8994240000001, production_quantity = 32.0, flight_test_aircraft = 2.0, material_factor = 1.7 }
+expect  = { programme_cost_usd_1986_verified = 7.4858e9 }
+rel_tol = 0.5

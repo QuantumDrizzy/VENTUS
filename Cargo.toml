@@ -9,6 +9,7 @@ members = [
     "crates/ventus-aero",
     "crates/ventus-thermal",
     "crates/ventus-mass",
+    "crates/ventus-cost",
     "crates/ventus-dynamics",
     "crates/ventus-fsw",
     "crates/ventus-validate",

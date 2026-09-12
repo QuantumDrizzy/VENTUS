@@ -1,0 +1,15 @@
+[package]
+name = "ventus-cost"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+# No `ventus-units`: DAPCA IV is dimensioned in pounds and knots, so its
+# conversions are part of the model rather than presentation (ADR-002 D5).
+[dependencies]
+libm = "0.2"
+
+[dev-dependencies]
+ventus-atmos = { path = "../ventus-atmos" }
+ventus-validate = { path = "../ventus-validate" }

@@ -186,6 +186,7 @@ ventus-propulsion ->  units, gasdyn, atmos, inlet
 ventus-aero       ->  units, gasdyn, atmos
 ventus-thermal    ->  units, gasdyn, atmos, aero
 ventus-mass       ->  units
+ventus-cost       ->  (none)                         dev: atmos, for the example only
 ventus-dynamics   ->  units, atmos, aero, mass, propulsion
 ventus-fsw        ->  units, atmos, dynamics          (no_std, no alloc in hot path)
 ventus-validate   ->  units                            (dev-dependency of every module)
@@ -358,8 +359,8 @@ VENTUS/
 ├── crates/
 │   ├── ventus-units/  ventus-atmos/  ventus-gasdyn/
 │   ├── ventus-inlet/  ventus-propulsion/  ventus-aero/
-│   ├── ventus-thermal/  ventus-mass/  ventus-dynamics/
-│   ├── ventus-fsw/  ventus-validate/  xtask/
+│   ├── ventus-thermal/  ventus-mass/  ventus-cost/
+│   ├── ventus-dynamics/  ventus-fsw/  ventus-validate/  xtask/
 ├── native/ventus_cfd/               # M9: 2D Euler, host+device in one .cu
 ├── analysis/                        # Python, plots only
 └── out/                             # gitignored

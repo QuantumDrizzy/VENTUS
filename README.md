@@ -62,10 +62,11 @@ VENTUS answers it structurally rather than by care:
 | M8 | 6-DOF rigid-body dynamics | energy drift < 1e-10 over 1e6 steps | **done** |
 | M9 | 2-D Euler solver | shock angle 0.006 deg vs exact theta-beta-M | **physics done**, GPU build blocked |
 | M10 | Flight software | shares M1 bit-for-bit with the twin | **done** |
+| M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
 
 ```
-cargo test --workspace     159 tests
-cargo xtask validate       67 cases: 61 pass, 0 fail, 6 known limit, 0 stale
+cargo test --workspace     168 tests
+cargo xtask validate       72 cases: 65 pass, 0 fail, 7 known limit, 0 stale
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 ```
 
@@ -83,7 +84,7 @@ a `source` field that cites ourselves — the exact drift the mandatory source
 exists to stop. `xtask validate` prints those modules and the argument for each,
 and refuses a crate that declares no route at all (ADR-000 D12).
 
-The six known limits are not failures being tolerated. Each is a case that is
+The seven known limits are not failures being tolerated. Each is a case that is
 **expected to fail**, with a written reason. If one ever starts passing, the
 harness reports `STALE_KNOWN_LIMIT` and **fails the build** — the limitation
 is gone, so the annotation has become a false claim in the report, and the
@@ -184,6 +185,18 @@ Full derivation and provenance in [`docs/design-point.md`](docs/design-point.md)
 | **Skin, radiating** | **548.3 K / 275.2 °C** at 10 m — computed, ε = 0.85 |
 | Inlet recovery | 0.742, against 0.213 for a normal shock — **a factor of 3.48** |
 
+**What it costs is the one question the project answers badly, and says so.**
+M11 runs DAPCA IV anchored on the SR-71. The anchor is already **1.54x past** the
+velocity the model was fitted over; VENTUS-1 is 1.70x past. Two results survive
+that: moving M 3.2 — M 3.5 costs **+7.4 %** while aluminium — titanium costs
+**+21.4 %**, so the model reaches the physics that actually makes M 3.5 hard only
+through a fudge factor a human types in. And a 14 t aircraft built six times
+costs **more per airframe** than a 30 t one built thirty-two times — the
+production run dominates the aeroplane. The absolute dollars are carried as a
+failing `known_limit`: no primary source for an SR-71 programme cost has been
+read, so the module refuses to emit a verified figure at all. See
+[`docs/adr/ADR-002-cost.md`](docs/adr/ADR-002-cost.md).
+
 **Why M 3.5 and not M 3.75.** Above roughly M 3.35 there is no public vehicle to
 check against until the scramjet demonstrators, which are a different regime.
 At M 3.76 the SR-71 thrust-split anchor becomes an extrapolation rather than a
@@ -235,7 +248,7 @@ Decisions and their trade-offs live in [`docs/adr/`](docs/adr/). The load-bearin
 
 ```
 crates/          Rust workspace: units, atmos, gasdyn, inlet, propulsion,
-                 aero, thermal, mass, dynamics, fsw, validate, xtask
+                 aero, thermal, mass, cost, dynamics, fsw, validate, xtask
 native/          C++17/CUDA, sm_120 — M9 only
 crates/*/cases/  the external yardsticks themselves, as TOML. Each case
                  carries its own source, tolerance and reason; there is no
