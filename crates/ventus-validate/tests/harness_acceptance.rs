@@ -11,7 +11,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 use ventus_validate::case::{self, LoadError, Status};
-use ventus_validate::check::{check, Outcome};
+use ventus_validate::check::{check, Mismatch, Outcome, Summary};
 use ventus_validate::{computed, ExpectValue};
 
 fn origin() -> &'static Path {
@@ -352,7 +352,53 @@ rel_tol = 1e-3
         "a limit that no longer reproduces must be flagged, got {}",
         out.label()
     );
-    assert!(!out.breaks_build());
+    assert!(
+        out.breaks_build(),
+        "a stale annotation is a false claim in the report and must stop the build"
+    );
+}
+
+/// `Outcome::breaks_build` and `Summary::breaks_build` are two spellings of one
+/// decision, and they drifted once: the enum documented a stale limit as worth
+/// reporting loudly while the summary counted only `fail`, so a run could print
+/// PASS while carrying an annotation it had itself proven false. This pins the
+/// two together over every variant, so the next variant cannot reopen the gap.
+#[test]
+fn breaks_build_agrees_between_outcome_and_summary() {
+    let mismatch = || Mismatch {
+        key: "temperature_k".into(),
+        expected: ExpectValue::Float(1.0),
+        actual: ExpectValue::Float(2.0),
+        rel_err: 1.0,
+        ulp: None,
+    };
+    let variants = [
+        Outcome::Pass,
+        Outcome::Fail {
+            mismatches: vec![mismatch()],
+            missing: Vec::new(),
+        },
+        Outcome::KnownLimit {
+            mismatches: vec![mismatch()],
+            missing: Vec::new(),
+        },
+        Outcome::StaleKnownLimit,
+    ];
+
+    for out in &variants {
+        let mut summary = Summary::default();
+        summary.record(out);
+        assert_eq!(
+            out.breaks_build(),
+            summary.breaks_build(),
+            "`{}` breaks the build at one level and not the other",
+            out.label()
+        );
+    }
+
+    // And the specific decision, spelled out rather than left to the loop.
+    assert!(Outcome::StaleKnownLimit.breaks_build());
+    assert!(!Outcome::Pass.breaks_build());
 }
 
 // ---------------------------------------------------------------------------

@@ -54,6 +54,27 @@ fn repo_root() -> PathBuf {
 /// lands.
 const PENDING_MODULES: &[&str] = &["ventus-mass", "ventus-dynamics", "ventus-fsw"];
 
+/// The floor under the wired corpus.
+///
+/// `case::load_dir` returns an empty list for a missing directory rather than an
+/// error, and its doc comment claimed the runner caught that. It did not: the
+/// verdict is computed from failures, and zero cases produce zero failures, so a
+/// corpus that had vanished reported `0 pass, 0 fail` and exited 0. A harness
+/// that passes loudest when it is checking nothing is worse than no harness.
+///
+/// It found this the honest way. The repository was moved on disk; `repo_root`
+/// is built from `env!("CARGO_MANIFEST_DIR")`, which is baked in at compile time,
+/// and cargo did not rebuild because no source had changed. The stale binary
+/// looked for cases at the old absolute path. That failure surfaced only because
+/// reading `crates/` itself errored — had one module's `cases/` gone missing
+/// instead, this would have reported PASS over a silently smaller corpus.
+///
+/// This is a FLOOR, not the count. It exists to catch a corpus that disappeared,
+/// not to track every case added, so it is deliberately not `== 64`: pinning the
+/// exact number would turn every new case into a two-line edit and the constant
+/// would be updated reflexively, which is how a guard stops guarding.
+const MINIMUM_CORPUS: usize = 50;
+
 /// M1. Every field of the state is exposed; the harness ignores what a case
 /// does not name.
 fn evaluate_atmos(c: &Case) -> BTreeMap<String, ExpectValue> {
@@ -357,6 +378,14 @@ fn validate() -> ExitCode {
                 return ExitCode::FAILURE;
             }
         };
+        // An empty `cases/` is the other way the corpus shrinks quietly: the
+        // directory survives, so `MINIMUM_CORPUS` below is the only thing left
+        // to notice, and it only notices once enough of them have gone.
+        if loaded.is_empty() && crate_dir.join("cases").is_dir() {
+            eprintln!("xtask validate: {name} has a cases/ directory with no cases in it.");
+            eprintln!("  Delete the directory or write the cases; an empty one is not a pass.");
+            return ExitCode::FAILURE;
+        }
         if PENDING_MODULES.contains(&name.as_str()) {
             pending += loaded.len();
             continue;
@@ -365,6 +394,21 @@ fn validate() -> ExitCode {
             c.file = c.file.strip_prefix(&repo).unwrap_or(&c.file).to_path_buf();
             c
         }));
+    }
+
+    if cases.len() < MINIMUM_CORPUS {
+        eprintln!(
+            "xtask validate: {} wired cases, below the floor of {MINIMUM_CORPUS}.",
+            cases.len()
+        );
+        eprintln!("  The corpus is not being read, so a verdict would be meaningless.");
+        eprintln!(
+            "  Check that crates/*/cases/ resolve under {},",
+            repo.display()
+        );
+        eprintln!("  and that this is not a stale build carrying a baked-in path");
+        eprintln!("  from somewhere the repository no longer lives.");
+        return ExitCode::FAILURE;
     }
 
     let outcomes: Vec<Outcome> = cases
@@ -415,11 +459,14 @@ fn validate() -> ExitCode {
     );
 
     if summary.stale_known_limit > 0 {
+        println!();
         println!(
-            "\nNOTE: {} known-limit annotation(s) now pass. The limit no longer \
-             reproduces; remove the annotation.",
+            "FAIL: {} known-limit annotation(s) now pass. The limitation no longer",
             summary.stale_known_limit
         );
+        println!("  reproduces, so the annotation is a false claim in the report.");
+        println!("  Delete it and re-run. This is the build refusing to ship a");
+        println!("  statement it has itself just disproved.");
     }
 
     if summary.breaks_build() {
@@ -495,7 +542,10 @@ mod tests {
             }
         }
 
-        assert!(seen > 50, "expected the full case corpus, saw {seen}");
+        assert!(
+            seen >= MINIMUM_CORPUS,
+            "expected the full case corpus, saw {seen}"
+        );
         assert!(
             !summary.breaks_build(),
             "{} of {} cases failed:{failures}",

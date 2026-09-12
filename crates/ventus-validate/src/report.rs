@@ -152,13 +152,14 @@ pub fn markdown(prov: &Provenance, entries: &[Entry<'_>]) -> String {
         summary.stale_known_limit
     );
     let _ = writeln!(out);
-    if summary.breaks_build() {
+    if summary.fail > 0 {
         let _ = writeln!(out, "Verdict: **FAIL**");
     } else if summary.stale_known_limit > 0 {
         let _ = writeln!(
             out,
-            "Verdict: **PASS**, but {} known-limit annotation(s) no longer \
-             reproduce and should be removed.",
+            "Verdict: **FAIL** - {} known-limit annotation(s) no longer \
+             reproduce. The limitation is gone, so the annotation is now a \
+             false claim in this report; delete it.",
             summary.stale_known_limit
         );
     } else {

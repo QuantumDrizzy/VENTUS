@@ -64,9 +64,9 @@ VENTUS answers it structurally rather than by care:
 | M10 | Flight software | shares M1 bit-for-bit with the twin | **done** |
 
 ```
-cargo test --workspace     158 tests
+cargo test --workspace     159 tests
 cargo xtask validate       64 cases: 58 pass, 0 fail, 6 known limit, 0 stale
-nativeuild_cpu.bat       M9 level D: shock angle 0.006 deg against exact
+native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 ```
 
 **New here?** [`docs/PRIMER.md`](docs/PRIMER.md) walks the whole causal chain —
@@ -74,10 +74,13 @@ why a Mach number fixes the altitude, which fixes the material, which fixes the
 engine architecture — using this repository's own numbers. It is the document to
 read if you want to understand high-speed flight rather than this codebase.
 
-The five known limits are not failures being tolerated. Each is a case that is
-**expected to fail**, with a written reason, and the harness reports a
-`STALE_KNOWN_LIMIT` if one ever starts passing — because that means the
-limitation is gone and the annotation should be deleted.
+The six known limits are not failures being tolerated. Each is a case that is
+**expected to fail**, with a written reason. If one ever starts passing, the
+harness reports `STALE_KNOWN_LIMIT` and **fails the build** — the limitation
+is gone, so the annotation has become a false claim in the report, and the
+remedy is to delete it. The build likewise refuses a run whose case corpus has
+shrunk below a declared floor, because a harness that has found nothing to
+check must not be able to print a pass.
 
 ---
 

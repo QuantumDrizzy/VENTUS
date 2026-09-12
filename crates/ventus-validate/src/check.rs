@@ -32,17 +32,29 @@ pub enum Outcome {
         missing: Vec<String>,
     },
     /// A case marked `known_limit` that now passes. The limit no longer
-    /// reproduces, so the annotation is stale and should be removed. Reported
-    /// loudly; does not break the build, because the code got better, not worse.
+    /// reproduces, so the annotation is stale and should be removed.
+    ///
+    /// [CORRECTED] This used to be reported loudly without breaking the build,
+    /// on the reasoning that "the code got better, not worse". That confused the
+    /// *cause* with the *state*. The cause is an improvement; the state is that
+    /// the report now carries a written claim — "this case is expected to fail"
+    /// — which is false. A harness whose entire purpose is to refuse untrue
+    /// numbers cannot ship an untrue annotation and still print PASS. It breaks
+    /// the build, and the remedy is to delete the annotation.
     StaleKnownLimit,
 }
 
 impl Outcome {
-    /// Only a `Fail` stops the build. This is the single place that decision is
-    /// made, so it cannot drift between the runner and the report.
+    /// A `Fail` stops the build, and so does a `StaleKnownLimit`: one is a wrong
+    /// number, the other is a wrong annotation, and the report asserts both. A
+    /// `KnownLimit` does not — it is a limitation that is documented and still
+    /// reproduces, which is the one honest way to be red.
+    ///
+    /// This is the single place that decision is made, so it cannot drift
+    /// between the runner and the report.
     #[must_use]
     pub fn breaks_build(&self) -> bool {
-        matches!(self, Outcome::Fail { .. })
+        matches!(self, Outcome::Fail { .. } | Outcome::StaleKnownLimit)
     }
 
     #[must_use]
@@ -172,9 +184,11 @@ impl Summary {
         self.pass + self.fail + self.known_limit + self.stale_known_limit
     }
 
+    /// Mirrors [`Outcome::breaks_build`] over a whole run. Kept in lockstep with
+    /// it by `breaks_build_agrees_between_outcome_and_summary` in the acceptance suite.
     #[must_use]
     pub fn breaks_build(&self) -> bool {
-        self.fail > 0
+        self.fail > 0 || self.stale_known_limit > 0
     }
 
     pub fn record(&mut self, outcome: &Outcome) {
