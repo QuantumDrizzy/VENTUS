@@ -233,63 +233,82 @@ defined (§5.2).
 
 ## 4b. Mass, and what the aircraft can actually do
 
-Added when M7 derived an empty mass, which had been a `[TO COMPUTE]` blocking
-M11. Everything here follows from the 28 t cruise mass M6b declares — the one
-chosen scale in the whole chain — plus one anchored ratio.
+**Revision note.** This section was rewritten when the SR-71 masses it rests on
+were read from primary sources instead of recited. Two of the three changed, and
+one result published in an earlier commit did not survive. That is recorded below
+rather than replaced.
 
 | Quantity | Value | Provenance |
 |---|---|---|
 | Cruise mass (start of cruise) | 28 000 kg | M6b, **chosen**, not derived |
-| Empty-mass fraction | 0.5564 | SR-71: 30 600 / 55 000 kg **[TO CITE]** |
-| **Empty mass** | **15 578 kg** | derived, M7 |
-| Payload + reserve | 1 000 kg | **chosen** (demonstrator instrumentation) |
-| Fuel fraction of cruise mass | 0.4079 | derived |
-| **Cruise range** | **4 376 km** | Breguet: V from M1, L/D 5.5 from M6b, Isp 1450 s from M4 |
+| SR-71 zero-fuel mass | 59 000 lb = 26 762 kg | **cited**: NASA test-bed report Table 1; inside the flight manual band |
+| SR-71 start-of-cruise mass | 55 000 kg | **[TO CITE]** — bounded, not sourced |
+| Zero-fuel fraction | 0.4866 | half-cited: numerator primary, denominator not |
+| **VENTUS-1 zero-fuel mass** | **13 624 kg** | derived, M7 |
+| Reserve fuel | **not chosen** | see below |
+| Cruise range | **4 265 — 5 714 km** | reserve-dependent |
 
-### The requirement that failed
+### What the sources actually say
 
-**A 5 000 km cruise requirement does not close.** The fuel it demands leaves
-15 384 kg at the end of cruise against an empty airframe of 15 578 kg: the
-aircraft arrives 194 kg lighter than it can possibly be, carrying nothing at all.
+| Source | Figure |
+|---|---|
+| SR-71 Flight Manual, p. 1-4 (declassified) | zero fuel weight **56 500 — 60 000 lb**; loaded gross **135 000 — 140 000 lb** |
+| NASA, *The SR-71 Test Bed Aircraft*, Table 1 | basic aircraft zero fuel weight **59 000 lb**; gross takeoff **143 000 lb** |
+| Tertiary references | max takeoff **170 000 — 172 000 lb** |
 
-`close_cruise` returns `MissionDoesNotClose` rather than a negative payload,
-because a negative payload propagates as a number and looks like one. What the
-aircraft can do with a tonne aboard is **4 376 km**, 12 % short of the round
-figure that had been assumed.
+**Zero fuel weight, not empty weight.** ZFW is the aircraft with everything
+aboard but fuel. It is what the documents state and it is measurable; "empty
+weight" is ambiguous between manufacturer’s and operating empty, and the flight
+manual’s 3 500 lb spread is the sensor fit varying. The module is expressed in ZFW
+throughout, and `close_cruise` takes **reserve fuel**, not "payload and reserve"
+— payload is already inside the zero-fuel mass, and the old signature counted it
+twice.
 
-This is the first time in this project that a **requirement** failed rather than
-a model. The chain M1 — M4 — M6b — M7 is now tight enough that the aircraft can
-say no, and that is what a design point is for.
+**Primary and tertiary disagree on gross mass by 23 %**, and this project does
+not pick between them. It does not have to: gross mass is used only in an
+inequality, and the inequality holds against the larger figure.
 
-### What the derivation rests on, stated plainly
+### [CORRECTED] The requirement that failed, and then did not
 
-One uncited ratio. Both of its numbers are `[TO CITE]`.
+An earlier revision of this section reported that **a 5 000 km requirement does
+not close** — that the aircraft arrived 194 kg lighter than its own structure —
+and called it the first time a requirement failed rather than a model.
 
-**[CORRECTED] The reference of the 55 t is now settled, and the model settled it
-without a citation.** M7’s doc comment called it the *mid-cruise* mass while the
-case passed it as the *start of cruise*; those differ by 22 t of cruise fuel, and
-the fraction by 0.5564 against 0.3974 — a 29 % swing in the derived empty mass.
-Both mid-cruise readings fail, for unrelated reasons:
+**That result does not survive the citation.** It rested on two errors
+compounding: a recited SR-71 zero-fuel mass of 30 600 kg that is 12 % above the
+flight manual’s upper bound, and a term that conflated payload with reserve so
+payload was counted twice. With the cited mass the aircraft is 12.5 % lighter and
+the answer turns entirely on the reserve, which **nobody in this project has
+chosen**:
 
-| Reading | Implies | Verdict |
+| Reserve | Range | 5 000 km |
 |---|---|---|
-| Geometric mean (natural under Breguet) | 91 667 kg at cruise start | above a ~78 t max gross — **impossible** |
-| Arithmetic mean | 77 000 kg at cruise start | 9 204 km against a published 5 400 — **70 % over** |
-| **Start of cruise** | 55 000 kg | 5 549 km, **2.8 % over** — the only survivor |
+| 500 kg | **5 714 km** | closes |
+| 3 176 kg (the SR-71’s own 11.3 %, scaled) | **4 265 km** | does not |
 
-What remains open is where the three masses came from, not what they mean.
+The honest statement is not *"5 000 km fails"*. It is *"5 000 km is
+reserve-limited, and no reserve policy has been chosen."*
 
-**Do not substitute the familiar number.** The commonly quoted SR-71 empty
-fraction is ~0.392, which is empty over *MTOW*. The 0.5564 here is empty over
-*start-of-cruise mass*, because M6b declares VENTUS-1’s 28 t as cruise mass and a
+This is the clearest example in the repository of why the citation rule exists.
+The model was self-consistent, the tests were green, the arithmetic was exact to
+the last ulp, and **the conclusion was still wrong** — because one input had
+never been read.
+
+### What is still open
+
+The start-of-cruise mass, 55 000 kg, has no primary source and is the denominator
+of the anchoring fraction. It is *bounded* by the cited figures — below the
+loaded gross of 61 235 — 63 503 kg, above the end-of-cruise mass — and 55 000 kg
+sits inside that window. **That is consistency, not provenance**, and the
+difference is the whole point of this project. `[TO CITE]`.
+
+**Do not substitute the familiar number.** Tertiary sources quote an SR-71 empty
+weight near 60 000 lb against a max takeoff of 170 000 lb, a fraction near 0.35.
+That is zero-fuel over *gross* mass. The 0.4866 here is zero-fuel over
+*start-of-cruise* mass, because M6b declares the 28 t as a cruise mass and a
 fraction must be taken against the same reference as the mass it multiplies.
-Swapping in 0.392 would look like a correction and would shrink the empty mass by
-29 %, in the flattering direction.
-
-The textbook alternative is worse. Raymer’s jet-fighter empty-weight correlation
-over-predicts the SR-71’s empty fraction by 24 %, so a real aircraft inside the
-regime beats a correlation fitted outside it — the same argument M11 makes about
-DAPCA IV. It is carried as a case rather than as a remark.
+Swapping in 0.35 would look like a correction and would shrink the derived mass
+by 28 %, in the flattering direction.
 
 ---
 

@@ -128,6 +128,35 @@ more" finding was **entirely a quantity effect** and not a statement about the
 vehicle at all. The test now asserts both halves, because the first assertion
 alone reads as something false.
 
+## D7 — Revised again when the SR-71 masses were read rather than recited
+
+D6 reported VENTUS-1 at 15 578 kg zero-fuel. That rested on a recited SR-71 mass
+of 30 600 kg which no primary source supports — it is 12 % above the declassified
+flight manual’s upper bound for zero fuel weight. The cited figure is 59 000 lb =
+26 762 kg, giving **13 624 kg**, 12.5 % lower.
+
+**Revised cost, airframe-only, 1986 USD, titanium x1.7:**
+
+| Q | programme | per aircraft | was (D6) |
+|---|---|---|---|
+| 3 | 2.219e9 | 7.397e8 | 8.167e8 |
+| 6 | **2.593e9** | **4.322e8** | 4.779e8 |
+| 12 | 3.115e9 | 2.596e8 | 2.875e8 |
+| 32 | 4.269e9 | 1.334e8 | 1.481e8 |
+
+About 10 % down across the board, and **every conclusion in D6 survives**: the
+5.5x quantity swing, and the inversion against the SR-71 anchor at matched
+quantity. That is what it looks like when a correction is real but not decisive,
+and it is worth distinguishing from the M7 result in the same change, which was.
+
+**A substitution this module now makes explicit.** DAPCA IV was fitted against
+*empty* weight. What M7 can supply is a *zero-fuel* mass, because that is what
+the SR-71 sources state, and ZFW includes crew, oil and sensors that empty weight
+does not. ZFW over-estimates We, and every DAPCA relation is increasing in We, so
+**every figure here is biased high** by that difference — of order a few per
+cent, small against an extrapolation already 1.7x past the fit, and stated rather
+than absorbed.
+
 ## Consequences — the two results that came out of it
 
 **The model cannot see what makes M 3.5 expensive.** Same airframe, same
@@ -161,8 +190,8 @@ need more of them**, which is a requirements decision, not an engineering one.
 - ~~`[TO COMPUTE]` a VENTUS-1 empty mass.~~ **CLOSED.** M7 derives 15 578 kg:
   M6b’s declared 28 t cruise mass at the SR-71 empty fraction
   (30 600 / 55 000). `examples/cost.rs` now reports one answer instead of a
-  sweep. The derivation rests on a single uncited ratio and says so — see
-  `ventus-mass/cases/breguet_range.toml`. The start-of-cruise / mid-cruise
-  ambiguity that derivation originally carried is closed: both mid-cruise
-  readings are refuted, one by a max-gross inequality and one by a 70 % range
-  error, so no citation was needed to settle it.
+  sweep. The start-of-cruise / mid-cruise ambiguity it originally carried is
+  closed by refutation, and the SR-71 zero-fuel mass is now **cited** rather than
+  recited — which moved the derived mass from 15 578 kg to **13 624 kg**. The
+  remaining gap is the start-of-cruise mass, still `[TO CITE]`. See
+  `ventus-mass/cases/breguet_range.toml`.

@@ -402,58 +402,158 @@ mod tests {
         );
     }
 }
-
 // ---------------------------------------------------------------------------
-// Empty mass. [CLOSES the [TO COMPUTE] carried by M11 and ADR-002.]
+// Zero-fuel mass. [CLOSES the [TO COMPUTE] carried by M11 and ADR-002.]
 // ---------------------------------------------------------------------------
 
-/// Empty mass as a fraction of start-of-cruise mass, from the SR-71.
+/// SR-71 **zero fuel weight**, 59 000 lb.
 ///
-/// `30 600 / 55 000`, the same two numbers `sr71_unrefuelled_range` already
-/// uses. **[TO CITE]**, and it is the anchor the whole empty-mass derivation
-/// rests on, so it is the most load-bearing uncited number in this crate.
+/// SOURCE, PRIMARY: NASA, "The SR-71 Test Bed Aircraft: A Facility for
+/// High-Speed Flight Research", Table 1: "Basic aircraft zero fuel weight
+/// 59,000 lb". Cross-checked against the declassified SR-71 Flight Manual,
+/// page 1-4: "Zero fuel weight varies from 56,500 to more than 60,000 pounds."
+/// 59 000 lb sits inside that band, so two independent documents agree.
 ///
-/// [CORRECTED] **The start-of-cruise / mid-cruise ambiguity is resolved**, and
-/// it was resolved by the model rather than by a citation. The doc comment on
-/// the range check used to call 55 t the *mid-cruise* mass while the case passed
-/// it as the *start* of cruise; the gap between those is the cruise fuel, 22 t,
-/// and it moves this fraction from 0.5564 to 0.3974 - a 29 % swing in VENTUS-1's
-/// derived empty mass. Both mid-cruise readings fail, for unrelated reasons:
+/// # [CORRECTED] This replaces a recited 30 600 kg that no source supports
 ///
-/// - As the **geometric** mean, the natural reading under Breguet, 55 t implies
-///   91 667 kg at the start of cruise, above the SR-71's max gross of ~78 t.
-///   Impossible, not merely unlikely.
-/// - As the **arithmetic** mean it implies 77 t, which is possible, so it has to
-///   be killed on performance instead: it gives 9 204 km against a published
-///   5 400 km, 70 % over. Start-of-cruise gives 5 549 km, 2.8 % over.
+/// The project carried 30 600 kg (67 461 lb) as the SR-71 "empty mass". Nothing
+/// in either primary document supports it; it is 13 % above the flight manual's
+/// upper bound. It had been recited, never read.
 ///
-/// See `the_mid_cruise_reading_of_the_anchor_is_refuted_two_ways`.
+/// # Zero fuel weight, not empty weight, and the distinction is load-bearing
 ///
-/// **[TO CITE] remains** on the three masses themselves (30 600, 55 000, 78 000).
-/// What is settled is which quantity 55 t names, not where it came from.
+/// ZFW is the aircraft with everything aboard except fuel: airframe, crew, oil,
+/// sensors. It is what the sources actually state, and it is measurable, whereas
+/// "empty weight" is ambiguous between manufacturer's and operating empty. The
+/// flight manual's 3 500 lb spread is the sensor fit varying.
+///
+/// The module is therefore expressed in ZFW rather than empty mass, and
+/// [`close_cruise`] takes RESERVE FUEL rather than "payload and reserve":
+/// payload is already inside this number. Conflating the two double-counted the
+/// payload, which is the error this renaming removes.
+pub const SR71_ZERO_FUEL_MASS_KG: f64 = 59_000.0 * 0.453_592_37;
+
+/// Lower bound of the flight manual's zero-fuel band, 56 500 lb.
+pub const SR71_ZERO_FUEL_MASS_MIN_KG: f64 = 56_500.0 * 0.453_592_37;
+/// Upper bound of the flight manual's zero-fuel band, 60 000 lb.
+pub const SR71_ZERO_FUEL_MASS_MAX_KG: f64 = 60_000.0 * 0.453_592_37;
+
+/// SR-71 loaded gross mass, upper end of the flight manual's stated range:
+/// 140 000 lb.
+///
+/// SOURCE, PRIMARY: SR-71 Flight Manual page 1-4, "The loaded gross weight of
+/// the aircraft varies from approximately 135,000 to over 140,000 pounds." The
+/// NASA test bed took off at 143 000 lb (Table 1 of the report above), which is
+/// consistent with "over 140,000".
+///
+/// # Two sources disagree, and the disagreement is carried rather than resolved
+///
+/// Secondary and tertiary references widely quote a maximum takeoff weight of
+/// 170 000 to 172 000 lb, roughly 23 % above the flight manual's range. The gap
+/// is most likely operational versus structural limit, but no primary document
+/// stating a structural maximum has been read, so this project does not pick.
+///
+/// It does not have to. The only place gross mass is used is an INEQUALITY, in
+/// `the_mid_cruise_reading_of_the_anchor_is_refuted_two_ways`, and it holds
+/// under both readings by 44 % and 17 % respectively. Where a conclusion needs
+/// an upper bound, [`SR71_MAX_PLAUSIBLE_GROSS_MASS_KG`] takes the LARGER figure,
+/// which is the one that makes the conclusion hardest to reach.
+pub const SR71_LOADED_GROSS_MASS_KG: f64 = 140_000.0 * 0.453_592_37;
+
+/// The most generous gross mass anywhere in the literature, 172 000 lb.
+/// **[TO CITE]**, tertiary, and used deliberately.
+///
+/// Arguments needing an upper bound on gross mass use this rather than the
+/// flight manual figure, because erring generous errs against the conclusion
+/// being drawn. A refutation that survives 172 000 lb survives the truth.
+pub const SR71_MAX_PLAUSIBLE_GROSS_MASS_KG: f64 = 172_000.0 * 0.453_592_37;
+
+/// SR-71 mass at the start of cruise. **[TO CITE]: the one mass here that no
+/// primary source has been found for.**
+///
+/// Used by `sr71_unrefuelled_range` and as the denominator of the zero-fuel
+/// fraction. It is BOUNDED by the cited figures, not established by them: it
+/// must sit below the loaded gross of 61 235 to 63 503 kg and above the
+/// end-of-cruise mass, and 55 000 kg does. That is consistency, not provenance.
+pub const SR71_START_OF_CRUISE_MASS_KG: f64 = 55_000.0;
+
+/// SR-71 mass at the end of cruise. **[TO CITE]**, same status as above.
+///
+/// Consistency check it passes: 33 000 kg less the cited zero-fuel mass leaves
+/// 6 238 kg of reserve, 11.3 % of the start-of-cruise mass. Large, but an
+/// aircraft descending and landing from M 3.2 at 24 km is not gliding home.
+pub const SR71_END_OF_CRUISE_MASS_KG: f64 = 33_000.0;
+
+/// Zero-fuel mass as a fraction of start-of-cruise mass, from the SR-71.
+///
+/// # What is cited and what is not
+///
+/// The NUMERATOR is primary. The DENOMINATOR is **[TO CITE]**: the flight manual
+/// gives loaded gross and zero fuel, not a cruise mass schedule. So this
+/// fraction is half-cited. That is better than it was, it is not closed, and the
+/// difference is written down rather than rounded off.
+///
+/// [CORRECTED] Was `30_600.0 / 55_000.0` = 0.5564, over a mass no source
+/// supports. The cited value is 0.4866, **12.5 % lower**, and it propagates into
+/// VENTUS-1's derived mass and from there into M11's cost estimate.
 ///
 /// # Do not substitute the familiar number
 ///
-/// The commonly quoted SR-71 empty fraction is ~0.392, which is empty over
-/// **MTOW**. This constant is empty over **start-of-cruise mass**, because M6b
-/// declares VENTUS-1's 28 t as cruise mass and a fraction must be taken against
-/// the same reference as the mass it multiplies. Swapping in 0.392 would look
-/// like a correction and would shrink the derived empty mass by 29 %, in the
-/// flattering direction. Guarded by
+/// Tertiary sources quote an SR-71 empty weight near 60 000 lb against a max
+/// takeoff of 170 000 lb, a fraction near 0.35. That is zero-fuel over GROSS
+/// mass. This is zero-fuel over START-OF-CRUISE mass, because M6b declares
+/// VENTUS-1's 28 t as a cruise mass and a fraction must be taken against the
+/// same reference as the mass it multiplies. Substituting 0.35 would look like a
+/// correction and would shrink the derived mass by 28 %, in the flattering
+/// direction. Guarded by
 /// `the_fraction_must_be_taken_against_cruise_mass_not_gross_mass`.
-///
-/// # Why not a statistical correlation
-///
-/// Raymer's jet-fighter empty-weight fraction is the textbook route and it is
-/// wrong here by a quarter: see [`raymer_jet_fighter_empty_fraction`]. A real
-/// aircraft in the actual regime beats a correlation fitted outside it, which is
-/// the same argument M11 makes about DAPCA IV.
-pub const SR71_EMPTY_FRACTION_OF_CRUISE_MASS: f64 = 30_600.0 / 55_000.0;
+pub const SR71_ZERO_FUEL_FRACTION_OF_CRUISE_MASS: f64 =
+    SR71_ZERO_FUEL_MASS_KG / SR71_START_OF_CRUISE_MASS_KG;
+
+// ---------------------------------------------------------------------------
+// The mass relations, as BUILD-TIME assertions.
+//
+// These are relations between constants, so a runtime test over them is
+// `assert!(true)` after constant folding and checks nothing. As `const _: ()`
+// they break the build instead, which is what a relation that must always hold
+// deserves.
+// ---------------------------------------------------------------------------
+
+/// The cited anchor sits inside the flight manual's stated band.
+const _: () = assert!(
+    SR71_ZERO_FUEL_MASS_KG > SR71_ZERO_FUEL_MASS_MIN_KG
+        && SR71_ZERO_FUEL_MASS_KG < SR71_ZERO_FUEL_MASS_MAX_KG,
+    "the cited zero-fuel mass left the flight manual band"
+);
+
+/// The recited 30 600 kg this replaced sits OUTSIDE that band, which is why it
+/// went. Pinned so the old value cannot drift back in unnoticed.
+const _: () = assert!(
+    30_600.0 > SR71_ZERO_FUEL_MASS_MAX_KG,
+    "the superseded 30 600 kg is no longer outside the cited band; recheck why it was replaced"
+);
+
+/// Cruise starts after climb and acceleration, so below loaded gross, and ends
+/// above the zero-fuel mass because the margin between them is reserve fuel.
+/// This is the only thing propping up the uncited start-of-cruise mass.
+const _: () = assert!(
+    SR71_START_OF_CRUISE_MASS_KG < SR71_LOADED_GROSS_MASS_KG
+        && SR71_START_OF_CRUISE_MASS_KG > SR71_END_OF_CRUISE_MASS_KG
+        && SR71_END_OF_CRUISE_MASS_KG > SR71_ZERO_FUEL_MASS_KG,
+    "the uncited cruise masses no longer sit inside the cited bounds"
+);
+
+/// The generous gross mass must actually be the generous one, or every argument
+/// that leans on it for conservatism is inverted.
+const _: () = assert!(
+    SR71_MAX_PLAUSIBLE_GROSS_MASS_KG > SR71_LOADED_GROSS_MASS_KG,
+    "the tertiary gross mass is no longer the larger figure"
+);
 
 /// What a cruise leg leaves over once the airframe and its load are paid for.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CruiseClosure {
-    /// Mass at the end of cruise: empty plus payload and reserve.
+    /// Mass at the end of cruise: zero-fuel mass plus the reserve still aboard.
     pub final_mass_kg: f64,
     /// Fuel burnt over the leg, as a fraction of start-of-cruise mass.
     pub fuel_fraction: f64,
@@ -461,61 +561,62 @@ pub struct CruiseClosure {
     pub range_m: f64,
 }
 
-/// Empty mass from a declared cruise mass and an anchored empty fraction.
+/// Zero-fuel mass from a declared cruise mass and an anchored fraction.
 ///
 /// M6b declares the 28 t cruise mass as the one number in the geometry that is
-/// chosen rather than derived. This turns that choice into an empty mass without
-/// adding a second free parameter: the fraction comes from an aircraft that
-/// exists.
+/// chosen rather than derived. This turns that choice into a zero-fuel mass
+/// without adding a second free parameter.
 ///
 /// # Errors
 /// [`MassError`] for non-physical input or a fraction outside `(0, 1)`.
-pub fn empty_mass_from_cruise_anchor(
+pub fn zero_fuel_mass_from_cruise_anchor(
     cruise_mass_kg: f64,
-    empty_fraction: f64,
+    zero_fuel_fraction: f64,
 ) -> Result<f64, MassError> {
-    if cruise_mass_kg.is_nan() || empty_fraction.is_nan() {
+    if cruise_mass_kg.is_nan() || zero_fuel_fraction.is_nan() {
         return Err(MassError::NotANumber);
     }
     if cruise_mass_kg <= 0.0 {
         return Err(MassError::NonPhysicalMass);
     }
-    if empty_fraction <= 0.0 || empty_fraction >= 1.0 {
+    if zero_fuel_fraction <= 0.0 || zero_fuel_fraction >= 1.0 {
         return Err(MassError::NonPhysicalMass);
     }
-    Ok(cruise_mass_kg * empty_fraction)
+    Ok(cruise_mass_kg * zero_fuel_fraction)
 }
 
-/// Close the cruise leg: what range is left once the airframe, the payload and
-/// the reserve have been paid for out of the cruise mass.
+/// Close the cruise leg: what range is left once the airframe, its load and the
+/// reserve have been paid for out of the cruise mass.
 ///
-/// This is the direction a designer actually works in. `breguet_range_m` asks
-/// "given a mass ratio, how far?"; this asks "given an aircraft and what it must
-/// carry, how far *can* it go?" - and unlike the former it can answer that the
-/// answer is *nowhere*, which is the interesting case.
+/// The direction a designer actually works in. `breguet_range_m` asks "given a
+/// mass ratio, how far?"; this asks "given an aircraft and what it must carry,
+/// how far CAN it go?", and unlike the former it can answer that the answer is
+/// nowhere, which is the interesting case.
+///
+/// `reserve_fuel_kg` is fuel only. Payload is already inside the zero-fuel mass.
 ///
 /// # Errors
-/// [`MassError::MissionDoesNotClose`] when the empty mass plus its load already
-/// meets or exceeds the cruise mass, so there is no fuel aboard. Other
-/// [`MassError`]s for non-physical input.
+/// [`MassError::MissionDoesNotClose`] when the zero-fuel mass plus its reserve
+/// already meets or exceeds the cruise mass, so there is no burnable fuel
+/// aboard. Other [`MassError`]s for non-physical input.
 pub fn close_cruise(
     cruise_mass_kg: f64,
-    empty_mass_kg: f64,
-    payload_and_reserve_kg: f64,
+    zero_fuel_mass_kg: f64,
+    reserve_fuel_kg: f64,
     velocity_m_s: f64,
     lift_to_drag: f64,
     specific_impulse_s: f64,
 ) -> Result<CruiseClosure, MassError> {
-    for v in [cruise_mass_kg, empty_mass_kg, payload_and_reserve_kg] {
+    for v in [cruise_mass_kg, zero_fuel_mass_kg, reserve_fuel_kg] {
         if v.is_nan() {
             return Err(MassError::NotANumber);
         }
     }
-    if cruise_mass_kg <= 0.0 || empty_mass_kg <= 0.0 || payload_and_reserve_kg < 0.0 {
+    if cruise_mass_kg <= 0.0 || zero_fuel_mass_kg <= 0.0 || reserve_fuel_kg < 0.0 {
         return Err(MassError::NonPhysicalMass);
     }
 
-    let final_mass_kg = empty_mass_kg + payload_and_reserve_kg;
+    let final_mass_kg = zero_fuel_mass_kg + reserve_fuel_kg;
     if final_mass_kg >= cruise_mass_kg {
         return Err(MassError::MissionDoesNotClose);
     }
@@ -535,21 +636,33 @@ pub fn close_cruise(
     })
 }
 
+/// The SR-71's own reserve fuel at the end of cruise, as a fraction of its
+/// start-of-cruise mass: 11.3 %.
+///
+/// Derived from the cited zero-fuel mass and the **[TO CITE]** end-of-cruise
+/// mass, so it inherits the weaker of the two. It exists because the alternative
+/// to anchoring VENTUS-1's reserve is choosing it, and a chosen reserve is what
+/// carried an earlier result that did not survive the citation. See
+/// `the_five_thousand_kilometre_question_turns_on_the_reserve`.
+#[must_use]
+pub fn sr71_reserve_fraction_of_cruise_mass() -> f64 {
+    (SR71_END_OF_CRUISE_MASS_KG - SR71_ZERO_FUEL_MASS_KG) / SR71_START_OF_CRUISE_MASS_KG
+}
+
 /// Raymer's empty-weight-fraction correlation for a jet fighter,
 /// `We/W0 = 2.34 W0^-0.13` with `W0` in pounds. **[TO VERIFY]**
 ///
 /// # Present only to show that it does not apply
 ///
-/// At the SR-71's gross mass it returns 0.488 against an actual 0.392: it
-/// **over-predicts the empty fraction by 24 %**. The correlation is fitted on
-/// fighters, and a fighter is a different kind of object from a vehicle that is
-/// more than half fuel and made of titanium.
+/// The correlation is fitted on fighters, and a fighter is a different kind of
+/// object from a vehicle that is more than half fuel and made of titanium. At
+/// the SR-71's cited loaded gross mass it over-predicts the structural fraction
+/// by a fifth.
 ///
-/// That direction matters. Over-predicting empty mass under-predicts fuel, which
-/// under-predicts range - so using this correlation would have made VENTUS-1
-/// look *worse* than the anchor does, not better. It is still not used, because
-/// a number being conservative is not the same as it being right, and the error
-/// is large enough to swamp the thing being computed.
+/// The direction matters. Over-predicting the structure under-predicts fuel,
+/// which under-predicts range, so this correlation would have made VENTUS-1 look
+/// WORSE than the anchor does, not better. It is still not used: a number being
+/// conservative is not the same as it being right.
 #[must_use]
 pub fn raymer_jet_fighter_empty_fraction(takeoff_mass_kg: f64) -> f64 {
     const POUNDS_PER_KILOGRAM: f64 = 1.0 / 0.453_592_37;
@@ -563,17 +676,18 @@ pub fn raymer_jet_fighter_empty_fraction(takeoff_mass_kg: f64) -> f64 {
 /// Start-of-cruise mass, from M6b. The one chosen number in the chain.
 pub const VENTUS1_CRUISE_MASS_KG: f64 = 28_000.0;
 
-/// **VENTUS-1 empty mass, 15 578 kg.** Derived, not chosen: M6b's cruise mass
-/// times the SR-71 empty fraction.
+/// **VENTUS-1 zero-fuel mass, 13 624 kg.** Derived, not chosen: M6b's cruise
+/// mass times the SR-71 zero-fuel fraction. Closes the `[TO COMPUTE]` M11 and
+/// ADR-002 were carrying.
 ///
-/// This closes the `[TO COMPUTE]` that M11 and ADR-002 were carrying. It is a
-/// derivation resting on one uncited ratio, which is a weaker footing than most
-/// numbers in this project - and stronger than the alternative, which was no
-/// number at all and a cost model that could only emit a family of answers.
-pub const VENTUS1_EMPTY_MASS_KG: f64 = VENTUS1_CRUISE_MASS_KG * SR71_EMPTY_FRACTION_OF_CRUISE_MASS;
-
+/// [CORRECTED] Was 15 578 kg, from a recited SR-71 mass no source supports. The
+/// cited anchor puts it 12.5 % lower, which propagates into M11's cost estimate
+/// and overturns a result this project had already published. See
+/// `the_five_thousand_kilometre_question_turns_on_the_reserve`.
+pub const VENTUS1_ZERO_FUEL_MASS_KG: f64 =
+    VENTUS1_CRUISE_MASS_KG * SR71_ZERO_FUEL_FRACTION_OF_CRUISE_MASS;
 #[cfg(test)]
-mod empty_mass_tests {
+mod zero_fuel_mass_tests {
     use super::*;
 
     const V: f64 = 1_046.946_565; // M1 at M 3.5 / 26 km
@@ -582,90 +696,126 @@ mod empty_mass_tests {
 
     /// The derived number, and the arithmetic behind it in one place.
     #[test]
-    fn the_empty_mass_is_the_cruise_mass_times_the_anchor_fraction() {
-        let derived = empty_mass_from_cruise_anchor(
+    fn the_zero_fuel_mass_is_the_cruise_mass_times_the_anchor_fraction() {
+        let derived = zero_fuel_mass_from_cruise_anchor(
             VENTUS1_CRUISE_MASS_KG,
-            SR71_EMPTY_FRACTION_OF_CRUISE_MASS,
+            SR71_ZERO_FUEL_FRACTION_OF_CRUISE_MASS,
         )
         .unwrap();
-        assert_eq!(derived, VENTUS1_EMPTY_MASS_KG);
+        assert_eq!(derived, VENTUS1_ZERO_FUEL_MASS_KG);
         assert!(
-            (derived - 15_578.18).abs() < 0.01,
-            "empty mass moved to {derived}"
+            (derived - 13_624.27).abs() < 0.01,
+            "zero-fuel mass moved to {derived}"
         );
     }
 
-    /// THE RESULT THAT CAME OUT OF CLOSING THIS, AND IT IS A NEGATIVE ONE.
+    /// The mass relations are checked at COMPILE TIME, above, not here.
     ///
-    /// A 5000 km cruise requirement does not close at the design point. The fuel
-    /// it needs leaves 15 384 kg at the end of cruise against an empty airframe
-    /// of 15 578 kg — the aircraft arrives 194 kg lighter than it can possibly
-    /// be, with nothing aboard at all.
+    /// [CORRECTED] They were runtime `assert!`s over constants, which clippy
+    /// correctly flagged as `assert!(true)`: the compiler folds them away and
+    /// they test nothing. This repository already catalogues one test that
+    /// tested nothing; this would have been the second. Promoted to `const _: ()
+    /// = assert!(..)`, which is strictly stronger - it breaks the BUILD, not a
+    /// test run, and it cannot be skipped by a filtered `cargo test`.
     ///
-    /// The module refuses rather than returning a negative payload, because a
-    /// negative payload propagates as a number and looks like one.
+    /// What is left here is the one quantity that is actually computed.
     #[test]
-    fn the_five_thousand_kilometre_requirement_does_not_close() {
-        // The fuel fraction 5000 km demands, from Breguet inverted.
-        let f = required_fuel_fraction(5.0e6, V, LD, ISP).unwrap();
-        let end_of_cruise = VENTUS1_CRUISE_MASS_KG * (1.0 - f);
+    fn the_implied_reserve_fraction_is_plausible() {
+        let reserve = sr71_reserve_fraction_of_cruise_mass();
         assert!(
-            end_of_cruise < VENTUS1_EMPTY_MASS_KG,
-            "the requirement closes after all: {end_of_cruise} against {VENTUS1_EMPTY_MASS_KG}"
-        );
-
-        // With zero payload it still does not close, so it is not a payload
-        // problem — the range itself is out of reach.
-        assert_eq!(
-            close_cruise(
-                VENTUS1_CRUISE_MASS_KG * (1.0 - f),
-                VENTUS1_EMPTY_MASS_KG,
-                0.0,
-                V,
-                LD,
-                ISP
-            ),
-            Err(MassError::MissionDoesNotClose)
+            (0.10..0.13).contains(&reserve),
+            "implied reserve fraction {reserve:.4} left the plausible band"
         );
     }
 
-    /// What the aircraft can actually do, which is the number the design point
-    /// should carry instead of 5000 km.
+    /// [CORRECTED] THE RESULT THAT DID NOT SURVIVE THE CITATION.
+    ///
+    /// This project previously reported, and committed, that a 5000 km cruise
+    /// requirement "does not close" at the design point. That rested on a
+    /// recited SR-71 mass of 30 600 kg which no source supports, and on a term
+    /// that conflated payload with reserve. With the cited zero-fuel mass the
+    /// aircraft is 12.5 % lighter and the answer turns entirely on the reserve,
+    /// which is a CHOICE nobody in this project has made:
+    ///
+    ///   reserve 500 kg                   -> 5714 km, the requirement closes
+    ///   reserve at the anchor's fraction -> 4265 km, it does not
+    ///
+    /// So the honest statement is not "5000 km fails". It is "5000 km is
+    /// reserve-limited, and this project has not chosen a reserve policy". The
+    /// earlier claim was an artefact of an uncited number.
     #[test]
-    fn the_achievable_range_with_a_tonne_aboard() {
-        let c = close_cruise(
+    fn the_five_thousand_kilometre_question_turns_on_the_reserve() {
+        let generous = close_cruise(
             VENTUS1_CRUISE_MASS_KG,
-            VENTUS1_EMPTY_MASS_KG,
-            1000.0,
+            VENTUS1_ZERO_FUEL_MASS_KG,
+            500.0,
             V,
             LD,
             ISP,
         )
         .unwrap();
-        std::println!(
-            "VENTUS-1: empty {:.0} kg, 1 t aboard -> fuel fraction {:.4}, range {:.0} km",
-            VENTUS1_EMPTY_MASS_KG,
-            c.fuel_fraction,
-            c.range_m / 1000.0
-        );
         assert!(
-            (c.range_m / 1000.0 - 4376.0).abs() < 1.0,
-            "range moved to {:.1} km",
-            c.range_m / 1000.0
+            generous.range_m > 5.0e6,
+            "with a 500 kg reserve the requirement should close, got {:.0} km",
+            generous.range_m / 1000.0
         );
-        assert!(c.fuel_fraction > 0.40 && c.fuel_fraction < 0.41);
+
+        let anchored = close_cruise(
+            VENTUS1_CRUISE_MASS_KG,
+            VENTUS1_ZERO_FUEL_MASS_KG,
+            sr71_reserve_fraction_of_cruise_mass() * VENTUS1_CRUISE_MASS_KG,
+            V,
+            LD,
+            ISP,
+        )
+        .unwrap();
+        assert!(
+            anchored.range_m < 5.0e6,
+            "at the anchor reserve fraction it should not close, got {:.0} km",
+            anchored.range_m / 1000.0
+        );
+
+        std::println!(
+            "VENTUS-1 zero-fuel {:.0} kg: 500 kg reserve -> {:.0} km; anchored reserve -> {:.0} km",
+            VENTUS1_ZERO_FUEL_MASS_KG,
+            generous.range_m / 1000.0,
+            anchored.range_m / 1000.0
+        );
     }
 
-    /// Range falls as the load rises, and the closure stays consistent with
-    /// Breguet run directly. Two routes to the same number.
+    /// Scaling every mass by the same anchor reproduces the SR-71 mass ratio
+    /// exactly, and therefore its range. Worth pinning because it explains why
+    /// the corrected zero-fuel mass did NOT move the anchored answer: the
+    /// correction cancels when the reserve is anchored too.
+    #[test]
+    fn anchoring_the_reserve_as_well_reproduces_the_anchor_mass_ratio() {
+        let scaled = close_cruise(
+            VENTUS1_CRUISE_MASS_KG,
+            VENTUS1_ZERO_FUEL_MASS_KG,
+            sr71_reserve_fraction_of_cruise_mass() * VENTUS1_CRUISE_MASS_KG,
+            V,
+            LD,
+            ISP,
+        )
+        .unwrap();
+        let ours = VENTUS1_CRUISE_MASS_KG / scaled.final_mass_kg;
+        let theirs = SR71_START_OF_CRUISE_MASS_KG / SR71_END_OF_CRUISE_MASS_KG;
+        assert!(
+            (ours - theirs).abs() < 1e-12,
+            "mass ratio {ours} against the anchor {theirs}"
+        );
+    }
+
+    /// Range falls as the reserve rises, and the closure agrees with Breguet run
+    /// directly. Two routes to the same number.
     #[test]
     fn the_closure_agrees_with_breguet_run_forwards() {
         let mut previous = f64::INFINITY;
-        for load in [500.0, 1000.0, 1500.0, 2000.0] {
+        for reserve in [500.0, 1000.0, 2000.0, 3000.0] {
             let c = close_cruise(
                 VENTUS1_CRUISE_MASS_KG,
-                VENTUS1_EMPTY_MASS_KG,
-                load,
+                VENTUS1_ZERO_FUEL_MASS_KG,
+                reserve,
                 V,
                 LD,
                 ISP,
@@ -676,39 +826,39 @@ mod empty_mass_tests {
                 LD,
                 ISP,
                 VENTUS1_CRUISE_MASS_KG,
-                VENTUS1_EMPTY_MASS_KG + load,
+                VENTUS1_ZERO_FUEL_MASS_KG + reserve,
             )
             .unwrap();
             assert!((c.range_m - direct).abs() < 1e-9 * direct);
-            assert!(c.range_m < previous, "range rose with load");
+            assert!(c.range_m < previous, "range rose with reserve");
             previous = c.range_m;
         }
     }
 
-    /// The textbook correlation, and why it is not used.
+    /// The textbook correlation, and why it is not used. Stated against the
+    /// CITED gross mass now rather than a recited one.
     #[test]
-    fn the_jet_fighter_correlation_overpredicts_the_sr71_by_a_quarter() {
-        let predicted = raymer_jet_fighter_empty_fraction(78_000.0);
-        let actual = 30_600.0 / 78_000.0; // [TO CITE]
+    fn the_jet_fighter_correlation_overpredicts_the_structure() {
+        let predicted = raymer_jet_fighter_empty_fraction(SR71_LOADED_GROSS_MASS_KG);
+        let actual = SR71_ZERO_FUEL_MASS_KG / SR71_LOADED_GROSS_MASS_KG;
         let over = predicted / actual - 1.0;
         std::println!(
-            "Raymer jet-fighter We/W0 = {predicted:.4} against an actual {actual:.4}: {:+.1} %",
+            "Raymer We/W0 = {predicted:.4} against a cited zero-fuel fraction {actual:.4}: {:+.1} %",
             100.0 * over
         );
         assert!(
-            over > 0.20,
-            "the correlation used to over-predict by a quarter; now {over:+.3}"
+            over > 0.15,
+            "the correlation should over-predict the structure; got {over:+.3}"
         );
     }
 
     #[test]
     fn a_mission_that_cannot_close_is_refused_rather_than_returned() {
-        // Empty airframe heavier than the cruise mass.
         assert_eq!(
             close_cruise(10_000.0, 12_000.0, 0.0, V, LD, ISP),
             Err(MassError::MissionDoesNotClose)
         );
-        // Exactly equal: no fuel, so still no mission.
+        // Exactly equal: no burnable fuel, so still no mission.
         assert_eq!(
             close_cruise(16_000.0, 15_000.0, 1000.0, V, LD, ISP),
             Err(MassError::MissionDoesNotClose)
@@ -721,7 +871,7 @@ mod empty_mass_tests {
     fn the_anchor_fraction_is_refused_outside_the_unit_interval() {
         for bad in [0.0, 1.0, -0.5, 1.5] {
             assert_eq!(
-                empty_mass_from_cruise_anchor(28_000.0, bad),
+                zero_fuel_mass_from_cruise_anchor(28_000.0, bad),
                 Err(MassError::NonPhysicalMass),
                 "fraction {bad} was accepted"
             );
@@ -737,42 +887,37 @@ mod anchor_reading_tests {
     const LD: f64 = 6.0; // [TO CITE]
     const ISP: f64 = 1900.0; // [TO CITE]
 
-    /// SR-71 maximum gross mass, about 78 t. **[TO CITE]**
-    const SR71_MAX_GROSS_KG: f64 = 78_000.0;
-    const SR71_END_OF_CRUISE_KG: f64 = 33_000.0;
-    const SR71_ANCHOR_KG: f64 = 55_000.0;
-
     /// RESOLVING AN AMBIGUITY IN THIS MODULE'S OWN INPUTS, WITHOUT A CITATION.
     ///
     /// The doc comment on the range check called 55 t the mid-cruise mass; the
-    /// call passed it as the start of cruise. Nothing in the module distinguished
-    /// them, and once the empty-mass derivation began dividing by that number the
-    /// difference stopped being cosmetic: 0.5564 against 0.3974, which is 15 578
-    /// kg against 11 127 kg of VENTUS-1 empty mass, a 29 % swing.
+    /// call passed it as the start of cruise. Nothing distinguished them, and
+    /// once the zero-fuel derivation began dividing by that number the
+    /// difference stopped being cosmetic.
     ///
     /// Both mid-cruise readings die, for unrelated reasons, which is what makes
-    /// the conclusion safe.
+    /// the conclusion safe rather than merely convenient.
     #[test]
     fn the_mid_cruise_reading_of_the_anchor_is_refuted_two_ways() {
         // Reading B1: mid-cruise as the geometric mean, which is the one Breguet
         // makes natural because range goes as the log of the mass ratio.
-        let implied_start = SR71_ANCHOR_KG * SR71_ANCHOR_KG / SR71_END_OF_CRUISE_KG;
-        assert!(
-            implied_start > SR71_MAX_GROSS_KG,
-            "the geometric reading implies {implied_start:.0} kg at the start of cruise, \
-             which should be above the max gross mass of {SR71_MAX_GROSS_KG:.0} kg"
-        );
+        let implied_start = SR71_START_OF_CRUISE_MASS_KG * SR71_START_OF_CRUISE_MASS_KG
+            / SR71_END_OF_CRUISE_MASS_KG;
 
-        // Reading B2: mid-cruise as the arithmetic mean. This one is not
-        // impossible — it implies 77 t, just under max gross — so it has to be
-        // killed on performance instead.
-        let implied_start_b2 = 2.0 * SR71_ANCHOR_KG - SR71_END_OF_CRUISE_KG;
+        // Checked against the MOST GENEROUS gross mass in the literature, not
+        // the cited one. If the refutation survives 172 000 lb it survives the
+        // truth, whichever of the two disagreeing figures that turns out to be.
         assert!(
-            implied_start_b2 < SR71_MAX_GROSS_KG,
-            "B2 should be possible"
+            implied_start > SR71_MAX_PLAUSIBLE_GROSS_MASS_KG,
+            "the geometric reading implies {implied_start:.0} kg at cruise start, which must exceed even the most generous gross mass of {SR71_MAX_PLAUSIBLE_GROSS_MASS_KG:.0} kg"
         );
+        // And against the cited flight-manual figure it fails far harder.
+        assert!(implied_start > 1.4 * SR71_LOADED_GROSS_MASS_KG);
+
+        // Reading B2: mid-cruise as the arithmetic mean. Not impossible, so it
+        // has to be killed on performance instead.
+        let implied_start_b2 = 2.0 * SR71_START_OF_CRUISE_MASS_KG - SR71_END_OF_CRUISE_MASS_KG;
         let range_b2 =
-            breguet_range_m(V, LD, ISP, implied_start_b2, SR71_END_OF_CRUISE_KG).unwrap();
+            breguet_range_m(V, LD, ISP, implied_start_b2, SR71_END_OF_CRUISE_MASS_KG).unwrap();
         assert!(
             range_b2 > 9.0e6,
             "B2 range came out {:.0} km",
@@ -781,8 +926,15 @@ mod anchor_reading_tests {
 
         // Reading A: 55 t is the start of cruise. The only one that reproduces
         // the published range.
-        let range_a = breguet_range_m(V, LD, ISP, SR71_ANCHOR_KG, SR71_END_OF_CRUISE_KG).unwrap();
-        let published = 5.4e6;
+        let range_a = breguet_range_m(
+            V,
+            LD,
+            ISP,
+            SR71_START_OF_CRUISE_MASS_KG,
+            SR71_END_OF_CRUISE_MASS_KG,
+        )
+        .unwrap();
+        let published = 5.4e6; // [TO CITE]
         assert!(
             (range_a / published - 1.0).abs() < 0.05,
             "reading A should land within 5 % of the published range, got {:.0} km",
@@ -794,46 +946,45 @@ mod anchor_reading_tests {
         );
 
         std::println!(
-            "A start-of-cruise: {:.0} km ({:+.1} %). B2 mid-cruise: {:.0} km ({:+.1} %). \
-             B1 mid-cruise: {:.0} kg at cruise start, above a {:.0} kg max gross.",
+            "A start-of-cruise: {:.0} km ({:+.1} %). B2 mid-cruise: {:.0} km ({:+.1} %). B1 mid-cruise: {:.0} kg at cruise start, above even a {:.0} kg gross mass.",
             range_a / 1000.0,
             100.0 * (range_a / published - 1.0),
             range_b2 / 1000.0,
             100.0 * (range_b2 / published - 1.0),
             implied_start,
-            SR71_MAX_GROSS_KG
+            SR71_MAX_PLAUSIBLE_GROSS_MASS_KG
         );
     }
 
     /// THE OTHER HALF, AND THE ONE A WELL-MEANING READER IS LIKELIER TO BREAK.
     ///
-    /// Even with the SR-71 numbers settled, the fraction must be taken against
-    /// the same reference as the mass it is applied to. M6b declares VENTUS-1's
-    /// 28 t as CRUISE mass, so the anchor must be empty-over-cruise-mass
-    /// (0.5564) and not the more commonly quoted empty-over-MTOW (0.3923).
+    /// Even with the masses settled, the fraction must be taken against the same
+    /// reference as the mass it is applied to. M6b declares VENTUS-1's 28 t as
+    /// CRUISE mass, so the anchor must be zero-fuel-over-cruise-mass and not the
+    /// familiar zero-fuel-over-gross-mass that tertiary sources quote.
     ///
     /// Substituting the familiar number would look like a correction and would
-    /// shrink the derived empty mass by 29 %, in the flattering direction.
+    /// shrink the derived mass, in the flattering direction.
     #[test]
     fn the_fraction_must_be_taken_against_cruise_mass_not_gross_mass() {
-        let over_cruise = 30_600.0 / SR71_ANCHOR_KG;
-        let over_gross = 30_600.0 / SR71_MAX_GROSS_KG;
+        let over_cruise = SR71_ZERO_FUEL_MASS_KG / SR71_START_OF_CRUISE_MASS_KG;
+        let over_gross = SR71_ZERO_FUEL_MASS_KG / SR71_MAX_PLAUSIBLE_GROSS_MASS_KG;
 
-        assert_eq!(over_cruise, SR71_EMPTY_FRACTION_OF_CRUISE_MASS);
+        assert_eq!(over_cruise, SR71_ZERO_FUEL_FRACTION_OF_CRUISE_MASS);
         assert!(
-            over_gross < 0.75 * over_cruise,
-            "the two references should be far apart, or this test is not guarding anything"
+            over_gross < 0.8 * over_cruise,
+            "the two references should be far apart, or this test guards nothing"
         );
 
-        let right = empty_mass_from_cruise_anchor(VENTUS1_CRUISE_MASS_KG, over_cruise).unwrap();
-        let wrong = empty_mass_from_cruise_anchor(VENTUS1_CRUISE_MASS_KG, over_gross).unwrap();
+        let right = zero_fuel_mass_from_cruise_anchor(VENTUS1_CRUISE_MASS_KG, over_cruise).unwrap();
+        let wrong = zero_fuel_mass_from_cruise_anchor(VENTUS1_CRUISE_MASS_KG, over_gross).unwrap();
         assert!(
             wrong < right,
             "the gross-mass fraction must be the flattering one, or the warning is backwards"
         );
         assert!(
             (right / wrong - 1.0) > 0.25,
-            "the two readings should differ by about 29 %, got {:.1} %",
+            "the two readings should differ by about 28 %, got {:.1} %",
             100.0 * (right / wrong - 1.0)
         );
     }

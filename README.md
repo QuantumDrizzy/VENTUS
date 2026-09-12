@@ -65,8 +65,8 @@ VENTUS answers it structurally rather than by care:
 | M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
 
 ```
-cargo test --workspace     177 tests
-cargo xtask validate       76 cases: 69 pass, 0 fail, 7 known limit, 0 stale
+cargo test --workspace     178 tests
+cargo xtask validate       77 cases: 70 pass, 0 fail, 7 known limit, 0 stale
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 ```
 
@@ -184,8 +184,8 @@ Full derivation and provenance in [`docs/design-point.md`](docs/design-point.md)
 | T_aw | **709.3 K / 436.2 °C** (no radiation) |
 | **Skin, radiating** | **548.3 K / 275.2 °C** at 10 m — computed, ε = 0.85 |
 | Inlet recovery | 0.742, against 0.213 for a normal shock — **a factor of 3.48** |
-| Empty mass | **15 578 kg** — derived from 28 t cruise at the SR-71 empty fraction |
-| **Cruise range** | **4 376 km** with 1 t aboard — *5 000 km does not close* |
+| Zero-fuel mass | **13 624 kg** — derived from 28 t cruise at the *cited* SR-71 zero-fuel fraction |
+| Cruise range | **4 265 — 5 714 km** — reserve-limited; no reserve policy chosen |
 
 **What it costs is the one question the project answers badly, and says so.**
 M11 runs DAPCA IV anchored on the SR-71. The anchor is already **1.54x past** the

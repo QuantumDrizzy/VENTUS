@@ -59,9 +59,9 @@ fn main() {
     );
     println!("velocity ratio = {:.6}\n", v_ventus / v_sr71);
 
-    // SR-71 empty mass 30 600 kg, 32 built. Both [TO CITE].
+    // SR-71 zero-fuel mass 59 000 lb (cited, NASA test bed Table 1); 32 built [TO CITE].
     let sr71 = Inputs {
-        empty_mass_kg: 30_600.0,
+        empty_mass_kg: 26_761.949_83,
         max_velocity_m_s: v_sr71,
         production_quantity: 32.0,
         flight_test_aircraft: 2.0,
@@ -95,11 +95,11 @@ fn main() {
     // one - 28 t of cruise mass at the SR-71 empty fraction - so there is a
     // single answer rather than a family of them.
     println!(
-        "VENTUS-1 empty mass {:.0} kg, derived by M7 from M6b cruise mass.\n",
-        ventus_mass::VENTUS1_EMPTY_MASS_KG
+        "VENTUS-1 zero-fuel mass {:.0} kg, derived by M7 from M6b cruise mass.\n",
+        ventus_mass::VENTUS1_ZERO_FUEL_MASS_KG
     );
     let ventus = |q: f64| Inputs {
-        empty_mass_kg: ventus_mass::VENTUS1_EMPTY_MASS_KG,
+        empty_mass_kg: ventus_mass::VENTUS1_ZERO_FUEL_MASS_KG,
         max_velocity_m_s: v_ventus,
         production_quantity: q,
         flight_test_aircraft: 2.0,

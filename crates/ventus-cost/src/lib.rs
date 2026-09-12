@@ -64,7 +64,19 @@ pub enum CostError {
 /// What a programme is made of, in SI.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Inputs {
-    /// Empty mass. Takes `MassBreakdown::empty_mass_kg` from M7 directly.
+    /// Empty mass, in DAPCA IV's sense.
+    ///
+    /// **A SUBSTITUTION IS BEING MADE HERE AND IT IS NOT FREE.** DAPCA IV was
+    /// fitted against empty weight. What M7 can supply is a ZERO-FUEL mass,
+    /// because that is the quantity the SR-71 sources actually state, and zero
+    /// fuel weight includes crew, oil and sensors that empty weight does not.
+    ///
+    /// ZFW is therefore an over-estimate of We, and since every DAPCA relation
+    /// is increasing in We, every figure this module produces is biased HIGH by
+    /// that difference. For the SR-71 the flight manual's 3 500 lb zero-fuel
+    /// spread is roughly the size of the payload term, so the bias is of order a
+    /// few per cent - small against an extrapolation already 1.7x past the fit,
+    /// and stated rather than absorbed.
     pub empty_mass_kg: f64,
     /// Maximum velocity. From M1 and the design Mach, computed rather than
     /// recited.
@@ -211,7 +223,9 @@ mod tests {
 
     fn sr71() -> Inputs {
         Inputs {
-            empty_mass_kg: 30_600.0,
+            // [CORRECTED] was 30 600.0, recited. This is the cited zero-fuel mass:
+            // 59 000 lb, NASA test-bed report Table 1, inside the flight manual band.
+            empty_mass_kg: 26_761.949_83,
             max_velocity_m_s: V_SR71_M_S,
             production_quantity: 32.0,
             flight_test_aircraft: 2.0,
@@ -221,8 +235,9 @@ mod tests {
 
     fn ventus() -> Inputs {
         Inputs {
-            // M7 derives this: 28 t cruise mass at the SR-71 empty fraction.
-            empty_mass_kg: 15_578.181_818_181_82,
+            // M7 derives this: 28 t cruise mass at the cited SR-71 zero-fuel
+            // fraction. [CORRECTED] was 15 578.18, from a recited SR-71 mass.
+            empty_mass_kg: 13_624.265_368,
             max_velocity_m_s: V_VENTUS_M_S,
             production_quantity: 6.0,
             flight_test_aircraft: 2.0,

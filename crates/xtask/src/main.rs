@@ -525,8 +525,8 @@ fn evaluate_mass_empty(c: &Case) -> BTreeMap<String, ExpectValue> {
     let mut m = BTreeMap::new();
 
     if let (Some(cruise), Some(frac)) = (f("cruise_mass_kg"), f("empty_fraction")) {
-        if let Ok(e) = ventus_mass::empty_mass_from_cruise_anchor(cruise, frac) {
-            m.insert("empty_mass_kg".to_string(), ExpectValue::Float(e));
+        if let Ok(e) = ventus_mass::zero_fuel_mass_from_cruise_anchor(cruise, frac) {
+            m.insert("zero_fuel_mass_kg".to_string(), ExpectValue::Float(e));
         }
     }
     if let (Some(a), Some(end)) = (f("anchor_mass_kg"), f("end_of_cruise_mass_kg")) {
@@ -537,23 +537,29 @@ fn evaluate_mass_empty(c: &Case) -> BTreeMap<String, ExpectValue> {
             ExpectValue::Float(a * a / end),
         );
     }
+    if let Some(lb) = f("pounds") {
+        m.insert(
+            "kilograms".to_string(),
+            ExpectValue::Float(lb * 0.453_592_37),
+        );
+    }
     if let Some(w0) = f("takeoff_mass_kg") {
         m.insert(
             "raymer_empty_fraction".to_string(),
             ExpectValue::Float(ventus_mass::raymer_jet_fighter_empty_fraction(w0)),
         );
     }
-    if let (Some(cruise), Some(empty), Some(load)) = (
+    if let (Some(cruise), Some(zfm), Some(reserve)) = (
         f("cruise_mass_kg"),
-        f("empty_mass_kg"),
-        f("payload_and_reserve_kg"),
+        f("zero_fuel_mass_kg"),
+        f("reserve_fuel_kg"),
     ) {
         let v = f("velocity_m_s").unwrap_or_else(|| panic!("case `{}` needs velocity_m_s", c.name));
         let ld =
             f("lift_to_drag").unwrap_or_else(|| panic!("case `{}` needs lift_to_drag", c.name));
         let isp = f("specific_impulse_s")
             .unwrap_or_else(|| panic!("case `{}` needs specific_impulse_s", c.name));
-        if let Ok(cl) = ventus_mass::close_cruise(cruise, empty, load, v, ld, isp) {
+        if let Ok(cl) = ventus_mass::close_cruise(cruise, zfm, reserve, v, ld, isp) {
             for (k, val) in [
                 ("range_m", cl.range_m),
                 ("fuel_fraction", cl.fuel_fraction),
@@ -585,8 +591,9 @@ fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
         // names, not by what happens to parse.
         if c.inputs.contains_key("empty_fraction")
             || c.inputs.contains_key("takeoff_mass_kg")
-            || c.inputs.contains_key("payload_and_reserve_kg")
+            || c.inputs.contains_key("reserve_fuel_kg")
             || c.inputs.contains_key("anchor_mass_kg")
+            || c.inputs.contains_key("pounds")
         {
             evaluate_mass_empty(c)
         } else {
