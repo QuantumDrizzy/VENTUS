@@ -1,7 +1,8 @@
 # ADR-000 — Repository architecture
 
 **Status:** accepted · **Date:** 2026-08-26 · **Author:** A. Rodríguez (QuantumDrizzy)
-**Revision:** r3 — supersedes r2. Changes: D11 added (data/reference removed,
+**Revision:** r4 — supersedes r3. Changes: D6b added (xtask bench, gated).
+r3 changes: Changes: D11 added (data/reference removed,
 yardsticks live in the case files), D12 added (every crate declares a validation
 route, replacing PENDING_MODULES). r2 changes: D5 replaced (layer numbers → DAG
 check), D10 added (gamma parameterisation), D3 split into `validate` / `release`
@@ -211,6 +212,31 @@ Rust binary is already in the toolchain. `xtask` checks `VSCMD_ARG_TGT_ARCH=x64`
 and, if absent, aborts telling the user to open the x64 Native Tools Command
 Prompt for VS 2022 or call `vcvars64.bat` — instead of failing forty lines later
 inside the wrong `link.exe` (Git's coreutils `link` shadows MSVC's).
+
+## D6b — `xtask bench` is gated on the corpus, not on remembering *(r4, new)*
+
+D6 listed `bench` as planned. It is now built, and the gate is the reason it was
+worth building rather than reaching for `criterion`.
+
+`euler2d.cu` already refused to print timings unless levels A, B and D passed in
+the same binary, on the stated grounds that a benchmark from unvalidated code is
+worse than no benchmark. `xtask bench` applies that to the Rust side: it runs the
+lint gate and the full case corpus first and **refuses to time anything** unless
+the verdict is PASS at the same commit. It also refuses outright on a debug
+build, because debug is roughly 20x slower here — not a slow measurement but a
+different one.
+
+**Rejected: `criterion`.** Better statistics, and a dependency tree larger than
+this entire workspace. The cost of declining it is stated in
+`docs/benchmarks.md` rather than hidden: these numbers are good to a few per
+cent, not to one, and nothing in the project leans on a smaller difference.
+
+**Consequence, and it is the reason this decision earned its place.** The first
+measurement showed one function — M3's ramp optimiser — accounting for the entire
+cost of the M12 chain, with every other module summing to 0.005 % of it. M12 was
+restructured from five scans to a single pass on that evidence; the original
+shape would have taken over nine hours per sweep. The benchmark changed a design
+the first time it ran.
 
 ## D7 — Strict SI, mandatory unit suffix on every identifier
 

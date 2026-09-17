@@ -10,6 +10,8 @@
 //! remedy. The Git coreutils `link` shadows the MSVC linker, so a missing
 //! vcvars fails forty lines later inside the wrong link.exe instead of here.
 
+mod bench;
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -24,14 +26,15 @@ fn main() -> ExitCode {
     let cmd = std::env::args().nth(1);
     match cmd.as_deref() {
         Some("validate") => validate(),
+        Some("bench") => bench_gated(),
         Some(other) => {
             eprintln!("xtask: `{other}` is not implemented yet.");
-            eprintln!("available: validate");
-            eprintln!("planned:   build | check-dag | bench | report  (ADR-000 D6)");
+            eprintln!("available: validate | bench");
+            eprintln!("planned:   build | check-dag | report  (ADR-000 D6)");
             ExitCode::from(2)
         }
         None => {
-            eprintln!("usage: cargo xtask <validate>");
+            eprintln!("usage: cargo xtask <validate|bench>");
             ExitCode::from(2)
         }
     }
@@ -966,6 +969,153 @@ fn validate() -> ExitCode {
     } else {
         ExitCode::SUCCESS
     }
+}
+
+/// Load and evaluate the whole case corpus, without writing a report.
+///
+/// Extracted so that `bench` can gate on the same corpus `validate` certifies,
+/// running it through the same evaluators rather than a second implementation
+/// that could drift. `validate` keeps its own copy of the loading rules because
+/// it also has to report routes and pending modules; this is the summary-only
+/// path.
+///
+/// # Errors
+/// The exit code to return, when the corpus itself could not be read.
+fn evaluate_corpus(repo: &Path) -> Result<Summary, ExitCode> {
+    let crates_dir = repo.join("crates");
+    let mut dirs: Vec<PathBuf> = match std::fs::read_dir(&crates_dir) {
+        Ok(rd) => rd
+            .filter_map(Result::ok)
+            .map(|e| e.path())
+            .filter(|p| p.is_dir())
+            .collect(),
+        Err(e) => {
+            eprintln!("xtask: cannot read {}: {e}", crates_dir.display());
+            return Err(ExitCode::FAILURE);
+        }
+    };
+    dirs.sort();
+
+    let mut cases: Vec<Case> = Vec::new();
+    for crate_dir in &dirs {
+        let name = crate_dir.file_name().unwrap().to_string_lossy().to_string();
+        if route_of(&name) != Some(Route::Cases) {
+            continue;
+        }
+        match case::load_dir(&crate_dir.join("cases")) {
+            Ok(loaded) => cases.extend(loaded),
+            Err(e) => {
+                eprintln!(
+                    "xtask: case file refused
+  {e}"
+                );
+                return Err(ExitCode::FAILURE);
+            }
+        }
+    }
+
+    if cases.len() < MINIMUM_CORPUS {
+        eprintln!(
+            "xtask: {} wired cases, below the floor of {MINIMUM_CORPUS}; the corpus is not being read.",
+            cases.len()
+        );
+        return Err(ExitCode::FAILURE);
+    }
+
+    Ok(cases
+        .iter()
+        .map(|c| check(c, &evaluate(c)))
+        .fold(Summary::default(), |mut s, o| {
+            s.record(&o);
+            s
+        }))
+}
+
+/// `cargo xtask bench` — the correctness gate, then the timings.
+///
+/// Refuses in three situations, each of which would make the numbers a lie:
+///
+/// 1. **Not an optimised build.** Debug is roughly twenty times slower on this
+///    workload, so a debug timing is not a slow measurement, it is a different
+///    measurement.
+/// 2. **The case corpus does not pass.** ADR-000 D3 and `euler2d.cu` already
+///    carry this rule: a benchmark from unvalidated code is worse than no
+///    benchmark, because it is a number that looks like evidence.
+/// 3. **A dirty tree**, which is a warning rather than a refusal - the report
+///    says NOT REPRODUCIBLE in its own header, the same as validation does.
+///
+/// The debug refusal matters most: a debug timing is not a slow measurement, it
+/// is a different one.
+fn bench_gated() -> ExitCode {
+    let repo = repo_root();
+
+    if cfg!(debug_assertions) {
+        eprintln!("xtask bench: this is a debug build and the numbers would be meaningless.");
+        eprintln!("  Debug is roughly 20x slower on this workload, which is not a slow");
+        eprintln!("  measurement but a different one. Re-run with:");
+        eprintln!();
+        eprintln!("      cargo run --release -p xtask -- bench");
+        return ExitCode::FAILURE;
+    }
+
+    println!("gate 1/2: lint");
+    if !lint_gate_passes(&repo) {
+        return ExitCode::FAILURE;
+    }
+
+    println!("gate 2/2: the case corpus must pass at this commit");
+    let summary = match evaluate_corpus(&repo) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
+    if summary.breaks_build() {
+        eprintln!();
+        eprintln!(
+            "xtask bench: REFUSING TO TIME ANYTHING. {} case(s) failed and {} known-limit",
+            summary.fail, summary.stale_known_limit
+        );
+        eprintln!("  annotation(s) are stale. A benchmark from code that does not pass its");
+        eprintln!("  own corpus is a number that looks like evidence and is not (ADR-000 D3).");
+        return ExitCode::FAILURE;
+    }
+    println!(
+        "          {} pass, {} fail, {} known limit - gate open",
+        summary.pass, summary.fail, summary.known_limit
+    );
+
+    println!();
+    println!("timing {} subjects...", 7);
+    let measurements = bench::run_all();
+
+    let provenance = Provenance::detect();
+    let out_dir = repo.join("out").join(&provenance.run_id);
+    if let Err(e) = bench::write_report(&out_dir, &provenance, &measurements) {
+        eprintln!("xtask bench: cannot write report: {e}");
+        return ExitCode::FAILURE;
+    }
+
+    println!();
+    for m in &measurements {
+        println!(
+            "  {:<4} {:<42} {:>12.3?}  (best {:.3?})",
+            m.module, m.subject, m.median, m.best
+        );
+    }
+    println!();
+    println!(
+        "commit : {} ({})",
+        provenance.git_hash,
+        if provenance.git_dirty {
+            "DIRTY - not reproducible"
+        } else {
+            "clean"
+        }
+    );
+    println!(
+        "report : {}",
+        out_dir.strip_prefix(&repo).unwrap_or(&out_dir).display()
+    );
+    ExitCode::SUCCESS
 }
 
 #[cfg(test)]

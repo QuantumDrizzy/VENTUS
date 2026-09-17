@@ -81,6 +81,7 @@ cargo test --workspace     195 tests
 cargo xtask validate       89 cases: 82 pass, 0 fail, 7 known limit, 0 stale
                            32 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
+cargo xtask bench          gated on the corpus passing at the same commit
 ```
 
 **New here?** [`docs/PRIMER.md`](docs/PRIMER.md) walks the whole causal chain —
