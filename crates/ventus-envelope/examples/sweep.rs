@@ -6,8 +6,9 @@
 //! and dominates everything else in this workspace.
 
 use ventus_envelope::{
-    envelope, evaluate, Envelope, DESIGN_DYNAMIC_PRESSURE_PA, LEAN_BLOWOUT_CROSSING_MACH,
-    PEAK_SPECIFIC_THRUST_MACH, PEAK_SPECIFIC_THRUST_N_S_KG,
+    envelope, evaluate, lean_blowout_mach, Envelope, DESIGN_DYNAMIC_PRESSURE_PA,
+    LEAN_BLOWOUT_PHI_MAX, LEAN_BLOWOUT_PHI_MIN, PEAK_SPECIFIC_THRUST_MACH,
+    PEAK_SPECIFIC_THRUST_N_S_KG,
 };
 
 fn opt(v: Option<f64>, width: usize, prec: usize) -> String {
@@ -95,9 +96,33 @@ fn main() {
         }
     }
 
-    println!("\n[KNOWN_LIMIT] The M4 ceiling above is not the real end of the ramjet.");
+    // The corridor, which is the thing an engineer looks at first.
+    let strict = lean_blowout_mach(LEAN_BLOWOUT_PHI_MAX, 2.0, 5.7, 0.01);
+    let permissive = lean_blowout_mach(LEAN_BLOWOUT_PHI_MIN, 2.0, 5.7, 0.01);
+    println!(
+        "
+THE CORRIDOR THE DESIGN POINT ACTUALLY SITS IN:"
+    );
+    println!("  M {PEAK_SPECIFIC_THRUST_MACH:.2}   specific thrust peaks");
+    println!("  M 3.50   design point, at 83.7 % of peak thrust");
+    if let (Some(lo), Some(hi)) = (strict, permissive) {
+        println!("  M {lo:.2} to M {hi:.2}   lean blowout, phi {LEAN_BLOWOUT_PHI_MAX:.2} to {LEAN_BLOWOUT_PHI_MIN:.2} [TO CITE]");
+        println!();
+        println!("  Boxed in on both sides: cycle efficiency pushing down, flame");
+        println!("  stability pulling in from above. And the design point sits INSIDE");
+        println!("  the blowout band, not safely below it - at the strict end the");
+        println!("  engine has already blown out before reaching M 3.50.");
+    }
+    println!(
+        "
+[KNOWN_LIMIT] The M 5.70 ceiling above is NOT the real end of the ramjet."
+    );
     println!("  ideal_ramjet has no flame stability model and will run at a fuel-air");
-    println!("  ratio of 0.0006. Kerosene-air lean blowout sits near f/a = 0.027");
-    println!("  [TO CITE], which this sweep crosses at M {LEAN_BLOWOUT_CROSSING_MACH:.2} -");
-    println!("  0.41 Mach above the design point, not 2.2 above it.");
+    println!("  ratio of 0.0006. The band above is where a real combustor stops, and");
+    println!("  it is more than a Mach below the ceiling this sweep reports.");
+    println!(
+        "
+The M 5.65 figure is the ceiling of the FOUR-RAMP design inlet,"
+    );
+    println!("  not of the concept. A different inlet moves it.");
 }

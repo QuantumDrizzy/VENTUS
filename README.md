@@ -66,7 +66,7 @@ VENTUS answers it structurally rather than by care:
 | M12 | Regime sweep: where the chain stops answering | each module's own declared validity bound | **done** |
 
 ```
-cargo test --workspace     188 tests
+cargo test --workspace     189 tests
 cargo xtask validate       85 cases: 78 pass, 0 fail, 7 known limit, 0 stale
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 ```
@@ -188,15 +188,29 @@ Full derivation and provenance in [`docs/design-point.md`](docs/design-point.md)
 | Zero-fuel mass | **13 624 kg** — derived from 28 t cruise at the *cited* SR-71 zero-fuel fraction |
 | Cruise range | **4 265 — 5 714 km** — reserve-limited; no reserve policy chosen |
 
-**How far the model actually reaches.** M12 runs the whole chain from M 2 to M 9
-at constant dynamic pressure — the rule that picked 26 km — and records where
-each module **refuses**, never extrapolating past one. Every module answers up to
-**M 5.65**; the design point is M 3.50. What stops it is not the intuitive
-answer: the **ramjet** gives out first at M 5.70 and the **gas model** at M 5.85,
-while the **material never binds at all**, because holding q means climbing and
-the density collapse takes the heat flux with it. And the engine wants a slower
-aircraft than it is in — specific thrust peaks at **M 2.30**, and M 3.50 is
-already at 83.7 % of it.
+**The corridor the design point actually sits in.** M12 runs the whole chain
+from M 2 to M 9 at constant dynamic pressure — the rule that picked 26 km — and
+records where each module **refuses**, never extrapolating past one.
+
+| | |
+|---|---|
+| Specific thrust peaks | **M 2.30** |
+| Design point | **M 3.50**, at 83.7 % of peak thrust |
+| Lean blowout **[TO CITE]** | **M 3.23 — 4.42** (phi 0.5 to 0.3) |
+| Every module still answers to | **M 5.65** (four-ramp inlet) |
+
+The design point is **boxed in on both sides**: cycle efficiency pushing down,
+flame stability pulling in from above — and it sits *inside* the blowout band,
+so at the strict end the engine has blown out before reaching M 3.50. The M 5.70
+ceiling M4 reports is far above the real window.
+
+What stops the chain is not the intuitive answer: the **ramjet** gives out first
+at M 5.70 and the **gas model** at M 5.85, while the **material never binds**.
+That is a mechanism, not an assertion — the balance is `eps sigma T_w^4 =
+h (T_aw — T_w)`, so the fourth root crushes everything on the right; measured,
+`T_w ~ rho^-0.21`. The textbook estimate of `rho^-0.15` does **not** reproduce
+the model, because film-temperature properties make `h ~ rho^0.62` rather than
+`rho^0.4`.
 
 **What it costs is the one question the project answers badly, and says so.**
 M11 runs DAPCA IV anchored on the SR-71. The anchor is already **1.54x past** the

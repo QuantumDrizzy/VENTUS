@@ -86,24 +86,79 @@ pub const USEFUL_THRUST_FRACTION: f64 = 0.25;
 
 /// **[KNOWN_LIMIT] The cycle has no flame stability model.**
 ///
-/// `ideal_ramjet` happily runs at a fuel-air ratio of 0.0006, which is an
-/// equivalence ratio near 0.01. No combustor sustains that: kerosene-air lean
-/// blowout is somewhere around an equivalence ratio of 0.4, meaning f/a of
-/// roughly 0.027 **[TO CITE]**.
+/// `ideal_ramjet` happily runs at a fuel-air ratio of 0.0006, an equivalence
+/// ratio near 0.01. No combustor sustains that.
 ///
-/// [CORRECTED] This first said the crossing was "around M 4.3", estimated rather
-/// than run. Measured, the sweep passes f/a = 0.027 at **M 3.91** - only 0.41
-/// Mach above the design point, and 1.8 Mach below the 1700 K ceiling the
-/// envelope reports.
+/// # Reported as a band, because the limit is a band
 ///
-/// So the M4 refusal here is a **ceiling, not the real limit**, and the real
-/// limit is far earlier and close enough to the design point to matter. M12
-/// surfaced this; M4 does not model it.
-pub const LEAN_BLOWOUT_CROSSING_MACH: f64 = 3.91;
-
-/// See [`LEAN_BLOWOUT_CROSSING_MACH`].
+/// [CORRECTED] This first reported a single crossing, M 3.91, from a single
+/// equivalence ratio of 0.4. Lean blowout in a ramjet combustor is not a point:
+/// it moves with flame holder geometry, pressure and inlet preheat, over roughly
+/// phi = 0.3 to 0.5 **[TO CITE]**. A point estimate invites an argument about
+/// the point; a band does not, and the band here says something the point hid.
+///
+/// Swept against a stoichiometric f/a of [`STOICHIOMETRIC_FUEL_AIR_RATIO`]:
+///
+/// ```text
+///   phi 0.30  ->  M 4.42
+///   phi 0.35  ->  M 4.16
+///   phi 0.40  ->  M 3.89
+///   phi 0.45  ->  M 3.58
+///   phi 0.50  ->  M 3.23   <- BELOW the M 3.50 design point
+/// ```
+///
+/// **The design point sits inside the uncertainty band.** At the permissive end
+/// the engine has 0.9 Mach of margin; at the strict end it has already blown out
+/// before reaching the condition the aircraft is designed for. Which of those is
+/// true is not knowable from anything in this repository.
+///
+/// So the M4 refusal this module reports at M 5.70 is a **ceiling far above the
+/// real limit**, and closing this needs a cited blowout correlation, not a
+/// better sweep.
 pub const FLAME_STABILITY_NOT_MODELLED: &str =
     "ideal_ramjet has no lean blowout limit; the M4 refusal is a ceiling, not the real end";
+
+/// Stoichiometric fuel-air ratio for kerosene in air. **[TO CITE]**
+pub const STOICHIOMETRIC_FUEL_AIR_RATIO: f64 = 0.0680;
+
+/// Permissive end of the lean blowout band: easiest to hold a flame.
+pub const LEAN_BLOWOUT_PHI_MIN: f64 = 0.30;
+/// Strict end of the lean blowout band.
+pub const LEAN_BLOWOUT_PHI_MAX: f64 = 0.50;
+
+/// Mach at which the cycle's fuel-air ratio falls below the blowout limit for a
+/// given equivalence ratio, scanning upward from `from_mach`.
+///
+/// Returns `None` if the cycle never gets that lean before it refuses outright.
+#[must_use]
+pub fn lean_blowout_mach(
+    equivalence_ratio: f64,
+    from_mach: f64,
+    to_mach: f64,
+    resolution: f64,
+) -> Option<f64> {
+    if equivalence_ratio.is_nan() || equivalence_ratio <= 0.0 {
+        return None;
+    }
+    if resolution.is_nan() || resolution <= 0.0 || to_mach <= from_mach {
+        return None;
+    }
+    let limit = equivalence_ratio * STOICHIOMETRIC_FUEL_AIR_RATIO;
+    let steps = ((to_mach - from_mach) / resolution) as usize;
+    for i in 0..=steps {
+        let m = from_mach + resolution * i as f64;
+        let p = evaluate(m);
+        let (Some(isp), Some(fs)) = (p.ramjet_specific_impulse_s, p.ramjet_specific_thrust_n_s_kg)
+        else {
+            continue;
+        };
+        let fuel_air = fs / (isp * ventus_units::constants::G0_M_S2);
+        if fuel_air < limit {
+            return Some(m);
+        }
+    }
+    None
+}
 
 // ---------------------------------------------------------------------------
 // Relations between the declared constants, as BUILD-TIME assertions.
@@ -121,14 +176,12 @@ const _: () = assert!(
     "specific thrust no longer peaks below the design point"
 );
 
-/// The unmodelled lean limit bites close to the design point and far below the
-/// burner ceiling. Both halves matter: close enough to be a design problem,
-/// early enough that the reported M4 ceiling is not the real limit.
+/// The blowout band is a band, and the permissive end must be the lower
+/// equivalence ratio. If these ever invert, every statement about the band
+/// reads backwards.
 const _: () = assert!(
-    LEAN_BLOWOUT_CROSSING_MACH > 3.5
-        && LEAN_BLOWOUT_CROSSING_MACH - 3.5 < 0.5
-        && LEAN_BLOWOUT_CROSSING_MACH < 5.0,
-    "the lean blowout crossing moved away from the design point"
+    LEAN_BLOWOUT_PHI_MIN > 0.0 && LEAN_BLOWOUT_PHI_MIN < LEAN_BLOWOUT_PHI_MAX,
+    "the lean blowout band is inverted or non-physical"
 );
 
 /// A fraction, not a multiple.
@@ -150,6 +203,34 @@ pub enum Refusal {
     /// add no heat. This is the ramjet ending, not a numerical failure.
     RamjetThermallyChoked,
     /// M5: no candidate material survives the radiating wall temperature.
+    ///
+    /// # Why this never fires on a constant-q sweep, as a mechanism
+    ///
+    /// Holding dynamic pressure means climbing, so density collapses, and the
+    /// radiating wall barely moves. The reason it barely moves is the FOURTH
+    /// ROOT: the balance is `eps sigma T_w^4 = h (T_aw - T_w)`, so whatever the
+    /// right-hand side does is crushed by `^(1/4)` before it reaches `T_w`.
+    ///
+    /// Measured over this sweep, `T_w ~ rho^-0.21` between M 4 and M 9. A 5x
+    /// density drop therefore buys about 1.4x of wall temperature, which reads
+    /// as a plateau on a table.
+    ///
+    /// **The simple asymptotic estimate does NOT reproduce this model, and the
+    /// discrepancy is worth knowing.** Textbook flat-plate scaling gives
+    /// `h ~ rho^0.8 V^0.8`, hence `h ~ rho^0.4` at constant q, hence
+    /// `T_w ~ rho^-0.15`. Measured here, `h ~ rho^0.62`. The difference is that
+    /// `film_state` evaluates properties at the FILM temperature rather than the
+    /// freestream, so as the wall heats the reference density falls and the
+    /// viscosity rises, and `h` drops faster with altitude than freestream
+    /// scaling predicts.
+    ///
+    /// Above about M 9 the trend breaks entirely - `T_w` goes from 835 K to
+    /// 843 K between M 9 and M 12 - because the sweep has climbed into the US76
+    /// stratopause warming (the 32-47 km layer rises at 2.8 K/km). That is a
+    /// real feature of the atmosphere model rather than a solver artefact; the
+    /// bisection bracket runs to `T_aw`, which is 7740 K there, so nothing is
+    /// clamping. It is also far outside the range where the chain answers at
+    /// all, so it is a curiosity and not a result.
     NoMaterialSurvives,
 }
 
@@ -443,6 +524,15 @@ pub struct Envelope {
     /// First refusing Mach per module, in the order of [`Envelope::ORDER`].
     pub first_refusal_mach: [Option<f64>; 5],
     /// Highest Mach at which every module still answered.
+    ///
+    /// Not how fast the aircraft goes: how fast the MODEL goes before something
+    /// in it declines to speak.
+    ///
+    /// **This is the ceiling of the FOUR-RAMP design inlet, not of the
+    /// concept.** M3 is asked at [`DESIGN_RAMP_COUNT`] because that is the inlet
+    /// this aircraft has; a different ramp schedule moves this number. It is a
+    /// property of one configuration, and quoting it as a property of ramjet
+    /// flight would be the overreach this module exists to avoid.
     pub last_fully_answered_mach: Option<f64>,
 }
 

@@ -13,7 +13,7 @@
 # --- Self-consistency: the sweep must reproduce the design point -----------
 
 [[case]]
-name    = "constant_q_regenerates_the_design_altitude"
+name    = "the_pressure_to_altitude_inversion_round_trips"
 source  = "docs/design-point.md section 0: 26 km was chosen to hold dynamic pressure against the M 3.0 / 24 km baseline. Running that rule forwards must land back on it."
 reason  = """
 THE CHECK THAT MAKES THE REST OF M12 BELIEVABLE.
@@ -23,9 +23,18 @@ the project used to pick 26 km in the first place, so that changing Mach changes
 the thermal and propulsive problems and leaves the structural loads case alone.
 
 Running it forwards returns 25 999.92 m: 8 cm off the declared 26 000 m, which is
-the bisection tolerance and not a physical discrepancy. If this ever drifts, the
-sweep is no longer comparable to the design point and nothing else in M12 means
-anything.
+the bisection tolerance and not a physical discrepancy.
+
+WHAT THE 8 cm PROVES, AND WHAT IT DOES NOT. It proves the bisection is a genuine
+inverse of `at_geopotential`, and that the sweep is anchored to the same flight
+condition as the design point - if this drifts, nothing else in M12 is comparable
+to anything else in the project.
+
+It proves NOTHING about whether the atmosphere is right. If US76 were
+mis-implemented the round trip would still close to 8 cm, because both directions
+would be wrong identically. M1's own cases against the published table are what
+check that. This is a regression lock on the inversion and it is named for what
+it tests, not for what it might be mistaken for.
 """
 inputs  = { mach = 3.5, dynamic_pressure_pa = 18463.0 }
 expect  = { altitude_m = 26000.0 }
@@ -52,6 +61,12 @@ attached, the burner can still add heat, and a material survives.
 This is the headline of M12 and it is deliberately unglamorous: the model is good
 to M 5.65, and the aircraft is designed at M 3.50. The gap is the honest margin
 between what has been modelled and what has been claimed.
+
+IT IS ALSO THE CEILING OF THE FOUR-RAMP DESIGN INLET, NOT OF THE CONCEPT. M3 is
+asked at the design ramp count because that is the inlet this aircraft has. A
+different ramp schedule moves this number, and quoting it as a property of ramjet
+flight rather than of one configuration would be exactly the overreach M12 was
+built to avoid.
 """
 inputs  = { mach = 5.65 }
 expect  = { refusal_count = 0.0 }
@@ -71,10 +86,18 @@ finding, restated across a sweep instead of at a point.
 
 [KNOWN_LIMIT, surfaced by M12] This ceiling is NOT the real end of the ramjet.
 `ideal_ramjet` has no flame stability model, so it happily runs at a fuel-air
-ratio of 0.0006. Kerosene-air lean blowout sits near an equivalence ratio of 0.4,
-about f/a = 0.027 [TO CITE], and the sweep crosses that at M 3.91 - only 0.41
-Mach above the design point. The real engine limit is far earlier than the
-number this case pins, and M4 does not model it.
+ratio of 0.0006. A real combustor stops far earlier, and BECAUSE BLOWOUT IS A
+BAND RATHER THAN A POINT, so is the answer:
+
+    phi 0.30  ->  M 4.42          phi 0.45  ->  M 3.58
+    phi 0.35  ->  M 4.16          phi 0.50  ->  M 3.23
+    phi 0.40  ->  M 3.89
+
+[CORRECTED] This first reported the single crossing M 3.91, from phi = 0.4 alone.
+A point estimate invites an argument about the point; the band does not, and the
+band says something the point hid: THE DESIGN POINT SITS INSIDE IT. At the
+permissive end the engine has 0.9 Mach of margin; at the strict end it has blown
+out before reaching M 3.50. Which is true is not knowable from anything here.
 """
 inputs  = { mach = 5.7 }
 expect  = { refused_ramjet_thermally_choked = true, refusal_count = 1.0 }

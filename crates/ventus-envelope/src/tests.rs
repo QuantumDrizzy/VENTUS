@@ -3,14 +3,20 @@
 
 use super::*;
 
-/// THE SELF-CONSISTENCY CHECK THAT MAKES THE REST BELIEVABLE.
+/// THE PRESSURE-TO-ALTITUDE INVERSION IS A TRUE INVERSE.
 ///
-/// The constant-q rule is how this project chose 26 km for the M 3.5 design
-/// point. Running that rule forwards must therefore land back on 26 km, and it
-/// does to under a decimetre. If this drifts, the sweep is not comparable to the
-/// design point and nothing else in the module means anything.
+/// The constant-q rule is how this project chose 26 km, so running it forwards
+/// must land back on 26 km. It does, to 8 cm.
+///
+/// **What that 8 cm proves, and what it does not.** It proves the bisection is a
+/// genuine inverse of `at_geopotential` and that the sweep is anchored to the
+/// same flight condition as the design point. It proves NOTHING about whether
+/// the atmosphere is right: if US76 were mis-implemented, the round trip would
+/// still close to 8 cm, because both directions would be wrong identically.
+/// M1's own cases against the published table are what check that; this is a
+/// regression lock on the inversion, and it is named for what it tests.
 #[test]
-fn the_constant_q_rule_regenerates_the_design_altitude() {
+fn the_pressure_to_altitude_inversion_round_trips_to_the_design_altitude() {
     let h = altitude_for_constant_q_m(3.5, DESIGN_DYNAMIC_PRESSURE_PA).unwrap();
     assert!(
         (h - 26_000.0).abs() < 0.5,
@@ -160,18 +166,53 @@ fn the_atmosphere_refuses_above_the_model_top() {
     assert_eq!(altitude_for_constant_q_m(f64::NAN, 18_463.0), None);
 }
 
-/// The lean-limit gap M12 surfaced in M4, pinned so the number in the
-/// documentation stays true.
+/// THE LEAN-LIMIT GAP M12 SURFACED IN M4, AS A BAND.
+///
+/// [CORRECTED] This pinned a single crossing at M 3.91 from a single equivalence
+/// ratio. Blowout is a band, and swept across it the band straddles the design
+/// point: at the permissive end the engine has 0.9 Mach of margin, at the strict
+/// end it has already blown out before reaching M 3.50.
 #[test]
-fn the_unmodelled_lean_limit_would_bite_far_earlier_than_the_burner_ceiling() {
-    let p = evaluate(LEAN_BLOWOUT_CROSSING_MACH);
-    let fs = p.ramjet_specific_thrust_n_s_kg.unwrap();
-    let isp = p.ramjet_specific_impulse_s.unwrap();
-    let fuel_air = fs / (isp * ventus_units::constants::G0_M_S2);
+fn the_unmodelled_lean_limit_band_straddles_the_design_point() {
+    let permissive = lean_blowout_mach(LEAN_BLOWOUT_PHI_MIN, 2.0, 5.7, 0.01).unwrap();
+    let strict = lean_blowout_mach(LEAN_BLOWOUT_PHI_MAX, 2.0, 5.7, 0.01).unwrap();
+
+    assert!(strict < permissive, "the band is inverted");
     assert!(
-        (fuel_air - 0.027).abs() < 0.001,
-        "the f/a = 0.027 crossing moved off M {LEAN_BLOWOUT_CROSSING_MACH}: f/a = {fuel_air:.5}"
+        (4.3..4.5).contains(&permissive),
+        "the permissive end moved to M {permissive:.2}"
     );
+    assert!(
+        (3.1..3.3).contains(&strict),
+        "the strict end moved to M {strict:.2}"
+    );
+
+    // THE FINDING. The design point is inside the band, not above or below it.
+    assert!(
+        strict < 3.5 && permissive > 3.5,
+        "the design point no longer sits inside the blowout band: {strict:.2} to {permissive:.2}"
+    );
+
+    // And the whole band is far below the burner ceiling the envelope reports,
+    // which is the point: that ceiling is not the real limit.
+    let ceiling = envelope(2.0, 7.0, 0.05)
+        .first_refusal(Refusal::RamjetThermallyChoked)
+        .unwrap();
+    assert!(permissive < ceiling - 1.0);
+
+    std::println!(
+        "lean blowout band M {strict:.2} to M {permissive:.2}; design point M 3.50; reported ceiling M {ceiling:.2}"
+    );
+}
+
+/// A blowout query with nonsense inputs refuses rather than looping.
+#[test]
+fn a_degenerate_blowout_query_is_refused() {
+    assert_eq!(lean_blowout_mach(0.0, 2.0, 5.0, 0.01), None);
+    assert_eq!(lean_blowout_mach(-0.4, 2.0, 5.0, 0.01), None);
+    assert_eq!(lean_blowout_mach(f64::NAN, 2.0, 5.0, 0.01), None);
+    assert_eq!(lean_blowout_mach(0.4, 5.0, 2.0, 0.01), None);
+    assert_eq!(lean_blowout_mach(0.4, 2.0, 5.0, 0.0), None);
 }
 
 /// A sweep with nonsense bounds does nothing rather than looping or panicking.
