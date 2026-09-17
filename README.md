@@ -1,13 +1,23 @@
 # VENTUS
 
-**A validated physics-model pipeline, in which every number traces to a published
-source and the build refuses numbers that do not.**
+**A validated physics-model pipeline, in which every validated claim traces to a
+published source, and the modelling constants that do not yet are counted by the
+build rather than left to be discovered.**
 
 The forcing problem is a Mach 3.5 cruise demonstrator. That is the *input*, not
-the point. The deliverable is the modelling system: ten physics modules, each
-pinned to an external yardstick, a harness that mechanically rejects any claim
-without a citation, and a validation report carrying the git hash that produced
-it.
+the point. The deliverable is the modelling system: twelve modules, each declaring
+whether it is held to an external yardstick or to an identity; a harness that
+**refuses to load a test case without a `source` field**; and a validation report
+carrying the git hash that produced it.
+
+**What that harness does not do, said here rather than left to a `grep`.** It
+gates *cases*. It does not gate *constants*: a modelling constant marked
+`[TO CITE]` in a doc comment compiles and validates fine, and there are **32** of
+them right now. `cargo xtask validate` counts and prints that number with every
+verdict, so it cannot go stale in this file.
+
+The most important one is the lean blowout equivalence ratio in M12. It decides
+whether the design point has margin or does not fly — see the corridor below.
 
 ---
 
@@ -27,6 +37,7 @@ VENTUS answers it structurally rather than by care:
 | Mechanism | What it prevents |
 |---|---|
 | Every test case carries a `source` field; the loader **refuses to load a case without one** | Numbers that drift into the codebase with no provenance |
+| Modelling constants not yet cited are marked `[TO CITE]` and **counted by `xtask validate`** | An uncited number being quietly forgotten rather than quietly carried |
 | Tolerances derived from the **printed precision of the source**, per value | Asserting digits the yardstick does not contain |
 | `known_limit` cases that are **expected to fail**, with a mandatory reason | Limitations quietly widened out of existence |
 | Analytic identities checked before any tabulated value | Validating a model against a table someone half-remembers |
@@ -68,6 +79,7 @@ VENTUS answers it structurally rather than by care:
 ```
 cargo test --workspace     195 tests
 cargo xtask validate       89 cases: 82 pass, 0 fail, 7 known limit, 0 stale
+                           32 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 ```
 

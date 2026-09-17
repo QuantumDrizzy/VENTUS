@@ -737,6 +737,54 @@ fn lint_gate_passes(repo: &Path) -> bool {
     }
 }
 
+/// Count the modelling constants still marked `[TO CITE]` in source.
+///
+/// The harness gates CASES: a case file without a `source` field is refused, and
+/// that is what the README describes. It does not gate CONSTANTS - a `[TO CITE]`
+/// in a doc comment compiles and validates fine.
+///
+/// That gap is real and it is not going to be closed by a lint, because the
+/// whole point of the marker is to let an uncited number exist while being
+/// visibly uncited. What can be closed is the gap between the gap and the claim:
+/// the number is counted here and printed with the verdict, so the README can
+/// point at a measurement instead of asserting a figure that rots.
+fn open_citations(repo: &Path) -> usize {
+    fn walk(dir: &Path, count: &mut usize) {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        for e in entries.filter_map(Result::ok) {
+            let p = e.path();
+            if p.is_dir() {
+                if p.file_name().is_some_and(|n| n == "target") {
+                    continue;
+                }
+                walk(&p, count);
+            } else if p.extension().is_some_and(|x| x == "rs") {
+                if let Ok(text) = std::fs::read_to_string(&p) {
+                    *count += text.matches("[TO CITE]").count();
+                }
+            }
+        }
+    }
+    // [CORRECTED] Walked all of `crates/` on the first attempt, which counted
+    // xtask's own doc comment and its own search string: four phantom markers
+    // reported as open citations. A counter that counts itself is the same class
+    // of error as a test that tests nothing, and it inflated the honest number
+    // by 12 %. Physics crates only.
+    let mut count = 0;
+    let Ok(entries) = std::fs::read_dir(repo.join("crates")) else {
+        return 0;
+    };
+    for e in entries.filter_map(Result::ok) {
+        let p = e.path();
+        if p.is_dir() && p.file_name().is_some_and(|n| n != "xtask") {
+            walk(&p, &mut count);
+        }
+    }
+    count
+}
+
 fn validate() -> ExitCode {
     let repo = repo_root();
     let crates_dir = repo.join("crates");
@@ -877,6 +925,10 @@ fn validate() -> ExitCode {
     println!(
         "identity: {} module(s) validated by identity, not by citation",
         identities.len()
+    );
+    println!(
+        "open cite: {} modelling constant(s) still marked [TO CITE] in source",
+        open_citations(&repo)
     );
     println!(
         "verdict : {} pass, {} fail, {} known limit, {} stale",
