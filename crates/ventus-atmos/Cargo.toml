@@ -11,3 +11,6 @@ libm = "0.2"
 
 [dev-dependencies]
 ventus-validate = { path = "../ventus-validate" }
+
+[lints]
+workspace = true

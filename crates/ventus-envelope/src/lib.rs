@@ -761,10 +761,16 @@ pub const WAVE_DRAG_FRACTION_AT_DESIGN_POINT: f64 = 0.089;
 ///
 /// # What the correction is worth
 ///
-/// At the crossing, **nothing** - and for a structural reason rather than luck.
-/// Where `A = A_body` the two formulations evaluate the same drag, so they must
-/// agree exactly there, and [`CAPTURE_AREA_CLOSES_AT_MACH`] is unchanged at
-/// M 3.847 under the self-consistent solve.
+/// At the crossing, **nothing**, and this is a TAUTOLOGY RATHER THAN A
+/// CORROBORATION. Where `A = A_body` the two formulations are evaluating the
+/// same drag by construction, so agreement there is guaranteed in advance and
+/// carries no information. It is the one Mach in the sweep where the two methods
+/// cannot disagree.
+///
+/// Worth saying explicitly, because "the two agree at M 3.847" reads like two
+/// independent methods converging, which is the opposite of what it means. The
+/// number [`CAPTURE_AREA_CLOSES_AT_MACH`] is unchanged under the solve - that
+/// part is true and useful - but not because anything confirmed it.
 ///
 /// Away from it they diverge in opposite directions. Below, the fixed-drag
 /// answer is CONSERVATIVE (the declared body is larger than needed and carries
@@ -776,6 +782,17 @@ pub const WAVE_DRAG_FRACTION_AT_DESIGN_POINT: f64 = 0.089;
 /// When the discriminant goes negative the roots stop existing, and that is not
 /// gradual degradation - it is **no body size closing the balance at all**. It
 /// happens at M 4.536.
+///
+/// **It is not a new operational limit, and listing it beside M 3.847 invites
+/// reading it as one.** Past M 3.847 the inlet is already larger than the body
+/// carrying it and the configuration is already self-inconsistent, so M 4.536
+/// sits inside a region M 3.847 has excluded. There is no usable band between
+/// them.
+///
+/// What it adds is the CHARACTER of the failure, which is worth knowing: past
+/// M 4.536 the aircraft does not get gradually worse, the solution stops
+/// existing. A structural statement about the equation, not a ceiling anyone
+/// could fly to.
 ///
 /// Returns `None` there, and wherever M4 or M6b declines.
 #[must_use]

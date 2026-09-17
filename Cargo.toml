@@ -23,6 +23,23 @@ edition      = "2021"
 rust-version = "1.85"
 license      = "UNLICENSED"
 
+# Lints that must not be committable, as opposed to lints someone remembers to
+# run. `assertions_on_constants` is here because it recurred THREE times in this
+# workspace - M7 mass bounds, M12 thrust constants, M12 thrust-balance frontiers.
+# Clippy caught it every time; nothing stopped it being written and committed in
+# between, because clippy was run by hand.
+#
+# A relation between constants asserted at runtime is folded away and tests
+# nothing, which is the failure mode this project already catalogues once under
+# "a test that tested nothing". The fix is `const _: () = assert!(..)`, which
+# breaks the build instead.
+#
+# Deliberately NOT `-D warnings` wholesale: new clippy lints arrive with new
+# toolchains and would break a build that had not changed. This denies the one
+# that has actually bitten.
+[workspace.lints.clippy]
+assertions_on_constants = "deny"
+
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 toml  = "0.8"

@@ -12,3 +12,6 @@ libm = "0.2"
 [dev-dependencies]
 ventus-validate = { path = "../ventus-validate" }
 toml.workspace = true
+
+[lints]
+workspace = true

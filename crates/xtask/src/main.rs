@@ -705,9 +705,45 @@ fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
     }
 }
 
+/// Run the denied-lint gate before certifying anything.
+///
+/// `[workspace.lints.clippy]` makes `assertions_on_constants` an error, but a
+/// lint only fires when clippy runs, and clippy was something run by hand. That
+/// is how the same mistake reached three commits: it was CAUGHT every time and
+/// PREVENTED none of them.
+///
+/// So the report refuses to certify code that has not passed its own lint gate.
+/// This is the same move as `ramjet_isp_is_meaningful` in M12 - a thing a human
+/// kept having to notice, turned into a thing a machine notices.
+///
+/// Returns `false` if clippy failed, having already printed its own diagnostics.
+fn lint_gate_passes(repo: &Path) -> bool {
+    let out = std::process::Command::new(std::env::var("CARGO").as_deref().unwrap_or("cargo"))
+        .args(["clippy", "--workspace", "--all-targets", "--quiet"])
+        .current_dir(repo)
+        .status();
+    match out {
+        Ok(status) if status.success() => true,
+        Ok(_) => {
+            eprintln!("xtask validate: the lint gate failed; see the clippy output above.");
+            eprintln!("  A denied lint means the code asserts something it does not test.");
+            eprintln!("  Fix it rather than bypassing: the report certifies the tree it ran on.");
+            false
+        }
+        Err(e) => {
+            eprintln!("xtask validate: could not run clippy: {e}");
+            false
+        }
+    }
+}
+
 fn validate() -> ExitCode {
     let repo = repo_root();
     let crates_dir = repo.join("crates");
+
+    if !lint_gate_passes(&repo) {
+        return ExitCode::FAILURE;
+    }
 
     let mut dirs: Vec<PathBuf> = match std::fs::read_dir(&crates_dir) {
         Ok(rd) => rd

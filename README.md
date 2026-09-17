@@ -198,7 +198,7 @@ records where each module **refuses**, never extrapolating past one.
 | Design point | **M 3.50**, at 83.7 % of peak thrust |
 | Lean blowout **[TO CITE]** | **M 3.23 — 4.42** (phi 0.5 to 0.3) |
 | Required capture area = whole body cross-section | **M 3.85** |
-| **No body size closes the thrust balance** | **M 4.54** |
+| No body size closes the balance *(inside the row above, not past it)* | M 4.54 |
 | Every module still answers to | **M 5.65** (four-ramp inlet) |
 | M4 burner ceiling | M 5.70 — never the operative limit |
 
@@ -212,7 +212,10 @@ because the Sears-Haack body that sets the wave drag cannot host an inlet larger
 than itself. Wave drag goes as the *square* of cross-section, so that is a fixed
 point rather than a formula — it converges only because wave drag is 8.9 % of
 the total and lift-induced dominates. Solved as a quadratic, the roots vanish
-entirely above **M 4.54**: no body size closes the balance at all.
+entirely above M 4.54: no body size closes the balance at all. That is **not a
+second usable limit** — past M 3.85 the inlet already exceeds the body carrying
+it, so M 4.54 sits inside a region M 3.85 has excluded. It says how the failure
+happens, not how far the aircraft gets.
 
 Four of those five frontiers are statements about the **model**. Only the capture
 area is a statement about the **aircraft**.

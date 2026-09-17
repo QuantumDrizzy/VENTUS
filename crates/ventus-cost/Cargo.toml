@@ -14,3 +14,6 @@ libm = "0.2"
 ventus-atmos = { path = "../ventus-atmos" }
 ventus-mass = { path = "../ventus-mass" }
 ventus-validate = { path = "../ventus-validate" }
+
+[lints]
+workspace = true

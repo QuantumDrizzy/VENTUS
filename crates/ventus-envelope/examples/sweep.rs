@@ -108,7 +108,9 @@ fn main() {
         println!("  M {lo:.2} to M {hi:.2}   lean blowout, phi {LEAN_BLOWOUT_PHI_MAX:.2} to {LEAN_BLOWOUT_PHI_MIN:.2} [TO CITE]");
     }
     println!("  M {CAPTURE_AREA_CLOSES_AT_MACH:.2}   required capture area equals the whole body cross-section");
-    println!("  M {NO_BODY_CLOSES_ABOVE_MACH:.2}   NO body size closes the thrust balance at all");
+    println!(
+        "  M {NO_BODY_CLOSES_ABOVE_MACH:.2}   no body size closes at all (inside the region above, not past it)"
+    );
     println!("  M 5.65   every module still answers (four-ramp inlet)");
     println!("  M 5.70   M4 burner ceiling - never the operative limit");
 
@@ -134,7 +136,11 @@ fn main() {
             100.0 * WAVE_DRAG_FRACTION_AT_DESIGN_POINT
         );
         println!("  lift-induced dominates; had wave dominated, no stable body size");
-        println!("  would exist. Solved, the roots vanish entirely above M {NO_BODY_CLOSES_ABOVE_MACH:.2}.");
+        println!("  would exist. Solved, the roots vanish entirely above M {NO_BODY_CLOSES_ABOVE_MACH:.2}");
+        println!("  - which is NOT a second usable limit. Past M {CAPTURE_AREA_CLOSES_AT_MACH:.2} the inlet already");
+        println!("  exceeds the body carrying it, so M {NO_BODY_CLOSES_ABOVE_MACH:.2} sits inside an excluded");
+        println!("  region. It says how the failure happens - the solution stops existing");
+        println!("  rather than degrading - not how far the aircraft gets.");
     }
 
     println!();

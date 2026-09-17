@@ -259,17 +259,26 @@ DIVERGE and no stable body size would exist. Measured, wave drag is 8.9 % of the
 total - lift-induced is 66 %, which is M6b's own headline finding turning out to
 be load-bearing somewhere else entirely - giving 0.133. Comfortably convergent.
 
-WHAT THE CORRECTION IS WORTH. At the crossing, nothing, and for a structural
-reason rather than luck: where A = A_body both formulations evaluate the same
-drag, so they must agree exactly, and M 3.847 is unchanged. Away from it they
+WHAT THE CORRECTION IS WORTH. At the crossing, nothing - and that is a TAUTOLOGY,
+NOT A CORROBORATION. Where A = A_body the two formulations evaluate the same drag
+by construction, so agreement there is guaranteed in advance and carries no
+information. It is the one Mach where they cannot disagree, and reading it as
+"two methods agree" gets it exactly backwards. Away from it they
 part in opposite directions - below, the fixed-drag answer is CONSERVATIVE
 (2.401 against 2.511 m2 at M 3.50); above, it is OPTIMISTIC (7.080 against
 5.655 m2 at M 4.40, 25 % low).
 
 AND THE FRONTIER THE FIRST FORMULATION COULD NOT SEE. When the discriminant goes
-negative the roots stop existing. That is not gradual degradation: it is NO BODY
-SIZE CLOSING THE BALANCE AT ALL, at M 4.536. The fixed-drag formulation happily
-returns a number up there, which is exactly why it could not stay the headline.
+negative the roots stop existing: not gradual degradation, NO BODY SIZE CLOSING
+THE BALANCE AT ALL, at M 4.536. The fixed-drag formulation happily returns a
+number up there, which is why it could not stay the headline.
+
+IT IS NOT A NEW OPERATIONAL LIMIT. Past M 3.847 the inlet is already larger than
+the body carrying it, so M 4.536 sits INSIDE a region M 3.847 has already
+excluded, and there is no usable band between them. What it adds is the CHARACTER
+of the failure - past there the aircraft does not get gradually worse, the
+solution stops existing - which is a statement about the equation rather than a
+ceiling anyone could fly to.
 """
 inputs  = { mach = 4.6 }
 expect  = { any_body_closes_the_thrust_balance = false }

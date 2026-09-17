@@ -13,3 +13,6 @@ ventus-atmos = { path = "../ventus-atmos" }
 
 [dev-dependencies]
 ventus-validate = { path = "../ventus-validate" }
+
+[lints]
+workspace = true

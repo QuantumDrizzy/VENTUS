@@ -14,3 +14,6 @@ ventus-inlet = { path = "../ventus-inlet" }
 
 [dev-dependencies]
 ventus-validate = { path = "../ventus-validate" }
+
+[lints]
+workspace = true

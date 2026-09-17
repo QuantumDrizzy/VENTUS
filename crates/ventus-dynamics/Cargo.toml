@@ -15,3 +15,6 @@ ventus-propulsion = { path = "../ventus-propulsion" }
 
 [dev-dependencies]
 ventus-validate = { path = "../ventus-validate" }
+
+[lints]
+workspace = true
