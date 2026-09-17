@@ -63,10 +63,11 @@ VENTUS answers it structurally rather than by care:
 | M9 | 2-D Euler solver | shock angle 0.006 deg vs exact theta-beta-M | **physics done**, GPU build blocked |
 | M10 | Flight software | shares M1 bit-for-bit with the twin | **done** |
 | M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
+| M12 | Regime sweep: where the chain stops answering | each module's own declared validity bound | **done** |
 
 ```
-cargo test --workspace     178 tests
-cargo xtask validate       77 cases: 70 pass, 0 fail, 7 known limit, 0 stale
+cargo test --workspace     188 tests
+cargo xtask validate       85 cases: 78 pass, 0 fail, 7 known limit, 0 stale
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 ```
 
@@ -187,6 +188,16 @@ Full derivation and provenance in [`docs/design-point.md`](docs/design-point.md)
 | Zero-fuel mass | **13 624 kg** — derived from 28 t cruise at the *cited* SR-71 zero-fuel fraction |
 | Cruise range | **4 265 — 5 714 km** — reserve-limited; no reserve policy chosen |
 
+**How far the model actually reaches.** M12 runs the whole chain from M 2 to M 9
+at constant dynamic pressure — the rule that picked 26 km — and records where
+each module **refuses**, never extrapolating past one. Every module answers up to
+**M 5.65**; the design point is M 3.50. What stops it is not the intuitive
+answer: the **ramjet** gives out first at M 5.70 and the **gas model** at M 5.85,
+while the **material never binds at all**, because holding q means climbing and
+the density collapse takes the heat flux with it. And the engine wants a slower
+aircraft than it is in — specific thrust peaks at **M 2.30**, and M 3.50 is
+already at 83.7 % of it.
+
 **What it costs is the one question the project answers badly, and says so.**
 M11 runs DAPCA IV anchored on the SR-71. The anchor is already **1.54x past** the
 velocity the model was fitted over; VENTUS-1 is 1.70x past. Two results survive
@@ -250,7 +261,8 @@ Decisions and their trade-offs live in [`docs/adr/`](docs/adr/). The load-bearin
 
 ```
 crates/          Rust workspace: units, atmos, gasdyn, inlet, propulsion,
-                 aero, thermal, mass, cost, dynamics, fsw, validate, xtask
+                 aero, thermal, mass, cost, envelope, dynamics, fsw,
+                 validate, xtask
 native/          C++17/CUDA, sm_120 — M9 only
 crates/*/cases/  the external yardsticks themselves, as TOML. Each case
                  carries its own source, tolerance and reason; there is no

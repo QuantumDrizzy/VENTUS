@@ -1,0 +1,161 @@
+# M12 - where the chain stops answering.
+#
+# EVERY CASE HERE IS A MODULE REFUSING, or this module reproducing a number
+# another module already published. M12 computes no physics of its own, so there
+# is nothing here that could need an external citation: the yardstick is the
+# validity bound each module declares about itself, which is code in this
+# repository and is tested where it lives.
+#
+# The refusal boundaries are pinned by BRACKETING - one case just inside, one
+# just outside - rather than by asserting the result of a scan. A bracket says
+# the same thing and does not depend on the scan resolution.
+
+# --- Self-consistency: the sweep must reproduce the design point -----------
+
+[[case]]
+name    = "constant_q_regenerates_the_design_altitude"
+source  = "docs/design-point.md section 0: 26 km was chosen to hold dynamic pressure against the M 3.0 / 24 km baseline. Running that rule forwards must land back on it."
+reason  = """
+THE CHECK THAT MAKES THE REST OF M12 BELIEVABLE.
+
+The altitude schedule is not an assumption this module invented; it is the rule
+the project used to pick 26 km in the first place, so that changing Mach changes
+the thermal and propulsive problems and leaves the structural loads case alone.
+
+Running it forwards returns 25 999.92 m: 8 cm off the declared 26 000 m, which is
+the bisection tolerance and not a physical discrepancy. If this ever drifts, the
+sweep is no longer comparable to the design point and nothing else in M12 means
+anything.
+"""
+inputs  = { mach = 3.5, dynamic_pressure_pa = 18463.0 }
+expect  = { altitude_m = 26000.0 }
+abs_tol = 0.5
+
+[[case]]
+name    = "the_design_point_row_reproduces_m2"
+source  = "docs/design-point.md section 3.1: T0 = 768.1 K calorically perfect at gamma = 1.4, M 3.5, 26 km"
+reason  = "M12 asks M2 the same question the design point already answered. A different answer would mean the sweep is not flying the declared aircraft."
+inputs  = { mach = 3.5 }
+expect  = { stagnation_temperature_k = 768.1 }
+rel_tol = 1.5e-4
+
+# --- The engine ceiling, bracketed -----------------------------------------
+
+[[case]]
+name    = "every_module_still_answers_just_below_the_ceiling"
+source  = "The refusals implemented in M1, M2, M3, M4 and M5. THE SOURCE IS THE CODE: each module's own declared validity bound."
+reason  = """
+The inside half of the bracket. At M 5.65 the whole chain still answers: the
+atmosphere has altitude left, the gas model is inside its fit, the shocks are
+attached, the burner can still add heat, and a material survives.
+
+This is the headline of M12 and it is deliberately unglamorous: the model is good
+to M 5.65, and the aircraft is designed at M 3.50. The gap is the honest margin
+between what has been modelled and what has been claimed.
+"""
+inputs  = { mach = 5.65 }
+expect  = { refusal_count = 0.0 }
+abs_tol = 0.0
+
+[[case]]
+name    = "the_ramjet_gives_out_first"
+source  = "M4 ideal_ramjet refuses when ram total temperature reaches the 1700 K burner exit limit, so the cycle can add no heat."
+reason  = """
+The outside half of the bracket, and the first thing in the chain to go.
+
+Note WHICH module it is. The intuitive answer to 'what stops a Mach 5 aircraft'
+is the material. On this trajectory the material never binds at all - see the
+next case - and the engine binds at M 5.70, because the burner temperature limit
+caps exit velocity while flight speed keeps rising. That is M4's own recorded
+finding, restated across a sweep instead of at a point.
+
+[KNOWN_LIMIT, surfaced by M12] This ceiling is NOT the real end of the ramjet.
+`ideal_ramjet` has no flame stability model, so it happily runs at a fuel-air
+ratio of 0.0006. Kerosene-air lean blowout sits near an equivalence ratio of 0.4,
+about f/a = 0.027 [TO CITE], and the sweep crosses that at M 3.91 - only 0.41
+Mach above the design point. The real engine limit is far earlier than the
+number this case pins, and M4 does not model it.
+"""
+inputs  = { mach = 5.7 }
+expect  = { refused_ramjet_thermally_choked = true, refusal_count = 1.0 }
+abs_tol = 0.0
+
+[[case]]
+name    = "the_material_never_binds_on_this_trajectory"
+source  = "M5 lightest_survivor over the candidate list, at the radiation-equilibrium wall temperature"
+reason  = """
+THE COUNTERINTUITIVE RESULT, AND THE ONE WORTH THE MODULE.
+
+'Mach 5 melts everything' is a statement about constant ALTITUDE. Holding
+dynamic pressure instead means climbing, and the density collapse takes the
+convective heat flux with it. At M 5.70 the radiating wall at 10 m is still
+around 715 K and Ti-6242S clears it; probed further the wall asymptotes near
+843 K and Inconel 718 still survives.
+
+WHAT THIS CASE DOES NOT CLAIM. It does not say the aircraft is thermally fine at
+M 5.7 and it certainly says nothing about M 9. The gas model refuses at M 5.85,
+and past that point every number M5 produces is a number about air the rest of
+the chain has said it cannot describe. The claim is narrow and exact: WITHIN THE
+RANGE WHERE THE CHAIN ANSWERS, the material is not what stops you.
+"""
+inputs  = { mach = 5.7 }
+expect  = { refused_no_material_survives = false }
+abs_tol = 0.0
+
+[[case]]
+name    = "the_gas_model_gives_out_second"
+source  = "M2 gamma_air refuses outside its fitted 273-1800 K range; the stagnation temperature crosses 1800 K here."
+reason  = """
+The same refusal that is carried as a known limit at the COLD end, where the
+design-point freestream at 222.65 K sits below the 273 K floor. This is the hot
+end of the same correlation, reached by flying faster rather than by standing
+still in cold air.
+
+At M 5.85 two modules are now silent. Whatever M3 and M5 still print past here is
+diagnostic - it says which module is still working - and is not a claim about
+flight, because the gas model has already said it cannot describe this air.
+"""
+inputs  = { mach = 5.85 }
+expect  = { refused_gas_model_out_of_range = true, refusal_count = 2.0 }
+abs_tol = 0.0
+
+# --- The engine wants a slower aircraft than it is in ----------------------
+
+[[case]]
+name    = "specific_thrust_peaks_well_below_the_design_point"
+source  = "M4 ideal_ramjet specific thrust, swept. The peak is a property of the cycle: the burner limit caps exit velocity while flight speed keeps rising."
+reason  = """
+The ramjet's best point is M 2.30 at 723.4 N.s/kg. At the M 3.50 design point it
+is already down to 83.7 % of that, and at M 5.00 to 35 %.
+
+This is why a ramjet has a design Mach number, and it is a real cost of the
+re-baseline from M 3.0 that the design point document does not currently state:
+moving the aircraft faster moved it further down the engine's own curve.
+"""
+inputs  = { mach = 2.3 }
+expect  = { ramjet_specific_thrust_n_s_kg = 723.4378224723 }
+rel_tol = 1e-12
+
+[[case]]
+name    = "specific_impulse_diverges_as_the_engine_dies"
+source  = "Isp = F / (m_dot g). As ram total temperature approaches the burner limit the fuel-air ratio falls to zero faster than the thrust does, so the ratio diverges. THE SOURCE IS THE FORMULA."
+reason  = """
+[CORRECTED] THE TRAP THIS MODULE ALMOST SHIPPED.
+
+The first version of the sweep printed specific impulse as a headline column.
+At M 5.50 it reads 4020 s, and at M 5.62 it reads 12 674 s, against roughly
+1900 s at the design point. Read straight off a table those look like a
+discovery. They are an engine producing almost nothing, very efficiently: the
+thrust at M 5.50 is 115 N.s/kg against 723 at the peak, and the fuel-air ratio
+has fallen to 0.0029.
+
+Arithmetically correct, physically meaningless, and exactly the class of number
+this project exists not to publish. The reports now print SPECIFIC THRUST, which
+collapses monotonically and is the honest signal, and `ramjet_isp_is_meaningful`
+flags the divergence rather than silently blanking the field.
+
+This case pins the divergence so that nobody 'fixes' it back into the reports.
+"""
+inputs  = { mach = 5.5 }
+expect  = { ramjet_specific_impulse_s = 4020.441110971, ramjet_specific_thrust_n_s_kg = 115.173063773, ramjet_isp_is_meaningful = false }
+rel_tol = 1e-11

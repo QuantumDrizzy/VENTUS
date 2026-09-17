@@ -71,6 +71,7 @@ const ROUTES: &[(&str, Route)] = &[
     ("ventus-thermal", Route::Cases),
     ("ventus-mass", Route::Cases),
     ("ventus-cost", Route::Cases),
+    ("ventus-envelope", Route::Cases),
     (
         "ventus-dynamics",
         Route::Identities(concat!(
@@ -429,6 +430,67 @@ fn evaluate_propulsion(c: &Case) -> BTreeMap<String, ExpectValue> {
     m
 }
 
+/// M12. The regime sweep. Every output is a module refusing or a module
+/// answering; this evaluator adds nothing of its own.
+fn evaluate_envelope(c: &Case) -> BTreeMap<String, ExpectValue> {
+    use ventus_envelope::Refusal;
+    let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
+    let mut m = BTreeMap::new();
+
+    if let Some(mach) = f("mach") {
+        if let Some(q) = f("dynamic_pressure_pa") {
+            if let Some(h) = ventus_envelope::altitude_for_constant_q_m(mach, q) {
+                m.insert("altitude_m".to_string(), ExpectValue::Float(h));
+            }
+        }
+
+        let p = ventus_envelope::evaluate(mach);
+        for (k, v) in [
+            ("stagnation_temperature_k", p.stagnation_temperature_k),
+            ("gamma_at_stagnation", p.gamma_at_stagnation),
+            ("inlet_recovery", p.inlet_recovery),
+            ("ramjet_specific_impulse_s", p.ramjet_specific_impulse_s),
+            (
+                "ramjet_specific_thrust_n_s_kg",
+                p.ramjet_specific_thrust_n_s_kg,
+            ),
+            ("wall_temperature_k", p.wall_temperature_k),
+        ] {
+            if let Some(x) = v {
+                m.insert(k.to_string(), ExpectValue::Float(x));
+            }
+        }
+
+        m.insert(
+            "refusal_count".to_string(),
+            ExpectValue::Float(p.refusal_count() as f64),
+        );
+        m.insert(
+            "ramjet_isp_is_meaningful".to_string(),
+            ExpectValue::Bool(p.ramjet_isp_is_meaningful()),
+        );
+        for (k, r) in [
+            ("refused_atmosphere_model_top", Refusal::AtmosphereModelTop),
+            (
+                "refused_gas_model_out_of_range",
+                Refusal::GasModelOutOfRange,
+            ),
+            (
+                "refused_inlet_shocks_detached",
+                Refusal::InletShocksDetached,
+            ),
+            (
+                "refused_ramjet_thermally_choked",
+                Refusal::RamjetThermallyChoked,
+            ),
+            ("refused_no_material_survives", Refusal::NoMaterialSurvives),
+        ] {
+            m.insert(k.to_string(), ExpectValue::Bool(p.refused(r)));
+        }
+    }
+    m
+}
+
 /// M11. DAPCA IV. Note what is NOT emitted: `programme_cost_usd_1986_verified`,
 /// because no primary source for one exists. The case that asks for it fails
 /// with a missing key, which is the honest answer.
@@ -601,6 +663,8 @@ fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
         }
     } else if owner("ventus-cost") {
         evaluate_cost(c)
+    } else if owner("ventus-envelope") {
+        evaluate_envelope(c)
     } else if owner("ventus-gasdyn") {
         evaluate_gasdyn(c)
     } else {

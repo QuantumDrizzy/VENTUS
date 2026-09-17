@@ -195,6 +195,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ventus-envelope"
+version = "0.0.0"
+dependencies = [
+ "libm",
+ "ventus-aero",
+ "ventus-atmos",
+ "ventus-gasdyn",
+ "ventus-inlet",
+ "ventus-propulsion",
+ "ventus-thermal",
+ "ventus-units",
+ "ventus-validate",
+]
+
+[[package]]
 name = "ventus-fsw"
 version = "0.0.0"
 dependencies = [
@@ -290,6 +305,7 @@ dependencies = [
  "ventus-aero",
  "ventus-atmos",
  "ventus-cost",
+ "ventus-envelope",
  "ventus-gasdyn",
  "ventus-inlet",
  "ventus-mass",
