@@ -118,6 +118,60 @@ pub const USEFUL_THRUST_FRACTION: f64 = 0.25;
 pub const FLAME_STABILITY_NOT_MODELLED: &str =
     "ideal_ramjet has no lean blowout limit; the M4 refusal is a ceiling, not the real end";
 
+/// **What resolving this actually requires**, written as a specification rather
+/// than as "find a citation", because the two tiers are very different jobs.
+///
+/// # Why the cycle is lean in the first place
+///
+/// Not a design choice: a consequence. The burner exit is capped at 1700 K, and
+/// at M 3.5 ram compression already delivers the air at about 750 K. The
+/// available temperature rise is therefore ~950 K, and that buys only so much
+/// kerosene: `f/a = 0.0314`, `phi = 0.4615`.
+///
+/// It gets worse with Mach, which is the collapse this module measures. Faster
+/// means hotter inlet air, less headroom, less fuel, lower phi - down to
+/// `f/a = 0.0006` near the burner ceiling. And a ramjet burns the WHOLE
+/// airflow, with no rich primary zone and dilution downstream as a gas turbine
+/// has, so the cycle equivalence ratio IS the flame equivalence ratio.
+///
+/// # What lean blowout depends on, and where VENTUS-1 stands on each
+///
+/// | Factor | Effect | Here |
+/// |---|---|---|
+/// | Flame holder | recirculation zone; without one the limit is much higher | **not declared** |
+/// | Pressure | the limit worsens as pressure falls | 26 km - against |
+/// | Inlet preheat | hot air sustains a leaner flame | ~750 K - strongly for |
+/// | Velocity / residence time | less time is harder | against |
+///
+/// One factor strongly in its favour, two against, and one that does not exist
+/// yet.
+///
+/// # TIER 1 - a cited band. One case and two constants.
+///
+/// A published equivalence-ratio range for lean blowout in ramjet combustors at
+/// comparable inlet conditions. It goes straight into [`LEAN_BLOWOUT_PHI_MIN`]
+/// and [`LEAN_BLOWOUT_PHI_MAX`] and the corridor tightens or opens by itself.
+/// This is what closes the QUESTION, and it is cheap.
+///
+/// # TIER 2 - a real correlation. A module, not a line.
+///
+/// Correlations of the Ozawa / Ballal-Lefebvre family take combustor inlet
+/// pressure, temperature and velocity - all of which M4 has - **plus flame
+/// holder blockage ratio and characteristic dimension, which do not exist
+/// anywhere in this workspace.** M4 is a thermodynamic cycle: `BURNER_PRESSURE_RATIO`
+/// and `BURNER_EFFICIENCY` are efficiency factors, not geometry. There is no
+/// combustor length, no flame holder and no blockage.
+///
+/// So applying a real correlation means DECLARING A COMBUSTOR first. That is an
+/// M4b and it is a module of work, not a citation.
+///
+/// **[CORRECTED]** An earlier note in this project described resolving this as
+/// "one case and one line". True of tier 1 only. Tier 2 was mis-scoped by a
+/// whole module, and the difference is that tier 1 tells you whether the design
+/// point flies while tier 2 tells you why.
+pub const LEAN_BLOWOUT_RESOLUTION: &str =
+    "tier 1: a cited phi band. tier 2: a correlation needing a combustor M4 does not have";
+
 /// Stoichiometric fuel-air ratio for kerosene in air. **[TO CITE]**
 pub const STOICHIOMETRIC_FUEL_AIR_RATIO: f64 = 0.0680;
 

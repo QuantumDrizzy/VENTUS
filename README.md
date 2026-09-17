@@ -18,6 +18,9 @@ verdict, so it cannot go stale in this file.
 
 The most important one is the lean blowout equivalence ratio in M12. It decides
 whether the design point has margin or does not fly — see the corridor below.
+What resolving it takes is written as a specification rather than as a wish, in
+`ventus_envelope::LEAN_BLOWOUT_RESOLUTION`: a cited band closes the question
+cheaply, while a real correlation needs a combustor M4 does not have.
 
 ---
 

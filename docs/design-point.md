@@ -314,7 +314,14 @@ by 28 %, in the flattering direction.
 
 ## 5. Declared gaps
 
-Deliberate deferrals. Each names the point at which it becomes blocking.
+Deliberate deferrals. Each names the point at which it becomes blocking, and is
+**struck through when it closes** rather than deleted — a gap that quietly
+disappears leaves no record that it was ever load-bearing.
+
+| Gap | State |
+|---|---|
+| 5.1 No acceleration corridor | **OPEN.** The engine is not sized. |
+| 5.2 No geometry | **CLOSED** by M6b; M7 and M8 built on it. |
 
 ### 5.1 No acceleration corridor — blocking at M4 engine sizing
 
@@ -341,11 +348,30 @@ Two readings that survive the re-baseline:
 
 Location of min(T − D): **[TO DETERMINE, M6 + M4]**. Expected near M 1.1 ± 0.1.
 
-### 5.2 No geometry — blocking at the start of M6
+### 5.2 No geometry — **CLOSED.** M6b derives it; M7 and M8 landed on it
 
-No length, no wing area, no mass class, no configuration. M6 (area rule,
-Sears-Haack), M7 (mass fractions) and M8 (inertia tensor) are **unbuildable**
-without them. **Intent: derive geometry from the physics, not assume it.**
+> **[CORRECTED] This gap was stale and said so for several commits.** It read
+> *"M6 (area rule, Sears-Haack), M7 (mass fractions) and M8 (inertia tensor) are
+> **unbuildable** without them"*, and all three are built, passing and in the
+> case corpus. A declared gap that no longer describes the repository is worse
+> than no gap declaration, because it is the section a reader checks to find out
+> what is missing.
+>
+> **What actually closed it.** `ventus-aero::geometry::ventus1` derives wing
+> area, span, length, maximum cross-section and volume from one declared choice
+> — the 28 t cruise mass — plus the design point. M7 then derives the zero-fuel
+> mass from that, and M8 the inertia. The **intent** below was met: the geometry
+> comes from the physics, not from an assumption, and the single number that is
+> chosen rather than derived is labelled as such where it lives.
+>
+> **What the closure did NOT resolve**, kept here because it is the live part:
+> `C_L = 0.154`, aspect ratio `1.7` and fineness ratio `12` are all still
+> `[TO CITE]`, and L/D enters range and cost **linearly**. The geometry exists;
+> the numbers inside it are still anchored on the SR-71 by resemblance rather
+> than by citation.
+
+The reasoning that produced it, kept because the choice it records is still the
+one M6b made:
 
 What q gives, unchanged by the re-baseline because q itself is unchanged:
 
