@@ -211,18 +211,42 @@ pub enum Refusal {
     /// ROOT: the balance is `eps sigma T_w^4 = h (T_aw - T_w)`, so whatever the
     /// right-hand side does is crushed by `^(1/4)` before it reaches `T_w`.
     ///
-    /// Measured over this sweep, `T_w ~ rho^-0.21` between M 4 and M 9. A 5x
-    /// density drop therefore buys about 1.4x of wall temperature, which reads
-    /// as a plateau on a table.
+    /// **[CORRECTED] There is no single exponent here, and an earlier version of
+    /// this comment gave one.** It said `T_w ~ rho^-0.21`, which is the local
+    /// slope of ONE interval picked out of a set that varies by a factor of
+    /// sixteen:
     ///
-    /// **The simple asymptotic estimate does NOT reproduce this model, and the
-    /// discrepancy is worth knowing.** Textbook flat-plate scaling gives
-    /// `h ~ rho^0.8 V^0.8`, hence `h ~ rho^0.4` at constant q, hence
-    /// `T_w ~ rho^-0.15`. Measured here, `h ~ rho^0.62`. The difference is that
-    /// `film_state` evaluates properties at the FILM temperature rather than the
-    /// freestream, so as the wall heats the reference density falls and the
-    /// viscosity rises, and `h` drops faster with altitude than freestream
-    /// scaling predicts.
+    /// ```text
+    ///   M 4.0 -> 5.0    -0.256
+    ///   M 5.0 -> 5.7    -0.212
+    ///   M 5.7 -> 7.0    -0.183
+    ///   M 7.0 -> 9.0    -0.144
+    ///   M 9.0 -> 12.0   -0.016
+    /// ```
+    ///
+    /// Quoting one of those as "the" exponent is the same error as quoting the
+    /// textbook asymptotic value, which is what this comment had just finished
+    /// correcting. A quantity that moves by 16x across the range is not an
+    /// exponent, it is a trend, and the trend is what gets documented.
+    ///
+    /// **Two mechanisms, neither of which needs a number:**
+    ///
+    /// 1. The fourth root, above. It is why any of this looks flat.
+    /// 2. **Eckert reference-temperature evaluation.** `film_state` takes
+    ///    properties at the film temperature rather than the freestream, so as
+    ///    the wall heats, the reference density falls and the viscosity rises,
+    ///    and both push `h` down. Textbook freestream scaling gives
+    ///    `h ~ rho^0.8 V^0.8`, hence `h ~ rho^0.4` at constant q; measured
+    ///    against this model `h ~ rho^0.62`, falling faster with altitude
+    ///    exactly as that mechanism predicts.
+    ///
+    /// The two do not compose to a clean closed form, and the composition is
+    /// worth writing down because it is where a reader will try to check the
+    /// arithmetic: `T_w^4 ~ h T_aw ~ rho^0.62 rho^-1 = rho^-0.38` gives
+    /// `T_w ~ rho^-0.095`. Measured end to end from M 5.7 to M 12 the answer is
+    /// -0.105, close to that; measured locally at the low end it is -0.26,
+    /// nowhere near it, because there `T_w / T_aw` is about 0.4 and the
+    /// `T_w << T_aw` assumption the composition rests on does not hold.
     ///
     /// Above about M 9 the trend breaks entirely - `T_w` goes from 835 K to
     /// 843 K between M 9 and M 12 - because the sweep has climbed into the US76
@@ -576,4 +600,105 @@ pub fn envelope(from_mach: f64, to_mach: f64, resolution: f64) -> Envelope {
         }
     });
     e
+}
+
+// ---------------------------------------------------------------------------
+// The fourth frontier, and the only one that is about the VEHICLE.
+// ---------------------------------------------------------------------------
+
+/// Equivalence ratio the cycle actually runs at the design point: 0.4615.
+///
+/// **This is the number that decides whether VENTUS-1 flies at all**, and it is
+/// one evaluation rather than a scan. Any lean blowout limit ABOVE this
+/// equivalence ratio means the engine has already gone out before reaching
+/// M 3.50.
+///
+/// The blowout band this project carries is phi 0.3 to 0.5 **[TO CITE]**, so
+/// 0.4615 sits inside it and well above the middle. The probability mass is NOT
+/// evenly split: phi 0.46 to 0.50 is an ordinary range for a ramjet combustor
+/// without a dedicated flame holder, and every value in it puts the design point
+/// out of reach.
+///
+/// That moves this `[TO CITE]` ahead of the L/D and Isp citations in the queue.
+/// Those change a number by some per cent. This one decides between "the design
+/// point has margin" and "the design point does not fly".
+pub const DESIGN_POINT_EQUIVALENCE_RATIO: f64 = 0.4615;
+
+/// Mach at which the required capture area equals the vehicle's own body
+/// cross-section: M 3.847.
+///
+/// See [`capture_area_ratio`]. At the M 3.50 design point the ratio is 0.745.
+pub const CAPTURE_AREA_CLOSES_AT_MACH: f64 = 3.847;
+
+/// Air mass flow the engine must swallow for thrust to equal drag, divided by
+/// the mass flux available per unit area: **the capture area the aircraft would
+/// need at this Mach**, in square metres.
+///
+/// # Why this is computed rather than assumed
+///
+/// M3 has no capture area - `ventus-inlet` carries an explicit
+/// `TODO(M3): capture area and spillage drag` - so asking "is there excess
+/// thrust?" cannot be answered without inventing one. Inverting the question
+/// needs nothing invented: thrust equals `Fs * rho * V * A_c`, drag comes out of
+/// M6b in newtons, so the area that balances them falls out.
+///
+/// Returns `None` wherever M4 or M6b declines.
+#[must_use]
+pub fn required_capture_area_m2(mach: f64) -> Option<f64> {
+    use ventus_aero::boundary_layer::EdgeState;
+
+    let p = evaluate(mach);
+    let (altitude_m, specific_thrust, velocity_m_s, wall_temperature_k) = (
+        p.altitude_m?,
+        p.ramjet_specific_thrust_n_s_kg?,
+        p.velocity_m_s?,
+        p.wall_temperature_k?,
+    );
+    let atmos = ventus_atmos::at_geopotential(altitude_m).ok()?;
+    let geometry = ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA);
+    let edge = EdgeState {
+        temperature_k: atmos.temperature_k,
+        pressure_pa: atmos.pressure_pa,
+        velocity_m_s,
+        mach,
+        gamma: 1.4,
+    };
+    let drag = ventus_aero::drag::breakdown(
+        &geometry,
+        &edge,
+        DESIGN_DYNAMIC_PRESSURE_PA,
+        wall_temperature_k,
+    )
+    .ok()?;
+    let drag_n = drag.total * DESIGN_DYNAMIC_PRESSURE_PA * geometry.wing_area_m2;
+    let mass_flux_kg_m2_s = atmos.density_kg_m3 * velocity_m_s;
+    Some(drag_n / (specific_thrust * mass_flux_kg_m2_s))
+}
+
+/// [`required_capture_area_m2`] over the vehicle's own maximum body
+/// cross-section.
+///
+/// # What a ratio above 1 means, stated carefully
+///
+/// It does **not** prove the aircraft is impossible. It proves the
+/// configuration M6b assumed is **self-inconsistent**: the Sears-Haack body that
+/// sets the wave drag cannot also host an inlet larger than itself. Closing the
+/// thrust balance past that point requires wing-mounted nacelles, which changes
+/// the frontal area, the wave drag and therefore the drag number this ratio was
+/// computed from.
+///
+/// That is a weaker claim than impossibility and a much harder one to argue
+/// with, and it is the honest one.
+///
+/// # And this is the only frontier here that is about the aircraft
+///
+/// The other four are statements about the MODEL: where a correlation leaves its
+/// fit, where a solver has nothing left to say. This one says something about
+/// the vehicle - and it binds at M 3.847, below the lean blowout band's middle
+/// and nearly two Mach below the M 5.70 ceiling M4 reports.
+#[must_use]
+pub fn capture_area_ratio(mach: f64) -> Option<f64> {
+    let required = required_capture_area_m2(mach)?;
+    let geometry = ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA);
+    Some(required / geometry.max_cross_section_m2)
 }

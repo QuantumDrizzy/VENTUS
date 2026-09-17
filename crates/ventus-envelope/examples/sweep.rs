@@ -6,7 +6,8 @@
 //! and dominates everything else in this workspace.
 
 use ventus_envelope::{
-    envelope, evaluate, lean_blowout_mach, Envelope, DESIGN_DYNAMIC_PRESSURE_PA,
+    capture_area_ratio, envelope, evaluate, lean_blowout_mach, Envelope,
+    CAPTURE_AREA_CLOSES_AT_MACH, DESIGN_DYNAMIC_PRESSURE_PA, DESIGN_POINT_EQUIVALENCE_RATIO,
     LEAN_BLOWOUT_PHI_MAX, LEAN_BLOWOUT_PHI_MIN, PEAK_SPECIFIC_THRUST_MACH,
     PEAK_SPECIFIC_THRUST_N_S_KG,
 };
@@ -99,30 +100,38 @@ fn main() {
     // The corridor, which is the thing an engineer looks at first.
     let strict = lean_blowout_mach(LEAN_BLOWOUT_PHI_MAX, 2.0, 5.7, 0.01);
     let permissive = lean_blowout_mach(LEAN_BLOWOUT_PHI_MIN, 2.0, 5.7, 0.01);
-    println!(
-        "
-THE CORRIDOR THE DESIGN POINT ACTUALLY SITS IN:"
-    );
+    println!();
+    println!("THE CORRIDOR THE DESIGN POINT ACTUALLY SITS IN:");
     println!("  M {PEAK_SPECIFIC_THRUST_MACH:.2}   specific thrust peaks");
     println!("  M 3.50   design point, at 83.7 % of peak thrust");
     if let (Some(lo), Some(hi)) = (strict, permissive) {
         println!("  M {lo:.2} to M {hi:.2}   lean blowout, phi {LEAN_BLOWOUT_PHI_MAX:.2} to {LEAN_BLOWOUT_PHI_MIN:.2} [TO CITE]");
-        println!();
-        println!("  Boxed in on both sides: cycle efficiency pushing down, flame");
-        println!("  stability pulling in from above. And the design point sits INSIDE");
-        println!("  the blowout band, not safely below it - at the strict end the");
-        println!("  engine has already blown out before reaching M 3.50.");
     }
-    println!(
-        "
-[KNOWN_LIMIT] The M 5.70 ceiling above is NOT the real end of the ramjet."
-    );
-    println!("  ideal_ramjet has no flame stability model and will run at a fuel-air");
-    println!("  ratio of 0.0006. The band above is where a real combustor stops, and");
-    println!("  it is more than a Mach below the ceiling this sweep reports.");
-    println!(
-        "
-The M 5.65 figure is the ceiling of the FOUR-RAMP design inlet,"
-    );
-    println!("  not of the concept. A different inlet moves it.");
+    println!("  M {CAPTURE_AREA_CLOSES_AT_MACH:.2}   required capture area equals the whole body cross-section");
+    println!("  M 5.65   every module still answers (four-ramp inlet)");
+    println!("  M 5.70   M4 burner ceiling - never the operative limit");
+
+    println!();
+    println!("THE TWO THAT ACTUALLY DECIDE IT:");
+    println!("  The cycle runs at phi = {DESIGN_POINT_EQUIVALENCE_RATIO:.4} at the design point, INSIDE the");
+    println!("  blowout band and above its midpoint. phi 0.46-0.50 is ordinary for a");
+    println!("  combustor without a dedicated flame holder, and every value there puts");
+    println!("  M 3.50 out of reach. Not marginal - unreachable.");
+    if let Some(r) = capture_area_ratio(3.50) {
+        println!();
+        println!(
+            "  And the inlet already needs {:.1} % of the entire body cross-section",
+            100.0 * r
+        );
+        println!("  at the design point, crossing 100 % at M {CAPTURE_AREA_CLOSES_AT_MACH:.2}. Past there the");
+        println!("  configuration M6b assumed is self-inconsistent: the Sears-Haack body");
+        println!("  that sets the wave drag cannot host an inlet larger than itself.");
+    }
+
+    println!();
+    println!("[KNOWN_LIMIT] The M 5.70 ceiling is NOT the real end of the ramjet.");
+    println!("  ideal_ramjet has no flame stability model and will run at f/a = 0.0006.");
+    println!("  M 5.65 is the ceiling of the FOUR-RAMP design inlet, not of the concept.");
+    println!("  Four of these five frontiers are about the MODEL. Only the capture area");
+    println!("  is a statement about the aircraft.");
 }

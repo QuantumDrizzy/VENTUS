@@ -229,3 +229,75 @@ fn a_degenerate_sweep_is_refused() {
     let e = envelope(5.0, 2.0, 0.1);
     assert_eq!(e.last_fully_answered_mach, None);
 }
+
+/// THE NUMBER THAT DECIDES WHETHER THE AIRCRAFT FLIES AT ALL.
+///
+/// The cycle runs at phi = 0.4615 at the design point. The blowout band carried
+/// here is phi 0.3 to 0.5, so the design point sits inside it and above the
+/// middle - and phi 0.46 to 0.50 is ordinary for a combustor without a dedicated
+/// flame holder. The probability mass is not evenly split.
+#[test]
+fn the_design_point_equivalence_ratio_sits_high_in_the_blowout_band() {
+    let p = evaluate(3.50);
+    let fuel_air = p.ramjet_specific_thrust_n_s_kg.unwrap()
+        / (p.ramjet_specific_impulse_s.unwrap() * ventus_units::constants::G0_M_S2);
+    let phi = fuel_air / STOICHIOMETRIC_FUEL_AIR_RATIO;
+
+    assert!(
+        (phi - DESIGN_POINT_EQUIVALENCE_RATIO).abs() < 1e-3,
+        "the design-point equivalence ratio moved to {phi:.4}"
+    );
+    // Inside the band, and above its midpoint.
+    assert!(phi > LEAN_BLOWOUT_PHI_MIN && phi < LEAN_BLOWOUT_PHI_MAX);
+    assert!(phi > 0.5 * (LEAN_BLOWOUT_PHI_MIN + LEAN_BLOWOUT_PHI_MAX));
+
+    std::println!(
+        "design point runs at phi = {phi:.4}; any blowout limit above that and it never gets there"
+    );
+}
+
+/// THE FOURTH FRONTIER, AND THE ONLY ONE ABOUT THE VEHICLE.
+///
+/// The other four say where a MODEL stops. This says the required capture area
+/// outgrows the body that has to carry it, at M 3.847 - below the middle of the
+/// blowout band and nearly two Mach under the ceiling M4 reports.
+#[test]
+fn the_required_capture_area_outgrows_the_body_below_the_reported_ceiling() {
+    let at_design = capture_area_ratio(3.50).unwrap();
+    assert!(
+        (at_design - 0.745).abs() < 0.01,
+        "the design-point capture ratio moved to {at_design:.3}"
+    );
+
+    let at_crossing = capture_area_ratio(CAPTURE_AREA_CLOSES_AT_MACH).unwrap();
+    assert!(
+        (at_crossing - 1.0).abs() < 0.01,
+        "the crossing moved: ratio {at_crossing:.3} at M {CAPTURE_AREA_CLOSES_AT_MACH}"
+    );
+
+    // Monotone in Mach over the range that matters, so the crossing is a
+    // crossing and not one of several.
+    let mut previous = 0.0;
+    let mut m = 2.0_f64;
+    while m <= 4.5 {
+        let r = capture_area_ratio(m).unwrap();
+        assert!(r > previous, "the capture ratio stopped rising at M {m:.2}");
+        previous = r;
+        m += 0.25;
+    }
+
+    // It binds well below the engine ceiling the envelope reports.
+    let ceiling = envelope(2.0, 7.0, 0.05)
+        .first_refusal(Refusal::RamjetThermallyChoked)
+        .unwrap();
+    assert!(CAPTURE_AREA_CLOSES_AT_MACH < ceiling - 1.5);
+}
+
+/// The capture-area question refuses wherever its inputs do, rather than
+/// producing a number from a chain that has already gone silent.
+#[test]
+fn the_capture_area_question_refuses_where_the_engine_does() {
+    assert!(required_capture_area_m2(6.5).is_none());
+    assert!(capture_area_ratio(6.5).is_none());
+    assert!(required_capture_area_m2(3.5).is_some());
+}

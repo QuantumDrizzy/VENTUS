@@ -182,3 +182,62 @@ This case pins the divergence so that nobody 'fixes' it back into the reports.
 inputs  = { mach = 5.5 }
 expect  = { ramjet_specific_impulse_s = 4020.441110971, ramjet_specific_thrust_n_s_kg = 115.173063773, ramjet_isp_is_meaningful = false }
 rel_tol = 1e-11
+
+# --- The fourth frontier: the only one about the VEHICLE --------------------
+
+[[case]]
+name    = "the_design_point_runs_high_in_the_blowout_band"
+source  = "M4 ideal_ramjet fuel-air ratio at the design point, over a stoichiometric kerosene-air f/a of 0.0680 [TO CITE]"
+reason  = """
+THE SINGLE NUMBER THAT DECIDES WHETHER THIS AIRCRAFT FLIES.
+
+The cycle runs at f/a = 0.03138 at M 3.50, an equivalence ratio of 0.4615. The
+lean blowout band this project carries is phi 0.3 to 0.5 [TO CITE]. So the design
+point sits INSIDE the band and ABOVE its midpoint.
+
+THE PROBABILITY MASS IS NOT EVENLY SPLIT, and saying "the design point is inside
+the uncertainty" understates it. phi 0.46 to 0.50 is an ordinary range for a
+ramjet combustor without a dedicated flame holder, and every value in it puts the
+design point out of reach - not marginal, unreachable.
+
+CONSEQUENCE FOR THE CITATION QUEUE. This project carries [TO CITE] on L/D and on
+Isp, and those move a result by some per cent. This one decides between "the
+design point has margin" and "the design point does not fly". It goes first.
+"""
+inputs  = { mach = 3.5 }
+expect  = { equivalence_ratio = 0.46149, fuel_air_ratio = 0.0313813 }
+rel_tol = 1e-4
+
+[[case]]
+name    = "the_required_capture_area_outgrows_the_body"
+source  = "Thrust equals Fs * rho * V * A_c against M6b drag in newtons, solved for A_c, over the Sears-Haack body cross-section M6b derives"
+reason  = """
+THE ONLY FRONTIER HERE THAT IS ABOUT THE VEHICLE RATHER THAN THE MODEL.
+
+The other four say where a correlation leaves its fit or a solver has nothing
+left to say. This one asks whether the aircraft can swallow enough air to
+overcome its own drag.
+
+M3 has no capture area - `ventus-inlet` carries an explicit TODO for it - so
+"is there excess thrust?" cannot be answered without inventing one. INVERTING THE
+QUESTION NEEDS NOTHING INVENTED: drag comes out of M6b in newtons, specific
+thrust out of M4 in N.s/kg, and the capture area that balances them falls out.
+
+    M 3.50   A_req / A_body = 0.745
+    M 3.85   A_req / A_body = 1.000
+
+WHAT A RATIO ABOVE 1 MEANS, STATED CAREFULLY. It does NOT prove the aircraft is
+impossible. It proves the configuration M6b assumed is SELF-INCONSISTENT: the
+Sears-Haack body that sets the wave drag cannot also host an inlet larger than
+itself. Closing the balance past there needs wing-mounted nacelles, which change
+the frontal area and the wave drag that this very drag number came from.
+
+That is a weaker claim than impossibility and far harder to argue with.
+
+AND IT BINDS AT M 3.85 - below the middle of the lean blowout band, and nearly
+two Mach below the M 5.70 ceiling M4 reports. The engine ceiling was never the
+operative limit.
+"""
+inputs  = { mach = 3.5 }
+expect  = { capture_area_ratio = 0.7454 }
+rel_tol = 1e-3

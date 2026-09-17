@@ -469,6 +469,19 @@ fn evaluate_envelope(c: &Case) -> BTreeMap<String, ExpectValue> {
             "ramjet_isp_is_meaningful".to_string(),
             ExpectValue::Bool(p.ramjet_isp_is_meaningful()),
         );
+        if let (Some(isp), Some(fs)) =
+            (p.ramjet_specific_impulse_s, p.ramjet_specific_thrust_n_s_kg)
+        {
+            let fuel_air = fs / (isp * ventus_units::constants::G0_M_S2);
+            m.insert("fuel_air_ratio".to_string(), ExpectValue::Float(fuel_air));
+            m.insert(
+                "equivalence_ratio".to_string(),
+                ExpectValue::Float(fuel_air / ventus_envelope::STOICHIOMETRIC_FUEL_AIR_RATIO),
+            );
+        }
+        if let Some(r) = ventus_envelope::capture_area_ratio(mach) {
+            m.insert("capture_area_ratio".to_string(), ExpectValue::Float(r));
+        }
         for (k, r) in [
             ("refused_atmosphere_model_top", Refusal::AtmosphereModelTop),
             (

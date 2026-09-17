@@ -66,8 +66,8 @@ VENTUS answers it structurally rather than by care:
 | M12 | Regime sweep: where the chain stops answering | each module's own declared validity bound | **done** |
 
 ```
-cargo test --workspace     189 tests
-cargo xtask validate       85 cases: 78 pass, 0 fail, 7 known limit, 0 stale
+cargo test --workspace     192 tests
+cargo xtask validate       87 cases: 80 pass, 0 fail, 7 known limit, 0 stale
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 ```
 
@@ -197,20 +197,28 @@ records where each module **refuses**, never extrapolating past one.
 | Specific thrust peaks | **M 2.30** |
 | Design point | **M 3.50**, at 83.7 % of peak thrust |
 | Lean blowout **[TO CITE]** | **M 3.23 — 4.42** (phi 0.5 to 0.3) |
+| Required capture area = whole body cross-section | **M 3.85** |
 | Every module still answers to | **M 5.65** (four-ramp inlet) |
+| M4 burner ceiling | M 5.70 — never the operative limit |
 
-The design point is **boxed in on both sides**: cycle efficiency pushing down,
-flame stability pulling in from above — and it sits *inside* the blowout band,
-so at the strict end the engine has blown out before reaching M 3.50. The M 5.70
-ceiling M4 reports is far above the real window.
+**Two of those decide whether the aircraft flies, and neither is the ceiling.**
+The cycle runs at an equivalence ratio of **0.4615** at the design point — inside
+the blowout band and above its midpoint, and phi 0.46–0.50 is ordinary for a
+combustor without a dedicated flame holder. Every value there puts M 3.50 out of
+reach. And the inlet already needs **74.5 %** of the entire body cross-section at
+the design point; past M 3.85 the configuration M6b assumed is self-inconsistent,
+because the Sears-Haack body that sets the wave drag cannot host an inlet larger
+than itself.
 
-What stops the chain is not the intuitive answer: the **ramjet** gives out first
-at M 5.70 and the **gas model** at M 5.85, while the **material never binds**.
-That is a mechanism, not an assertion — the balance is `eps sigma T_w^4 =
-h (T_aw — T_w)`, so the fourth root crushes everything on the right; measured,
-`T_w ~ rho^-0.21`. The textbook estimate of `rho^-0.15` does **not** reproduce
-the model, because film-temperature properties make `h ~ rho^0.62` rather than
-`rho^0.4`.
+Four of those five frontiers are statements about the **model**. Only the capture
+area is a statement about the **aircraft**.
+
+The material never binds, and that is a mechanism rather than an assertion: the
+balance is `eps sigma T_w^4 = h (T_aw — T_w)`, so the fourth root crushes
+everything on the right, and film-temperature (Eckert) evaluation makes `h` fall
+faster with altitude than freestream scaling predicts. **There is no single
+exponent** — the local slope moves from −0.26 to −0.02 across the sweep, and
+quoting one value would be the same error as quoting the textbook one.
 
 **What it costs is the one question the project answers badly, and says so.**
 M11 runs DAPCA IV anchored on the SR-71. The anchor is already **1.54x past** the

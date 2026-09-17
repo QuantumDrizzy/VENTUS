@@ -311,5 +311,6 @@ dependencies = [
  "ventus-mass",
  "ventus-propulsion",
  "ventus-thermal",
+ "ventus-units",
  "ventus-validate",
 ]
