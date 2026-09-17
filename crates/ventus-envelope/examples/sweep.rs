@@ -8,8 +8,8 @@
 use ventus_envelope::{
     capture_area_ratio, envelope, evaluate, lean_blowout_mach, Envelope,
     CAPTURE_AREA_CLOSES_AT_MACH, DESIGN_DYNAMIC_PRESSURE_PA, DESIGN_POINT_EQUIVALENCE_RATIO,
-    LEAN_BLOWOUT_PHI_MAX, LEAN_BLOWOUT_PHI_MIN, PEAK_SPECIFIC_THRUST_MACH,
-    PEAK_SPECIFIC_THRUST_N_S_KG,
+    LEAN_BLOWOUT_PHI_MAX, LEAN_BLOWOUT_PHI_MIN, NO_BODY_CLOSES_ABOVE_MACH,
+    PEAK_SPECIFIC_THRUST_MACH, PEAK_SPECIFIC_THRUST_N_S_KG, WAVE_DRAG_FRACTION_AT_DESIGN_POINT,
 };
 
 fn opt(v: Option<f64>, width: usize, prec: usize) -> String {
@@ -108,6 +108,7 @@ fn main() {
         println!("  M {lo:.2} to M {hi:.2}   lean blowout, phi {LEAN_BLOWOUT_PHI_MAX:.2} to {LEAN_BLOWOUT_PHI_MIN:.2} [TO CITE]");
     }
     println!("  M {CAPTURE_AREA_CLOSES_AT_MACH:.2}   required capture area equals the whole body cross-section");
+    println!("  M {NO_BODY_CLOSES_ABOVE_MACH:.2}   NO body size closes the thrust balance at all");
     println!("  M 5.65   every module still answers (four-ramp inlet)");
     println!("  M 5.70   M4 burner ceiling - never the operative limit");
 
@@ -126,6 +127,14 @@ fn main() {
         println!("  at the design point, crossing 100 % at M {CAPTURE_AREA_CLOSES_AT_MACH:.2}. Past there the");
         println!("  configuration M6b assumed is self-inconsistent: the Sears-Haack body");
         println!("  that sets the wave drag cannot host an inlet larger than itself.");
+        println!();
+        println!("  Wave drag goes as A^2, so that is a FIXED POINT, not a formula. It");
+        println!(
+            "  converges only because wave drag is {:.1} % of the total and",
+            100.0 * WAVE_DRAG_FRACTION_AT_DESIGN_POINT
+        );
+        println!("  lift-induced dominates; had wave dominated, no stable body size");
+        println!("  would exist. Solved, the roots vanish entirely above M {NO_BODY_CLOSES_ABOVE_MACH:.2}.");
     }
 
     println!();

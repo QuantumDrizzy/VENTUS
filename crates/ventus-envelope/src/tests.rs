@@ -301,3 +301,113 @@ fn the_capture_area_question_refuses_where_the_engine_does() {
     assert!(capture_area_ratio(6.5).is_none());
     assert!(required_capture_area_m2(3.5).is_some());
 }
+
+/// [CORRECTED] THE CAPTURE-AREA NUMBER WAS A FIRST ITERATE, NOT A FIXED POINT.
+///
+/// Sears-Haack wave drag goes as the SQUARE of cross-section, so growing the
+/// inlet grows the body grows the drag grows the inlet. `required_capture_area_m2`
+/// evaluates that once against the declared geometry;
+/// `self_consistent_capture_area_m2` solves it.
+#[test]
+fn the_self_consistent_capture_area_agrees_at_the_crossing_and_not_elsewhere() {
+    let g = ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA);
+
+    // AT the crossing the two must agree exactly, because A = A_body there means
+    // both formulations evaluate the same drag. Structural, not luck.
+    let fixed = required_capture_area_m2(CAPTURE_AREA_CLOSES_AT_MACH).unwrap();
+    let solved = self_consistent_capture_area_m2(CAPTURE_AREA_CLOSES_AT_MACH).unwrap();
+    assert!(
+        (solved / fixed - 1.0).abs() < 2e-3,
+        "the two formulations disagree at the crossing: {solved:.3} against {fixed:.3}"
+    );
+    assert!((solved / g.max_cross_section_m2 - 1.0).abs() < 2e-3);
+
+    // BELOW it the fixed-drag answer is conservative: the declared body is
+    // larger than needed and pays wave drag for area it is not using.
+    let (f_lo, s_lo) = (
+        required_capture_area_m2(3.50).unwrap(),
+        self_consistent_capture_area_m2(3.50).unwrap(),
+    );
+    assert!(
+        s_lo < f_lo,
+        "below the crossing the solve should be smaller"
+    );
+
+    // ABOVE it the fixed-drag answer is optimistic, by 25 % at M 4.40.
+    let (f_hi, s_hi) = (
+        required_capture_area_m2(4.40).unwrap(),
+        self_consistent_capture_area_m2(4.40).unwrap(),
+    );
+    assert!(s_hi > f_hi);
+    assert!(
+        (s_hi / f_hi - 1.25).abs() < 0.05,
+        "the optimism at M 4.40 moved to {:.3}x",
+        s_hi / f_hi
+    );
+}
+
+/// The convergence criterion, measured rather than assumed.
+///
+/// `dA_req/dA = 2 (D_wave/D_total) (A_req/A)`. The `2 (A_req/A)` factor is 1.49
+/// at the design point, so a wave-dominated drag budget would diverge and no
+/// stable body size would exist. Lift-induced drag dominates instead - M6b's own
+/// headline - and the iteration converges comfortably.
+#[test]
+fn the_capture_area_iteration_converges_because_wave_drag_is_a_small_fraction() {
+    use ventus_aero::boundary_layer::EdgeState;
+
+    let g = ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA);
+    let p = evaluate(3.50);
+    let atmos = ventus_atmos::at_geopotential(p.altitude_m.unwrap()).unwrap();
+    let edge = EdgeState {
+        temperature_k: atmos.temperature_k,
+        pressure_pa: atmos.pressure_pa,
+        velocity_m_s: p.velocity_m_s.unwrap(),
+        mach: 3.50,
+        gamma: 1.4,
+    };
+    let d = ventus_aero::drag::breakdown(
+        &g,
+        &edge,
+        DESIGN_DYNAMIC_PRESSURE_PA,
+        p.wall_temperature_k.unwrap(),
+    )
+    .unwrap();
+
+    let wave_fraction = d.wave / d.total;
+    assert!(
+        (wave_fraction - WAVE_DRAG_FRACTION_AT_DESIGN_POINT).abs() < 2e-3,
+        "the wave fraction moved to {wave_fraction:.4}"
+    );
+    // Lift-induced dominates, which is M6b's finding and is what saves this.
+    assert!(d.lift_induced > d.wave + d.friction);
+
+    let ratio = capture_area_ratio(3.50).unwrap();
+    let derivative = 2.0 * wave_fraction * ratio;
+    assert!(
+        derivative < 0.3,
+        "the fixed point stopped converging: dA_req/dA = {derivative:.3}"
+    );
+    // And the coefficient it would have been on, had wave drag dominated.
+    assert!(2.0 * ratio > 1.4);
+
+    std::println!(
+        "wave {:.1} % of drag, dA_req/dA = {derivative:.3} (would be {:.2} if wave dominated)",
+        100.0 * wave_fraction,
+        2.0 * ratio
+    );
+}
+
+/// THE FRONTIER THE FIRST FORMULATION COULD NOT SEE.
+///
+/// When the discriminant goes negative the roots stop existing: not gradual
+/// degradation, no body size closing the balance at all.
+#[test]
+fn above_a_declared_mach_no_body_size_closes_the_thrust_balance() {
+    assert!(self_consistent_capture_area_m2(NO_BODY_CLOSES_ABOVE_MACH - 0.02).is_some());
+    assert!(self_consistent_capture_area_m2(NO_BODY_CLOSES_ABOVE_MACH + 0.02).is_none());
+
+    // The fixed-drag formulation happily returns a number up there, which is
+    // exactly why it needed replacing as the headline.
+    assert!(required_capture_area_m2(NO_BODY_CLOSES_ABOVE_MACH + 0.02).is_some());
+}

@@ -66,8 +66,8 @@ VENTUS answers it structurally rather than by care:
 | M12 | Regime sweep: where the chain stops answering | each module's own declared validity bound | **done** |
 
 ```
-cargo test --workspace     192 tests
-cargo xtask validate       87 cases: 80 pass, 0 fail, 7 known limit, 0 stale
+cargo test --workspace     195 tests
+cargo xtask validate       89 cases: 82 pass, 0 fail, 7 known limit, 0 stale
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 ```
 
@@ -198,6 +198,7 @@ records where each module **refuses**, never extrapolating past one.
 | Design point | **M 3.50**, at 83.7 % of peak thrust |
 | Lean blowout **[TO CITE]** | **M 3.23 — 4.42** (phi 0.5 to 0.3) |
 | Required capture area = whole body cross-section | **M 3.85** |
+| **No body size closes the thrust balance** | **M 4.54** |
 | Every module still answers to | **M 5.65** (four-ramp inlet) |
 | M4 burner ceiling | M 5.70 — never the operative limit |
 
@@ -208,7 +209,10 @@ combustor without a dedicated flame holder. Every value there puts M 3.50 out of
 reach. And the inlet already needs **74.5 %** of the entire body cross-section at
 the design point; past M 3.85 the configuration M6b assumed is self-inconsistent,
 because the Sears-Haack body that sets the wave drag cannot host an inlet larger
-than itself.
+than itself. Wave drag goes as the *square* of cross-section, so that is a fixed
+point rather than a formula — it converges only because wave drag is 8.9 % of
+the total and lift-induced dominates. Solved as a quadratic, the roots vanish
+entirely above **M 4.54**: no body size closes the balance at all.
 
 Four of those five frontiers are statements about the **model**. Only the capture
 area is a statement about the **aircraft**.

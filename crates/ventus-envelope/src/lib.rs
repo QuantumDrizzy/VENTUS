@@ -187,6 +187,19 @@ const _: () = assert!(
 /// A fraction, not a multiple.
 const _: () = assert!(USEFUL_THRUST_FRACTION > 0.0 && USEFUL_THRUST_FRACTION < 1.0);
 
+/// The thrust-balance frontiers order the way the physics requires: a body that
+/// no longer FITS the inlet comes before one where no body closes at all, and
+/// both sit well under the M 5.70 burner ceiling M4 reports.
+///
+/// [CORRECTED] This is the third time in this workspace that a relation between
+/// constants was written as a runtime `assert!`, which clippy correctly calls
+/// `assert!(true)` because constant folding removes it. Same fix as the M7 mass
+/// bounds and the M12 thrust constants: as `const _: ()` it breaks the build.
+const _: () = assert!(
+    CAPTURE_AREA_CLOSES_AT_MACH < NO_BODY_CLOSES_ABOVE_MACH && NO_BODY_CLOSES_ABOVE_MACH < 5.0,
+    "the thrust-balance frontiers are out of order"
+);
+
 /// Why a module stopped answering.
 ///
 /// Every variant corresponds to a refusal implemented in the module named, not
@@ -701,4 +714,107 @@ pub fn capture_area_ratio(mach: f64) -> Option<f64> {
     let required = required_capture_area_m2(mach)?;
     let geometry = ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA);
     Some(required / geometry.max_cross_section_m2)
+}
+
+/// Above this Mach **no body size closes the thrust balance**: M 4.536.
+///
+/// See [`self_consistent_capture_area_m2`]. This is a harder frontier than
+/// [`CAPTURE_AREA_CLOSES_AT_MACH`], and the two answer different questions.
+pub const NO_BODY_CLOSES_ABOVE_MACH: f64 = 4.536;
+
+/// Fraction of total drag that is wave drag at the design point: 0.089.
+///
+/// The number that decides whether the capture-area fixed point below converges.
+/// Lift-induced is 0.661 and friction 0.249; M6b's headline finding is that at
+/// M 3.5 drag due to lift dominates, and this is that finding load-bearing
+/// somewhere else.
+pub const WAVE_DRAG_FRACTION_AT_DESIGN_POINT: f64 = 0.089;
+
+/// Capture area solved **self-consistently** against the wave drag it causes.
+///
+/// # Why [`required_capture_area_m2`] is not the whole answer
+///
+/// Sears-Haack wave drag goes as the SQUARE of maximum cross-section
+/// (`drag.rs`: `4.5 pi q (A/L)^2`). If the inlet has to fit inside the body,
+/// then growing the capture area grows the body, which grows the drag, which
+/// grows the capture area needed. That is a fixed point, not an explicit
+/// formula, and [`required_capture_area_m2`] evaluates only its first iterate
+/// against the declared geometry.
+///
+/// Substituting `A_body = A` gives a quadratic:
+///
+/// ```text
+///   k A^2  -  (F_s rho V) A  +  D_others  =  0,     k = 4.5 pi q / L^2
+/// ```
+///
+/// with `D_others` the friction and lift-induced terms, neither of which depends
+/// on cross-section. The physical branch is the SMALLER root: the larger one is
+/// a body so big it is paying for itself in wave drag.
+///
+/// # Does the iteration converge? Measured, yes, and not narrowly
+///
+/// `dA_req/dA = 2 (D_wave/D_total) (A_req/A)`. The coefficient `2 (A_req/A)` is
+/// 1.49 at the design point, so if wave drag dominated, the iteration would
+/// diverge and no stable body size would exist. It does not dominate:
+/// [`WAVE_DRAG_FRACTION_AT_DESIGN_POINT`] is 0.089, giving 0.133. Comfortably
+/// convergent, and it stays under 0.3 out to M 4.5.
+///
+/// # What the correction is worth
+///
+/// At the crossing, **nothing** - and for a structural reason rather than luck.
+/// Where `A = A_body` the two formulations evaluate the same drag, so they must
+/// agree exactly there, and [`CAPTURE_AREA_CLOSES_AT_MACH`] is unchanged at
+/// M 3.847 under the self-consistent solve.
+///
+/// Away from it they diverge in opposite directions. Below, the fixed-drag
+/// answer is CONSERVATIVE (the declared body is larger than needed and carries
+/// wave drag for area it is not using): 2.511 against 2.401 m2 at M 3.50. Above,
+/// it is OPTIMISTIC: 5.655 against 7.080 m2 at M 4.40, 25 % low.
+///
+/// # The frontier this one can see and the other cannot
+///
+/// When the discriminant goes negative the roots stop existing, and that is not
+/// gradual degradation - it is **no body size closing the balance at all**. It
+/// happens at M 4.536.
+///
+/// Returns `None` there, and wherever M4 or M6b declines.
+#[must_use]
+pub fn self_consistent_capture_area_m2(mach: f64) -> Option<f64> {
+    use ventus_aero::boundary_layer::EdgeState;
+
+    let p = evaluate(mach);
+    let (altitude_m, specific_thrust, velocity_m_s, wall_temperature_k) = (
+        p.altitude_m?,
+        p.ramjet_specific_thrust_n_s_kg?,
+        p.velocity_m_s?,
+        p.wall_temperature_k?,
+    );
+    let atmos = ventus_atmos::at_geopotential(altitude_m).ok()?;
+    let geometry = ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA);
+    let edge = EdgeState {
+        temperature_k: atmos.temperature_k,
+        pressure_pa: atmos.pressure_pa,
+        velocity_m_s,
+        mach,
+        gamma: 1.4,
+    };
+    let drag = ventus_aero::drag::breakdown(
+        &geometry,
+        &edge,
+        DESIGN_DYNAMIC_PRESSURE_PA,
+        wall_temperature_k,
+    )
+    .ok()?;
+
+    let scale = DESIGN_DYNAMIC_PRESSURE_PA * geometry.wing_area_m2;
+    let d_others = (drag.friction + drag.lift_induced) * scale;
+    let k = 4.5 * core::f64::consts::PI * DESIGN_DYNAMIC_PRESSURE_PA
+        / (geometry.length_m * geometry.length_m);
+    let thrust_per_area = specific_thrust * atmos.density_kg_m3 * velocity_m_s;
+
+    let discriminant = thrust_per_area * thrust_per_area - 4.0 * k * d_others;
+    if discriminant < 0.0 {
+        return None;
+    }
+    Some((thrust_per_area - libm::sqrt(discriminant)) / (2.0 * k))
 }

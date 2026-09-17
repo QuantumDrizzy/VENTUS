@@ -241,3 +241,44 @@ operative limit.
 inputs  = { mach = 3.5 }
 expect  = { capture_area_ratio = 0.7454 }
 rel_tol = 1e-3
+
+[[case]]
+name    = "no_body_size_closes_the_thrust_balance_above_m4p5"
+source  = "Sears-Haack wave drag goes as the square of cross-section (ventus-aero/src/drag.rs). Substituting A_body = A_capture gives k A^2 - (Fs rho V) A + D_others = 0; above this Mach the discriminant is negative and the roots do not exist."
+reason  = """
+[CORRECTED] THE CAPTURE-AREA NUMBER WAS A FIRST ITERATE, NOT A FIXED POINT.
+
+Wave drag goes as the SQUARE of maximum cross-section, so growing the inlet grows
+the body grows the drag grows the inlet. `required_capture_area_m2` evaluates
+that once against the declared geometry. It is a fixed point and it needed
+solving.
+
+DOES IT CONVERGE? dA_req/dA = 2 (D_wave/D_total) (A_req/A). The factor
+2 (A_req/A) is 1.49 at the design point, so a wave-dominated drag budget would
+DIVERGE and no stable body size would exist. Measured, wave drag is 8.9 % of the
+total - lift-induced is 66 %, which is M6b's own headline finding turning out to
+be load-bearing somewhere else entirely - giving 0.133. Comfortably convergent.
+
+WHAT THE CORRECTION IS WORTH. At the crossing, nothing, and for a structural
+reason rather than luck: where A = A_body both formulations evaluate the same
+drag, so they must agree exactly, and M 3.847 is unchanged. Away from it they
+part in opposite directions - below, the fixed-drag answer is CONSERVATIVE
+(2.401 against 2.511 m2 at M 3.50); above, it is OPTIMISTIC (7.080 against
+5.655 m2 at M 4.40, 25 % low).
+
+AND THE FRONTIER THE FIRST FORMULATION COULD NOT SEE. When the discriminant goes
+negative the roots stop existing. That is not gradual degradation: it is NO BODY
+SIZE CLOSING THE BALANCE AT ALL, at M 4.536. The fixed-drag formulation happily
+returns a number up there, which is exactly why it could not stay the headline.
+"""
+inputs  = { mach = 4.6 }
+expect  = { any_body_closes_the_thrust_balance = false }
+abs_tol = 0.0
+
+[[case]]
+name    = "a_body_still_closes_just_below_that"
+source  = "Same quadratic, evaluated inside the region where the discriminant is positive"
+reason  = "The inside half of the bracket. At M 4.5 a body size still exists that closes the thrust balance; at M 4.6 none does."
+inputs  = { mach = 4.5 }
+expect  = { any_body_closes_the_thrust_balance = true }
+abs_tol = 0.0
