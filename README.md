@@ -85,7 +85,7 @@ VENTUS answers it structurally rather than by care:
 | M7 | Mass fractions, empty mass, Breguet range | SR-71 unrefuelled range - the end-to-end check | **done** |
 | M8 | 6-DOF rigid-body dynamics | energy drift < 1e-10 over 1e6 steps | **done** |
 | M9 | 2-D Euler solver | shock angle 0.006 deg vs exact theta-beta-M; CPU↔GPU bit-exact | **done** — levels A, B and D all PASS |
-| M10 | Flight software | shares M1 bit-for-bit with the twin | **done** |
+| M10 | Flight software | shares M1 bit-for-bit with the twin | **done** — HIL gate added (ADR-003), ARM port bit-exactness pending first board run |
 | M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
 | M12 | Regime sweep: where the chain stops answering | each module's own declared validity bound | **done** |
 
@@ -320,6 +320,8 @@ crates/          Rust workspace: units, atmos, gasdyn, inlet, propulsion,
                  aero, thermal, mass, cost, envelope, dynamics, fsw,
                  validate, xtask
 native/          C++17/CUDA, sm_120 — M9 only
+firmware/        M10 on real hardware: Nucleo-F411RE (ADR-003), excluded
+                 from the workspace — builds for thumbv7em-none-eabihf
 crates/*/cases/  the external yardsticks themselves, as TOML. Each case
                  carries its own source, tolerance and reason; there is no
                  separate reference directory (ADR-000 D11).
@@ -342,6 +344,19 @@ cargo xtask validate
 Writes `out/<run_id>/report.md` and `report.csv`. The header carries the commit
 hash and whether the tree was dirty; a dirty tree is labelled *not reproducible*
 in the report itself.
+
+```bash
+cargo xtask hil COM7      # the HIL gate (ADR-003), against a flashed Nucleo
+```
+
+Runs the flight software's air-data path on the STM32F411RE and compares it
+**bit for bit** against the host over a deterministic altitude sweep — the
+layer bases of US76, both design points, LCG pseudo-random points, and the
+out-of-domain error codes. The protocol lives in `ventus_fsw::hil`, shared by
+both sides; a corrupt frame is dropped, never answered; a stale build id fails
+with the reflash command in the remedy. See
+[`docs/adr/ADR-003-hil.md`](docs/adr/ADR-003-hil.md) and
+[`firmware/nucleo-f411/README.md`](firmware/nucleo-f411/README.md).
 
 Building `native/` needs the MSVC environment loaded — the x64 Native Tools
 prompt, or `vcvars64.bat` first. `xtask` checks for it and fails with the exact

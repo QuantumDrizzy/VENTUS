@@ -11,6 +11,7 @@
 //! vcvars fails forty lines later inside the wrong link.exe instead of here.
 
 mod bench;
+mod hil;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -27,14 +28,15 @@ fn main() -> ExitCode {
     match cmd.as_deref() {
         Some("validate") => validate(),
         Some("bench") => bench_gated(),
+        Some("hil") => hil::run(std::env::args().nth(2).as_deref()),
         Some(other) => {
             eprintln!("xtask: `{other}` is not implemented yet.");
-            eprintln!("available: validate | bench");
+            eprintln!("available: validate | bench | hil");
             eprintln!("planned:   build | check-dag | report  (ADR-000 D6)");
             ExitCode::from(2)
         }
         None => {
-            eprintln!("usage: cargo xtask <validate|bench>");
+            eprintln!("usage: cargo xtask <validate|bench|hil>");
             ExitCode::from(2)
         }
     }

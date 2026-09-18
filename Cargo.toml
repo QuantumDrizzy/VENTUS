@@ -1,5 +1,6 @@
 [workspace]
 resolver = "2"
+exclude = ["firmware/nucleo-f411"]
 members = [
     "crates/ventus-units",
     "crates/ventus-atmos",
@@ -43,6 +44,7 @@ assertions_on_constants = "deny"
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 toml  = "0.8"
+serialport = "4"
 
 # Determinism: the physics core must produce identical results across builds.
 # No fast-math, no target-cpu=native in checked-in profiles.

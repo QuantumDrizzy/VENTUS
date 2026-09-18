@@ -38,6 +38,8 @@
 #[cfg(test)]
 extern crate std;
 
+pub mod hil;
+
 use ventus_atmos::AtmosError;
 
 /// Control loop rate [Hz]. The latency budget is its reciprocal.
