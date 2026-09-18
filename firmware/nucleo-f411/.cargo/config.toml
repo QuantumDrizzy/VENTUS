@@ -4,3 +4,6 @@ target = "thumbv7em-none-eabihf"
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
 # `cargo run` / `cargo flash` through the Nucleo's onboard ST-Link, SWD.
 runner = "probe-rs run --chip STM32F411RETx --protocol swd"
+# Without this the cortex-m-rt linker script is never used, the sections have
+# nowhere to go, and the link quietly emits an ELF with no .text.
+rustflags = ["-C", "link-arg=-Tlink.x"]

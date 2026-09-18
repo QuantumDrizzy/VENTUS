@@ -10,6 +10,14 @@ use std::process::Command;
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
+    // cortex-m-rt's link.x reads MEMORY from a `memory.x` it finds on the
+    // linker search path. Without this the link still SUCCEEDS and produces an
+    // ELF with no .text at all -- an exit code of zero and nothing to flash.
+    let out = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR is set by cargo"));
+    fs::write(out.join("memory.x"), include_bytes!("memory.x")).expect("write memory.x");
+    println!("cargo:rustc-link-search={}", out.display());
+    println!("cargo:rerun-if-changed=memory.x");
+
     let commit = Command::new("git")
         .args(["rev-parse", "HEAD"])
         .output()
