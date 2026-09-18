@@ -1,6 +1,7 @@
 /target/
 /out/
 /native/build/
+firmware/nucleo-f411/target/
 *.npy
 *.png
 *.pdf

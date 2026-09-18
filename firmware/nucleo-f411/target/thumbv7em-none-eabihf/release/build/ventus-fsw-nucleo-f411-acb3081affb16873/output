@@ -1,3 +1,0 @@
-cargo:rerun-if-changed=build.rs
-cargo:rustc-link-search=C:\Users\Drizzy\Desktop\PR0JECTS\RESEARCH\VENTUS\firmware\nucleo-f411\target\thumbv7em-none-eabihf\release\build\ventus-fsw-nucleo-f411-acb3081affb16873\out
-cargo:rerun-if-changed=memory.x
