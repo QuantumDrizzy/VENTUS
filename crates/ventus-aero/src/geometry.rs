@@ -30,9 +30,12 @@
 //! mass, where the two readings differ by 29 %. See
 //! `ventus_mass::SR71_EMPTY_FRACTION_OF_CRUISE_MASS`.
 //!
-//! Aspect ratio 1.7 is taken from the SR-71 **[TO CITE]**, because a slender
+//! Aspect ratio 1.7 is taken from the SR-71, because a slender
 //! supersonic delta has very little freedom there — span costs wave drag and
 //! buys induced-drag relief that supersonic flow largely refuses to give.
+//! Source: SR-71 span 55.6 ft (16.94 m) over wing area 1 800 ft² (167.2 m²)
+//! gives AR = 1.72 (NASA SR-71 fact sheet; SR-71A Flight Manual); 1.7 is
+//! carried rounded.
 //!
 //! [KNOWN_LIMIT] Fuselage volume is estimated from a fineness ratio rather than
 //! laid out, so the Sears-Haack wave drag that depends on it is a scale
@@ -46,7 +49,9 @@ use ventus_units::float::abs;
 pub const CRUISE_MASS_KG: f64 = 28_000.0;
 
 /// Cruise lift coefficient, from the SR-71 back-calculation in
-/// `docs/design-point.md` §5.2. **[TO CITE]** on the SR-71 mass and wing area.
+/// `docs/design-point.md` §5.2. The cited inputs it needs — SR-71 wing area
+/// 1 800 ft² (167.2 m²) and cruise mass — are now cited on
+/// [`ASPECT_RATIO`] and in `ventus_mass`, which closes this derivation.
 ///
 /// That back-calculation uses the SR-71 at its START-of-cruise mass, matched
 /// against [`CRUISE_MASS_KG`] which is also a start-of-cruise mass. Taking the
@@ -54,11 +59,15 @@ pub const CRUISE_MASS_KG: f64 = 28_000.0;
 /// give C_L = 0.215 rather than 0.154.
 pub const CRUISE_LIFT_COEFFICIENT: f64 = 0.154;
 
-/// Wing aspect ratio, SR-71 class. **[TO CITE]**
+/// Wing aspect ratio, SR-71 class. Derived from the cited SR-71 geometry:
+/// span 55.6 ft = 16.94 m, wing area 1 800 ft² = 167.2 m², so AR = b²/S = 1.72;
+/// 1.7 carried rounded (NASA SR-71 fact sheet; SR-71A Flight Manual).
 pub const ASPECT_RATIO: f64 = 1.7;
 
 /// Fuselage fineness ratio, length over maximum diameter. Slender bodies at
-/// M 3.5 sit near 12; the SR-71 is comparable. **[TO CITE]**
+/// M 3.5 sit near 12. The SR-71 length is cited — 107 ft 5 in = 32.74 m (NASA
+/// fact sheet) — but its maximum body diameter is not read from a primary
+/// source yet. **[TO VERIFY]**
 pub const FINENESS_RATIO: f64 = 12.0;
 
 /// Ratio of wetted area to reference wing area. A blended delta runs near 3.
@@ -94,8 +103,8 @@ pub fn ventus1(dynamic_pressure_pa: f64) -> Geometry {
     let span = libm::sqrt(ASPECT_RATIO * wing_area);
 
     // Length from the SR-71 scaled by the square root of the area ratio: a
-    // linear dimension scales as the square root of an area. SR-71: 32.7 m at
-    // 167.2 m^2. [TO CITE]
+    // linear dimension scales as the square root of an area. SR-71: 32.74 m
+    // (107 ft 5 in) at 167.2 m² — NASA SR-71 fact sheet; SR-71A Flight Manual.
     let length = 32.7 * libm::sqrt(wing_area / 167.2);
 
     let max_diameter = length / FINENESS_RATIO;

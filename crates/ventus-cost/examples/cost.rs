@@ -59,7 +59,8 @@ fn main() {
     );
     println!("velocity ratio = {:.6}\n", v_ventus / v_sr71);
 
-    // SR-71 zero-fuel mass 59 000 lb (cited, NASA test bed Table 1); 32 built [TO CITE].
+    // SR-71 zero-fuel mass 59 000 lb (cited, NASA test bed Table 1); 32 built —
+    // 29 SR-71A, two SR-71B, one SR-71C (Lockheed production; NMUSAF fact sheet).
     let sr71 = Inputs {
         empty_mass_kg: 26_761.949_83,
         max_velocity_m_s: v_sr71,

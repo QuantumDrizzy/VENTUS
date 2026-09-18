@@ -12,15 +12,25 @@ carrying the git hash that produced it.
 
 **What that harness does not do, said here rather than left to a `grep`.** It
 gates *cases*. It does not gate *constants*: a modelling constant marked
-`[TO CITE]` in a doc comment compiles and validates fine, and there are **32** of
-them right now. `cargo xtask validate` counts and prints that number with every
-verdict, so it cannot go stale in this file.
+`[TO CITE]` in a doc comment compiles and validates fine, and there are **13** of
+them right now — down from 32 at the start of the session that unblocked the
+GPU: the lean blowout strict end, the stoichiometric f/a, the kerosene LHV, the
+burner pressure loss and efficiency, the SR-71 skin temperatures, the SR-71
+geometry and its airframe count are all cited now. `cargo xtask validate`
+counts and prints that number with every verdict, so it cannot go stale in this
+file.
 
-The most important one is the lean blowout equivalence ratio in M12. It decides
-whether the design point has margin or does not fly — see the corridor below.
-What resolving it takes is written as a specification rather than as a wish, in
-`ventus_envelope::LEAN_BLOWOUT_RESOLUTION`: a cited band closes the question
-cheaply, while a real correlation needs a combustor M4 does not have.
+The most important one WAS the lean blowout equivalence ratio in M12. The strict
+end of its band is now cited — the stirred-reactor stability boundary at
+phi 0.5, from Mattingly, Heiser & Pratt, *Aircraft Engine Design*, 2nd ed.,
+§10.4.2, Fig. 10-70 (reporting Spalding) — and what remains open is the
+permissive end, tagged `[TO VERIFY]`, plus the pressure dependence: the ramjet
+burner at ~1.6 kPa sits far off the combustor loading the cited figure covers.
+It still decides whether the design point has margin or does not fly — see the
+corridor below. What resolving it fully takes is written as a specification
+rather than as a wish, in `ventus_envelope::LEAN_BLOWOUT_RESOLUTION`: a cited
+band closes the question cheaply, while a real correlation needs a combustor M4
+does not have.
 
 ---
 
@@ -74,16 +84,17 @@ VENTUS answers it structurally rather than by care:
 | M6b | Geometry, wave drag, L/D | Küchemann bound; L/D in the 5.0-6.0 target | **done** |
 | M7 | Mass fractions, empty mass, Breguet range | SR-71 unrefuelled range - the end-to-end check | **done** |
 | M8 | 6-DOF rigid-body dynamics | energy drift < 1e-10 over 1e6 steps | **done** |
-| M9 | 2-D Euler solver | shock angle 0.006 deg vs exact theta-beta-M | **physics done**, GPU build blocked |
+| M9 | 2-D Euler solver | shock angle 0.006 deg vs exact theta-beta-M; CPU↔GPU bit-exact | **done** — levels A, B and D all PASS |
 | M10 | Flight software | shares M1 bit-for-bit with the twin | **done** |
 | M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
 | M12 | Regime sweep: where the chain stops answering | each module's own declared validity bound | **done** |
 
 ```
-cargo test --workspace     195 tests
+cargo test --workspace     194 tests, 0 failed
 cargo xtask validate       89 cases: 82 pass, 0 fail, 7 known limit, 0 stale
-                           32 modelling constants still [TO CITE]
+                           13 modelling constants still [TO CITE] (was 32)
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
+native\build_validate.bat M9 levels A/B/D: 0 of 80000 cells differ, 0.0 ULP
 cargo xtask bench          gated on the corpus passing at the same commit
 ```
 
@@ -212,7 +223,7 @@ records where each module **refuses**, never extrapolating past one.
 |---|---|
 | Specific thrust peaks | **M 2.30** |
 | Design point | **M 3.50**, at 83.7 % of peak thrust |
-| Lean blowout **[TO CITE]** | **M 3.23 — 4.42** (phi 0.5 to 0.3) |
+| Lean blowout (strict end cited) | **M 3.23 — 4.42** (phi 0.5 to 0.3) |
 | Required capture area = whole body cross-section | **M 3.85** |
 | No body size closes the balance *(inside the row above, not past it)* | M 4.54 |
 | Every module still answers to | **M 5.65** (four-ramp inlet) |
@@ -334,7 +345,10 @@ in the report itself.
 
 Building `native/` needs the MSVC environment loaded — the x64 Native Tools
 prompt, or `vcvars64.bat` first. `xtask` checks for it and fails with the exact
-remedy rather than dying inside the wrong linker forty lines later.
+remedy rather than dying inside the wrong linker forty lines later. The CUDA
+build (`build_validate.bat`) additionally requires MSVC 2022 Build Tools
+alongside VS 18, because nvcc 13.0 rejects the VS 18 headers: the script pins
+`vcvars64` and `-ccbin` to BuildTools 2022, so it works from any prompt.
 
 ---
 

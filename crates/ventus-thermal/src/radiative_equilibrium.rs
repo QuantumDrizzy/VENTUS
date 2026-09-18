@@ -233,7 +233,10 @@ pub fn thermal_growth_per_metre(
 }
 
 /// Linear expansion coefficient of the titanium alloys, averaged over the range
-/// of interest [1/K]. **[TO CITE]**; it varies by roughly 10 % across 300-800 K.
+/// of interest [1/K]. 8.6e-6 is the Ti-6Al-4V value over 20-100 °C (ASM
+/// Handbook, Vol. 2, *Properties and Selection: Nonferrous Alloys*, Ti-6Al-4V
+/// data); it rises with temperature across 300-800 K, by roughly 10 % at the
+/// top of the range.
 pub const TITANIUM_EXPANSION_PER_K: f64 = 8.6e-6;
 
 #[cfg(test)]
@@ -268,7 +271,11 @@ mod tests {
     /// THE ANCHOR, with its residual stated rather than tuned away.
     ///
     /// SR-71 skin at cruise is reported at 250-300 C over most of the airframe,
-    /// with the nose around 315 C. **[TO CITE]**
+    /// with the nose around 315 C. Source: the surface-temperature diagram of
+    /// the SR-71A Flight Manual (declassified) — most of the airframe
+    /// 480-570 °F (250-300 °C), nose/windscreen ~600 °F (315 °C); the NASA
+    /// SR-71 test bed report (NTRS 20000064011) carries a 600 °F structural
+    /// limit on the upper fuselage.
     ///
     /// This flat-plate balance at the SR-71 cruise condition predicts:
     ///

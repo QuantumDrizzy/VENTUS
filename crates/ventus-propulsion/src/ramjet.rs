@@ -42,16 +42,26 @@
 use ventus_gasdyn::{gamma_air, specific_heat_air_j_kg_k, GasDynError};
 use ventus_units::constants::G0_M_S2;
 
-/// Lower heating value of a kerosene-class fuel [J/kg]. JP-7 and Jet-A are both
-/// near 43 MJ/kg. **[TO CITE]** before any range number depends on it.
+/// Lower heating value of a kerosene-class fuel [J/kg]. The two candidate
+/// specifications bracket the class: MIL-T-38219 (JP-7) gives net heat of
+/// combustion 43.5 MJ/kg minimum, ASTM D1655 (Jet A-1) 42.8 MJ/kg minimum.
+/// 43.0 is carried as the kerosene-class value inside that band.
 pub const KEROSENE_LHV_J_KG: f64 = 43.0e6;
 
 /// Burner total-pressure ratio. A real combustor loses a few per cent to
-/// friction and to heat addition at finite Mach number. **[TO CITE]**.
+/// friction and to heat addition at finite Mach number. Mattingly, Heiser &
+/// Pratt, *Aircraft Engine Design*, 2nd ed., §10.7: "Total pressure losses of
+/// 2 to 5 percent are typically encountered in current systems", i.e. a ratio
+/// of 0.95-0.98 for a turbojet main burner. 0.95 is the conservative end of
+/// that band, applied to a ramjet combustor — an extrapolation declared rather
+/// than hidden.
 pub const BURNER_PRESSURE_RATIO: f64 = 0.95;
 
 /// Burner efficiency: the fraction of the fuel heating value that reaches the
-/// gas. **[TO CITE]**.
+/// gas. Same source, §10.7: design-point main-burner combustion efficiency is
+/// "usually greater than 99.5 percent". 0.98 is carried below that figure,
+/// deliberately: a ramjet burner at ~1.6 kPa entry pressure is off the
+/// conditions the turbojet data covers.
 pub const BURNER_EFFICIENCY: f64 = 0.98;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

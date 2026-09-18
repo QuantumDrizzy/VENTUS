@@ -105,7 +105,7 @@ fn main() {
     println!("  M {PEAK_SPECIFIC_THRUST_MACH:.2}   specific thrust peaks");
     println!("  M 3.50   design point, at 83.7 % of peak thrust");
     if let (Some(lo), Some(hi)) = (strict, permissive) {
-        println!("  M {lo:.2} to M {hi:.2}   lean blowout, phi {LEAN_BLOWOUT_PHI_MAX:.2} to {LEAN_BLOWOUT_PHI_MIN:.2} [TO CITE]");
+        println!("  M {lo:.2} to M {hi:.2}   lean blowout, phi {LEAN_BLOWOUT_PHI_MAX:.2} to {LEAN_BLOWOUT_PHI_MIN:.2} (strict end cited: Mattingly AED 2e Fig 10-70)");
     }
     println!("  M {CAPTURE_AREA_CLOSES_AT_MACH:.2}   required capture area equals the whole body cross-section");
     println!(

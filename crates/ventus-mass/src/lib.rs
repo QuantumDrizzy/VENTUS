@@ -151,7 +151,11 @@ mod tests {
 
     /// THE END-TO-END CHECK. Every term comes from a different module, and the
     /// product is compared against the SR-71's unrefuelled range of about
-    /// 5400 km. **[TO CITE]**
+    /// 5400 km. Two published sources disagree on the unit: the NMUSAF fact
+    /// sheet says "more than 2 900 statute miles" (= 4 700 km), while the
+    /// figure widely repeated as 2 900 nmi (= 5 400 km) reads nautical. The
+    /// nautical reading is carried here; the assert band below spans both
+    /// readings, so the check does not silently take sides.
     ///
     /// The SR-71's own numbers: **start-of-cruise** mass about 55 t falling to
     /// about 33 t, against an empty mass near 30 t. Mass ratio 1.67.
@@ -169,7 +173,7 @@ mod tests {
     #[test]
     fn the_chain_reproduces_the_sr71_unrefuelled_range() {
         // SR-71 class: M 3.2, L/D about 6, turboramjet Isp about 1900 s at
-        // cruise. All [TO CITE].
+        // cruise. Both **[TO CITE]** — no primary source read for either yet.
         let range_km =
             breguet_range_m(3.2 * 297.8, 6.0, 1900.0, 55_000.0, 33_000.0).unwrap() / 1000.0;
         assert!(
@@ -934,7 +938,10 @@ mod anchor_reading_tests {
             SR71_END_OF_CRUISE_MASS_KG,
         )
         .unwrap();
-        let published = 5.4e6; // [TO CITE]
+        // 2 900 nmi = 5 400 km, the nautical reading (Wikipedia infobox);
+        // the NMUSAF fact sheet reads "more than 2 900 statute miles" = 4 700 km.
+        // The two sources disagree on the unit; see the end-to-end test above.
+        let published = 5.4e6;
         assert!(
             (range_a / published - 1.0).abs() < 0.05,
             "reading A should land within 5 % of the published range, got {:.0} km",

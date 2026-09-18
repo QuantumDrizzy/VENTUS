@@ -216,7 +216,9 @@ mod tests {
         MATERIAL_FACTOR_ALUMINIUM, MATERIAL_FACTOR_TITANIUM_HIGH, MATERIAL_FACTOR_TITANIUM_LOW,
     };
 
-    /// SR-71 at M 3.2 / 24 km, by M1. Empty mass and quantity are **[TO CITE]**.
+    /// SR-71 at M 3.2 / 24 km, by M1. Empty mass: cited (NASA test-bed report
+    /// Table 1, see the input below). Quantity: 32 airframes — 29 SR-71A, two
+    /// SR-71B trainers, one SR-71C (Lockheed production; NMUSAF fact sheet).
     const V_SR71_M_S: f64 = 952.899_424_000_000_1;
     /// VENTUS-1 at M 3.5 / 26 km, by M1.
     const V_VENTUS_M_S: f64 = 1_046.946_565;

@@ -93,9 +93,14 @@ pub const USEFUL_THRUST_FRACTION: f64 = 0.25;
 ///
 /// [CORRECTED] This first reported a single crossing, M 3.91, from a single
 /// equivalence ratio of 0.4. Lean blowout in a ramjet combustor is not a point:
-/// it moves with flame holder geometry, pressure and inlet preheat, over roughly
-/// phi = 0.3 to 0.5 **[TO CITE]**. A point estimate invites an argument about
-/// the point; a band does not, and the band here says something the point hid.
+/// it moves with flame holder geometry, pressure and inlet preheat. The band
+/// carried here is phi 0.30 to 0.50. The strict end is cited: the
+/// stirred-reactor stability boundary of Fig. 10-70 sits at phi = 0.5 lean
+/// (Mattingly, Heiser & Pratt, *Aircraft Engine Design*, 2nd ed., §10.4.2,
+/// reporting Spalding). The permissive end is the observed lean limit of
+/// combustors with a dedicated flame holder and is **[TO VERIFY]**. A point
+/// estimate invites an argument about the point; a band does not, and the band
+/// here says something the point hid.
 ///
 /// Swept against a stoichiometric f/a of [`STOICHIOMETRIC_FUEL_AIR_RATIO`]:
 ///
@@ -172,12 +177,22 @@ pub const FLAME_STABILITY_NOT_MODELLED: &str =
 pub const LEAN_BLOWOUT_RESOLUTION: &str =
     "tier 1: a cited phi band. tier 2: a correlation needing a combustor M4 does not have";
 
-/// Stoichiometric fuel-air ratio for kerosene in air. **[TO CITE]**
+/// Stoichiometric fuel-air ratio for kerosene in air. Derived from a
+/// representative Jet A composition of CH1.95 (Edwards, *Reference Jet Fuels
+/// for Combustion Testing*, 2017: H/C ≈ 1.95 for the reference jet fuels),
+/// which gives a stoichiometric f/a of 0.0681; 0.0680 is carried, 0.2 % below
+/// the derived value.
 pub const STOICHIOMETRIC_FUEL_AIR_RATIO: f64 = 0.0680;
 
-/// Permissive end of the lean blowout band: easiest to hold a flame.
+/// Permissive end of the lean blowout band: easiest to hold a flame. The
+/// observed lean limit of combustors with a dedicated flame holder, better
+/// atomisation and inlet preheat than the stirred-reactor baseline.
+/// **[TO VERIFY]**
 pub const LEAN_BLOWOUT_PHI_MIN: f64 = 0.30;
-/// Strict end of the lean blowout band.
+/// Strict end of the lean blowout band: the stirred-reactor stability boundary
+/// at phi = 0.5 lean, from Mattingly, Heiser & Pratt, *Aircraft Engine Design*,
+/// 2nd ed., §10.4.2, Fig. 10-70 (reporting Spalding): the stability limit runs
+/// 10 lbm/(s·atm^1.8·ft³) at phi = 0.5 and 1.7, against 90 at phi = 1.
 pub const LEAN_BLOWOUT_PHI_MAX: f64 = 0.50;
 
 /// Mach at which the cycle's fuel-air ratio falls below the blowout limit for a
@@ -680,15 +695,19 @@ pub fn envelope(from_mach: f64, to_mach: f64, resolution: f64) -> Envelope {
 /// equivalence ratio means the engine has already gone out before reaching
 /// M 3.50.
 ///
-/// The blowout band this project carries is phi 0.3 to 0.5 **[TO CITE]**, so
+/// The blowout band this project carries is phi 0.3 to 0.5 — strict end cited
+/// (Mattingly Fig. 10-70, above), permissive end [TO VERIFY] — so
 /// 0.4615 sits inside it and well above the middle. The probability mass is NOT
 /// evenly split: phi 0.46 to 0.50 is an ordinary range for a ramjet combustor
 /// without a dedicated flame holder, and every value in it puts the design point
 /// out of reach.
 ///
-/// That moves this `[TO CITE]` ahead of the L/D and Isp citations in the queue.
-/// Those change a number by some per cent. This one decides between "the design
-/// point has margin" and "the design point does not fly".
+/// What remains open here is the permissive end and any pressure dependence:
+/// the cited stirred-reactor limit is for a turbojet-scale combustor loading,
+/// and the ramjet burner at ~1.6 kPa sits far off it. That question still
+/// decides between "the design point has margin" and "the design point does
+/// not fly", so it stays ahead of the L/D and Isp citations in the queue.
+/// Those change a number by some per cent. This one decides whether it flies.
 pub const DESIGN_POINT_EQUIVALENCE_RATIO: f64 = 0.4615;
 
 /// Mach at which the required capture area equals the vehicle's own body
