@@ -1,6 +1,9 @@
 # VENTUS-1 — Design point
 
 **Revision:** r5 (2026-08-27) · supersedes r4
+**Programme track:** a proposed M 4.00 constant-q row is sketched in
+[`docs/design-point-m4.md`](design-point-m4.md). It is not a close and it does
+not replace this snapshot. The case-gated design point remains M 3.50 / 26 km.
 **Change vs r4:** §3.2 and §3.3 are now COMPUTED by M5 rather than estimated. The
 r4 flat-panel estimate of 590-640 K was 40-90 K too high; the computed answer is
 532-580 K, and it resolves the material question in favour of conventional

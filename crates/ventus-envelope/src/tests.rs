@@ -411,3 +411,40 @@ fn above_a_declared_mach_no_body_size_closes_the_thrust_balance() {
     // exactly why it needed replacing as the headline.
     assert!(required_capture_area_m2(NO_BODY_CLOSES_ABOVE_MACH + 0.02).is_some());
 }
+
+/// THE PROPOSED M 4 ROW IS NOT A CLOSE OF THE CURRENT AIRCRAFT.
+///
+/// Programme intent is cruise ≥ Mach 4 (`docs/design-point-m4.md`). The
+/// validated snapshot remains M 3.50. On the body M6b actually derived,
+/// required capture already exceeds the cross-section at M 4.00 — that bind
+/// is at [`CAPTURE_AREA_CLOSES_AT_MACH`], before the proposed cruise. A larger
+/// Sears-Haack could still exist (M 4.00 < [`NO_BODY_CLOSES_ABOVE_MACH`]); that
+/// is a different aeroplane.
+#[test]
+fn current_geometry_does_not_close_capture_at_the_proposed_m4() {
+    let h = altitude_for_constant_q_m(PROPOSED_M4_CRUISE_MACH, DESIGN_DYNAMIC_PRESSURE_PA).unwrap();
+    let atmos = ventus_atmos::at_geopotential(h).unwrap();
+    let q = 0.7 * atmos.pressure_pa * PROPOSED_M4_CRUISE_MACH * PROPOSED_M4_CRUISE_MACH;
+    assert!(
+        (q - DESIGN_DYNAMIC_PRESSURE_PA).abs() < 1.0,
+        "the proposed row left the constant-q schedule: q = {q:.1} Pa"
+    );
+    assert!(
+        h > 27_000.0 && h < 28_500.0,
+        "constant-q altitude at M 4 moved to {h:.0} m"
+    );
+
+    let ratio = capture_area_ratio(PROPOSED_M4_CRUISE_MACH).unwrap();
+    assert!(
+        ratio > 1.0,
+        "current geometry closed at the proposed M 4: ratio {ratio:.3}. \
+         If a new body landed, delete this assertion in the same change as the body, \
+         do not retune the expect toward 1.0"
+    );
+    // A (different) body size still exists; that is the M 3.85 / M 4.54 split.
+    assert!(self_consistent_capture_area_m2(PROPOSED_M4_CRUISE_MACH).is_some());
+
+    std::println!(
+        "proposed M {PROPOSED_M4_CRUISE_MACH:.2} at {h:.0} m; capture/body = {ratio:.3} (does not close)"
+    );
+}

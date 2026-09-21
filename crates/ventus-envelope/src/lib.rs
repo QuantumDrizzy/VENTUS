@@ -40,6 +40,10 @@
 //! holding the structural loads case fixed so that changing Mach changes the
 //! thermal and propulsive problems and nothing else. Extending the same rule
 //! across the sweep keeps every point comparable to the design point.
+//!
+//! A proposed M 4.00 row on that schedule is sketched in
+//! `docs/design-point-m4.md`. It is not a design point: [`capture_area_ratio`]
+//! already exceeds 1 at [`PROPOSED_M4_CRUISE_MACH`] on the current body.
 
 #![no_std]
 #![forbid(unsafe_code)]
@@ -270,6 +274,17 @@ const _: () = assert!(USEFUL_THRUST_FRACTION > 0.0 && USEFUL_THRUST_FRACTION < 1
 const _: () = assert!(
     CAPTURE_AREA_CLOSES_AT_MACH < NO_BODY_CLOSES_ABOVE_MACH && NO_BODY_CLOSES_ABOVE_MACH < 5.0,
     "the thrust-balance frontiers are out of order"
+);
+
+/// The proposed M 4 cruise row sits *past* the current-geometry capture bind
+/// and *inside* the region where a larger body could still exist. If a future
+/// re-baseline moves either frontier across M 4, this sketch's geometry story
+/// is stale and the assertion should be deleted in the same change as the
+/// new body — not silently retuned to keep the proposed Mach looking closed.
+const _: () = assert!(
+    CAPTURE_AREA_CLOSES_AT_MACH < PROPOSED_M4_CRUISE_MACH
+        && PROPOSED_M4_CRUISE_MACH < NO_BODY_CLOSES_ABOVE_MACH,
+    "proposed M 4 is no longer inside the current geometry's excluded capture band"
 );
 
 /// Why a module stopped answering.
@@ -718,6 +733,16 @@ pub const DESIGN_POINT_EQUIVALENCE_RATIO: f64 = 0.4615;
 ///
 /// See [`capture_area_ratio`]. At the M 3.50 design point the ratio is 0.745.
 pub const CAPTURE_AREA_CLOSES_AT_MACH: f64 = 3.847;
+
+/// Programme cruise Mach named in ADR-003 (≥ Mach 4).
+///
+/// **Not a design point and not a computed capability.** The validated snapshot
+/// remains M 3.50 at 26 km. On the *current* geometry [`capture_area_ratio`]
+/// already exceeds 1 here, because [`CAPTURE_AREA_CLOSES_AT_MACH`] is 3.847.
+/// See `docs/design-point-m4.md`. Same landmark as
+/// `ventus_scram::PROGRAMME_CRUISE_MACH`; this crate does not depend on that
+/// stub (ADR-003: wiring M12 to scram is a later, explicit change).
+pub const PROPOSED_M4_CRUISE_MACH: f64 = 4.0;
 
 /// Air mass flow the engine must swallow for thrust to equal drag, divided by
 /// the mass flux available per unit area: **the capture area the aircraft would
