@@ -81,8 +81,8 @@ VENTUS answers it structurally rather than by care:
 | Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
 
 ```
-cargo test --workspace     203 tests
-cargo xtask validate       93 cases: 85 pass, 0 fail, 8 known limit, 0 stale
+cargo test --workspace     204 tests
+cargo xtask validate       94 cases: 86 pass, 0 fail, 8 known limit, 0 stale
                            32 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 cargo xtask bench          gated on the corpus passing at the same commit
@@ -192,6 +192,8 @@ correction is marked `[CORRECTED]` where it lives.
 
 M 3.50 at 26 km geopotential, US Standard Atmosphere 1976.
 Full derivation and provenance in [`docs/design-point.md`](docs/design-point.md).
+A proposed Mach 4 constant-q row — not a close, not a replacement of this
+snapshot — is sketched in [`docs/design-point-m4.md`](docs/design-point-m4.md).
 
 | | |
 |---|---|
@@ -267,18 +269,20 @@ problems without touching the structural loads case.
 
 **Programme track, and what is next.** Cruise ≥ Mach 4 with a Mach 5 stretch is
 the *intent*, not a second design point. The validated snapshot remains **M 3.50
-at 26 km**. Dual-mode / scram is a separate crate (`ventus-scram`) that currently
+at 26 km** until a future re-baseline lands in code. The Mach 4 path is a sketch
+only — [`docs/design-point-m4.md`](docs/design-point-m4.md) — and on the current
+geometry capture already exceeds the body (M 3.85 bind; ratio 1.15 at M 4.00).
+Dual-mode / scram is a separate crate (`ventus-scram`) that currently
 **refuses**: there is no Isp and no thrust at Mach 5 to quote, and M4's model
 refusal near M 5.65–5.70 is still a subsonic-combustion ramjet burner limit, not
-aircraft capability. Capture = body still binds near M 3.85 on this
-configuration; Mach 4 cruise still needs inlet/body geometry work, which is not
-this stub. Decision and non-goals:
+aircraft capability. Decision and non-goals:
 [`docs/adr/ADR-003-dual-mode-scram.md`](docs/adr/ADR-003-dual-mode-scram.md).
 
 | | |
 |---|---|
-| Validated design point | M 3.50 @ 26 km |
-| Current configuration bind | capture = body ~ M 3.85 (M12) |
+| Validated design point | M 3.50 @ 26 km — case-gated snapshot |
+| Proposed M 4 row | sketch only: [`docs/design-point-m4.md`](docs/design-point-m4.md) — **does not close** |
+| Current configuration bind | capture = body ~ M 3.85 (M12); ratio 1.15 at proposed M 4.00 |
 | Ideal ramjet model refusal | ~ M 5.65–5.70 — **not aircraft capability** |
 | Dual-mode / scram cycle | `ventus-scram` stub — stations not modelled |
 

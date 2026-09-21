@@ -262,5 +262,6 @@ filled in.
 | Boundary layer | `crates/ventus-aero` — reference-temperature method |
 | Heating and materials | `crates/ventus-thermal` — radiation equilibrium |
 | Every number, with sources | `docs/design-point.md` |
+| Proposed M 4 row (not a close) | `docs/design-point-m4.md` |
 | Why the code is arranged this way | `docs/adr/` |
 | What is still open | search for `[TO ` across the repo |
