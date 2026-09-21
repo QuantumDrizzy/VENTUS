@@ -78,6 +78,7 @@ VENTUS answers it structurally rather than by care:
 | M10 | Flight software | shares M1 bit-for-bit with the twin | **done** |
 | M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
 | M12 | Regime sweep: where the chain stops answering | each module's own declared validity bound | **done** |
+| Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
 
 ```
 cargo test --workspace     195 tests
@@ -264,6 +265,23 @@ chosen to hold dynamic pressure constant against the earlier M 3.0 baseline, and
 holds it to 0.004 % — so the re-baseline hardens the thermal and propulsive
 problems without touching the structural loads case.
 
+**Programme track, and what is next.** Cruise ≥ Mach 4 with a Mach 5 stretch is
+the *intent*, not a second design point. The validated snapshot remains **M 3.50
+at 26 km**. Dual-mode / scram is a separate crate (`ventus-scram`) that currently
+**refuses**: there is no Isp and no thrust at Mach 5 to quote, and M4's model
+refusal near M 5.65–5.70 is still a subsonic-combustion ramjet burner limit, not
+aircraft capability. Capture = body still binds near M 3.85 on this
+configuration; Mach 4 cruise still needs inlet/body geometry work, which is not
+this stub. Decision and non-goals:
+[`docs/adr/ADR-003-dual-mode-scram.md`](docs/adr/ADR-003-dual-mode-scram.md).
+
+| | |
+|---|---|
+| Validated design point | M 3.50 @ 26 km |
+| Current configuration bind | capture = body ~ M 3.85 (M12) |
+| Ideal ramjet model refusal | ~ M 5.65–5.70 — **not aircraft capability** |
+| Dual-mode / scram cycle | `ventus-scram` stub — stations not modelled |
+
 **What that cost, and how it resolved.** At M 3.0 the material answer was
 comfortable. At M 3.5 the recovery temperature sits *above* the Ti-6Al-4V
 sustained limit, so the answer came to depend entirely on the radiation balance.
@@ -285,7 +303,9 @@ Decisions and their trade-offs live in [`docs/adr/`](docs/adr/). The load-bearin
 
 - **Rust owns the physics core**, not just the flight software, so the digital
   twin and the FSW share exactly one atmosphere implementation. C++/CUDA is
-  confined to the single GPU module.
+  confined to the single GPU module. Dual-mode / scram is a separate crate
+  (`ventus-scram`, [ADR-003](docs/adr/ADR-003-dual-mode-scram.md)), not an
+  extension of `ideal_ramjet` past its validity.
 - **Zero FFI.** The Rust↔CUDA boundary is versioned files — TOML for cases, CSV
   for tables, `.npy` for fields. Verified byte-identical to `numpy.save` across
   nine fixtures, then frozen as a golden so the build needs no Python.
@@ -306,8 +326,8 @@ Decisions and their trade-offs live in [`docs/adr/`](docs/adr/). The load-bearin
 
 ```
 crates/          Rust workspace: units, atmos, gasdyn, inlet, propulsion,
-                 aero, thermal, mass, cost, envelope, dynamics, fsw,
-                 validate, xtask
+                 scram (dual-mode track, stub), aero, thermal, mass, cost,
+                 envelope, dynamics, fsw, validate, xtask
 native/          C++17/CUDA, sm_120 — M9 only
 crates/*/cases/  the external yardsticks themselves, as TOML. Each case
                  carries its own source, tolerance and reason; there is no

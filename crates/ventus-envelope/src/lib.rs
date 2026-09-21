@@ -25,6 +25,9 @@
 //! M 5 the ramjet is gone, the gas is dissociating, the titanium is gone, and
 //! there is no public vehicle to check any of it against. A number produced
 //! there would look exactly like the numbers produced at M 3.5 and mean nothing.
+//! The dual-mode / scram *track* that would occupy that gap is `ventus-scram`
+//! (ADR-003). It currently refuses. This module does not substitute scram
+//! answers into the ramjet columns, and must not start doing so silently.
 //!
 //! What can be produced honestly is the **boundary** - and a boundary computed
 //! from refusals is a stronger claim than a value computed from extrapolations,

@@ -184,6 +184,7 @@ ventus-atmos      ->  units
 ventus-gasdyn     ->  units
 ventus-inlet      ->  units, gasdyn, atmos
 ventus-propulsion ->  units, gasdyn, atmos, inlet
+ventus-scram      ->  (none)                         stub: dual-mode/scram track (ADR-003)
 ventus-aero       ->  units, gasdyn, atmos
 ventus-thermal    ->  units, gasdyn, atmos, aero
 ventus-mass       ->  units
@@ -385,7 +386,7 @@ VENTUS/
 ├── docs/validation/                 # generated reports, versioned
 ├── crates/
 │   ├── ventus-units/  ventus-atmos/  ventus-gasdyn/
-│   ├── ventus-inlet/  ventus-propulsion/  ventus-aero/
+│   ├── ventus-inlet/  ventus-propulsion/  ventus-scram/  ventus-aero/
 │   ├── ventus-thermal/  ventus-mass/  ventus-cost/
 │   ├── ventus-dynamics/  ventus-fsw/  ventus-validate/  xtask/
 ├── native/ventus_cfd/               # M9: 2D Euler, host+device in one .cu
