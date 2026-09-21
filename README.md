@@ -355,7 +355,7 @@ layer bases of US76, both design points, LCG pseudo-random points, and the
 out-of-domain error codes. The protocol lives in `ventus_fsw::hil`, shared by
 both sides; a corrupt frame is dropped, never answered; a stale build id fails
 with the reflash command in the remedy. See
-[`docs/adr/ADR-003-hil.md`](docs/adr/ADR-003-hil.md) and
+[`docs/adr/ADR-004-hil.md`](docs/adr/ADR-004-hil.md) and
 [`firmware/nucleo-f411/README.md`](firmware/nucleo-f411/README.md).
 
 Building `native/` needs the MSVC environment loaded — the x64 Native Tools

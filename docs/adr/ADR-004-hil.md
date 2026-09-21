@@ -1,4 +1,4 @@
-# ADR-003: Hardware-in-the-loop for M10
+# ADR-004: Hardware-in-the-loop for M10
 
 Date: 2026-09-18
 Status: accepted
