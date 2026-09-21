@@ -81,8 +81,8 @@ VENTUS answers it structurally rather than by care:
 | Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
 
 ```
-cargo test --workspace     195 tests
-cargo xtask validate       89 cases: 82 pass, 0 fail, 7 known limit, 0 stale
+cargo test --workspace     203 tests
+cargo xtask validate       93 cases: 85 pass, 0 fail, 8 known limit, 0 stale
                            32 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 cargo xtask bench          gated on the corpus passing at the same commit
@@ -102,7 +102,7 @@ a `source` field that cites ourselves — the exact drift the mandatory source
 exists to stop. `xtask validate` prints those modules and the argument for each,
 and refuses a crate that declares no route at all (ADR-000 D12).
 
-The seven known limits are not failures being tolerated. Each is a case that is
+The eight known limits are not failures being tolerated. Each is a case that is
 **expected to fail**, with a written reason. If one ever starts passing, the
 harness reports `STALE_KNOWN_LIMIT` and **fails the build** — the limitation
 is gone, so the annotation has become a false claim in the report, and the
