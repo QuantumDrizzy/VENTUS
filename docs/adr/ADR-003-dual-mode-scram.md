@@ -155,4 +155,5 @@ would make every existing yardstick a lie.
 - `[TO CITE]` any efficiency, recovery, or heating-value figure the cycle will
   need. None are entered now.
 - Geometry for Mach 4 cruise (capture versus body) — tracked by M12, not by
-  this crate.
+  this crate. Sketched as a proposed row, not a close, in
+  `docs/design-point-m4.md`. The validated snapshot remains M 3.50 @ 26 km.

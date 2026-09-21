@@ -13,7 +13,9 @@ profiles.
 VENTUS-1 is a validated digital twin plus flight software for a sustained Mach 3
 cruise demonstrator. Ten physics fronts, each with an external yardstick.
 Hard constraints: Windows 10 + MSVC, CUDA 13.0 sm_120, no cloud, no wind tunnel.
-The product is the *design system*, not the airframe.
+The product is the *design system*, not the airframe. The case-gated snapshot
+is Mach 3.50 at 26 km; programme cruise ≥ Mach 4 is a sketch in
+`docs/design-point-m4.md`, not a second design point.
 
 The dominant risk is not physics — it is **traceability erosion**: in six months
 there will be 200 numbers and nobody will know which came from a published table
@@ -382,7 +384,8 @@ was in none of the reports.
 ```
 VENTUS/
 ├── docs/adr/ADR-000-architecture.md
-├── docs/design-point.md
+├── docs/design-point.md             # validated snapshot: M 3.50 / 26 km
+├── docs/design-point-m4.md          # proposed M 4 row; not a close
 ├── docs/validation/                 # generated reports, versioned
 ├── crates/
 │   ├── ventus-units/  ventus-atmos/  ventus-gasdyn/
@@ -425,5 +428,7 @@ failure), M5 and M6, M7, M8, M9, M10.
 |---|---|---|
 | Acceleration corridor (transonic thrust pinch) | M6 + M4 produce T − D | engine sizing in M4 |
 | Vehicle geometry (length, wing area, mass class) | derived from physics | **start of M6** — area rule and Sears-Haack are unbuildable without it |
+| Mach 4 cruise on a self-consistent body | inlet capture vs body, flame stability, LE heating — `docs/design-point-m4.md` | any re-baseline that would replace the M 3.50 snapshot |
 
-Both are declared in `docs/design-point.md` §5.
+Geometry (5.2) closed in M6b and is declared in `docs/design-point.md` §5.
+The Mach 4 row is a sketch only; the case-gated snapshot remains M 3.50 / 26 km.

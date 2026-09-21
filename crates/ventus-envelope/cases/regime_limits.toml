@@ -291,3 +291,23 @@ reason  = "The inside half of the bracket. At M 4.5 a body size still exists tha
 inputs  = { mach = 4.5 }
 expect  = { any_body_closes_the_thrust_balance = true }
 abs_tol = 0.0
+
+[[case]]
+name    = "current_geometry_does_not_close_capture_at_proposed_m4"
+source  = "docs/design-point-m4.md: proposed M 4.00 on the constant-q schedule. M12 capture_area_ratio against the M6b Sears-Haack body. THE SOURCE IS THE CODE, not a closed design point."
+reason  = """
+NOT A DESIGN POINT. Programme intent is cruise ≥ Mach 4; the validated snapshot
+remains M 3.50 at 26 km.
+
+This case pins that, on the CURRENT geometry, required capture already exceeds
+the body at the proposed row (ratio 1.146). A ratio above 1 is
+self-inconsistency, not a closing number. A larger Sears-Haack still has a
+quadratic root here (any_body_closes = true) because M 4.00 is below M 4.536;
+that is a different aeroplane, recorded so the two frontiers are not collapsed.
+
+DO NOT RETUNE the expect toward 1.0 to look like a close. If a new body lands,
+the case is rewritten for that body in the same change.
+"""
+inputs  = { mach = 4.0 }
+expect  = { capture_area_ratio = 1.1457, any_body_closes_the_thrust_balance = true }
+rel_tol = 1e-3
