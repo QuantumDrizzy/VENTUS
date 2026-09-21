@@ -46,7 +46,7 @@ fn main() {
     println!("\nGeometry / propulsion blockers already on the books (current config)");
     println!("  peak specific thrust            M {PEAK_SPECIFIC_THRUST_MACH:.2}");
     println!("  design-point phi                {DESIGN_POINT_EQUIVALENCE_RATIO:.4}");
-    println!("  lean-blowout band (phi 0.50-0.30)  M 3.23 — 4.42  [TO CITE]");
+    println!("  lean-blowout band (phi 0.50-0.30)  M 3.23 — 4.42  (uncited)");
     println!("  capture area = body             M {CAPTURE_AREA_CLOSES_AT_MACH:.3}");
     println!("  no body closes (inside that)    M {NO_BODY_CLOSES_ABOVE_MACH:.3}");
     println!("  four-ramp model still answers   M 5.65 — not aircraft capability");
@@ -125,7 +125,7 @@ fn dump_row(label: &str, mach: f64) {
     let phi = fuel_air / STOICHIOMETRIC_FUEL_AIR_RATIO;
     println!("  f/a                     {fuel_air:.6}");
     println!(
-        "  phi                     {phi:.4}   (blowout band {LEAN_BLOWOUT_PHI_MIN:.2}–{LEAN_BLOWOUT_PHI_MAX:.2} [TO CITE])"
+        "  phi                     {phi:.4}   (blowout band {LEAN_BLOWOUT_PHI_MIN:.2}–{LEAN_BLOWOUT_PHI_MAX:.2}, uncited)"
     );
     let edge = EdgeState {
         temperature_k: atmos.temperature_k,

@@ -81,8 +81,8 @@ VENTUS answers it structurally rather than by care:
 | Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
 
 ```
-cargo test --workspace     203 tests
-cargo xtask validate       93 cases: 85 pass, 0 fail, 8 known limit, 0 stale
+cargo test --workspace     204 tests
+cargo xtask validate       94 cases: 86 pass, 0 fail, 8 known limit, 0 stale
                            32 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 cargo xtask bench          gated on the corpus passing at the same commit
