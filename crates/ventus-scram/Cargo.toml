@@ -1,0 +1,12 @@
+[package]
+name = "ventus-scram"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dev-dependencies]
+ventus-validate = { path = "../ventus-validate" }
+
+[lints]
+workspace = true

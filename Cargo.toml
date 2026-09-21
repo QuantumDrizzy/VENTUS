@@ -7,6 +7,7 @@ members = [
     "crates/ventus-gasdyn",
     "crates/ventus-inlet",
     "crates/ventus-propulsion",
+    "crates/ventus-scram",
     "crates/ventus-aero",
     "crates/ventus-thermal",
     "crates/ventus-mass",

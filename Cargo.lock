@@ -413,6 +413,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ventus-scram"
+version = "0.0.0"
+dependencies = [
+ "ventus-validate",
+]
+
+[[package]]
 name = "ventus-thermal"
 version = "0.0.0"
 dependencies = [
@@ -535,6 +542,7 @@ dependencies = [
  "ventus-inlet",
  "ventus-mass",
  "ventus-propulsion",
+ "ventus-scram",
  "ventus-thermal",
  "ventus-units",
  "ventus-validate",

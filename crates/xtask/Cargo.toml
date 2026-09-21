@@ -12,6 +12,7 @@ ventus-aero = { path = "../ventus-aero" }
 ventus-thermal = { path = "../ventus-thermal" }
 ventus-inlet = { path = "../ventus-inlet" }
 ventus-propulsion = { path = "../ventus-propulsion" }
+ventus-scram = { path = "../ventus-scram" }
 ventus-mass = { path = "../ventus-mass" }
 ventus-cost = { path = "../ventus-cost" }
 ventus-envelope = { path = "../ventus-envelope" }
