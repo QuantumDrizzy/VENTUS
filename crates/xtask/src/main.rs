@@ -70,6 +70,7 @@ const ROUTES: &[(&str, Route)] = &[
     ("ventus-gasdyn", Route::Cases),
     ("ventus-inlet", Route::Cases),
     ("ventus-propulsion", Route::Cases),
+    ("ventus-scram", Route::Cases),
     ("ventus-aero", Route::Cases),
     ("ventus-thermal", Route::Cases),
     ("ventus-mass", Route::Cases),
@@ -433,6 +434,71 @@ fn evaluate_propulsion(c: &Case) -> BTreeMap<String, ExpectValue> {
     m
 }
 
+/// Dual-mode / scram track (ADR-003). Emits refusal flags only. Deliberately
+/// does NOT emit `specific_impulse_s` or `specific_thrust_n_s_kg`: there is no
+/// cited deck, and a zero would be a number. The case that asks for Isp fails
+/// with a missing key, the same mechanism as M11's uncited programme cost.
+fn evaluate_scram(c: &Case) -> BTreeMap<String, ExpectValue> {
+    let mut m = BTreeMap::new();
+    let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
+    let regime = match c.inputs.get("regime").and_then(toml::Value::as_str) {
+        Some("ram_subsonic_burner") => ventus_scram::Regime::RamSubsonicBurner,
+        Some("dual_mode_transition") => ventus_scram::Regime::DualModeTransition,
+        Some("scram") => ventus_scram::Regime::Scram,
+        Some(other) => panic!("case `{}`: unknown regime `{other}`", c.name),
+        None => panic!("case `{}` needs `regime`", c.name),
+    };
+    let mach = f("mach").unwrap_or_else(|| panic!("case `{}` needs `mach`", c.name));
+    let altitude_m = f("geopotential_altitude_m").unwrap_or(26_000.0);
+
+    match ventus_scram::solve_cycle(ventus_scram::CycleRequest {
+        mach_freestream: mach,
+        geopotential_altitude_m: altitude_m,
+        regime,
+    }) {
+        Ok(_) => {
+            panic!(
+                "case `{}`: ventus-scram returned Ok; the stub must not emit a \
+                 cycle until stations exist (ADR-003)",
+                c.name
+            );
+        }
+        Err(e) => {
+            m.insert(
+                "cycle_numbers_emitted".to_string(),
+                ExpectValue::Bool(false),
+            );
+            let (stations, ramjet, nan, non_physical, station) = match e {
+                ventus_scram::CycleError::StationsNotModelled => (true, false, false, false, false),
+                ventus_scram::CycleError::UseIdealRamjet => (false, true, false, false, false),
+                ventus_scram::CycleError::NotANumber => (false, false, true, false, false),
+                ventus_scram::CycleError::NonPhysicalMach => (false, false, false, true, false),
+                ventus_scram::CycleError::StationNotModelled(_) => {
+                    (false, false, false, false, true)
+                }
+            };
+            m.insert(
+                "refused_stations_not_modelled".to_string(),
+                ExpectValue::Bool(stations),
+            );
+            m.insert(
+                "refused_use_ideal_ramjet".to_string(),
+                ExpectValue::Bool(ramjet),
+            );
+            m.insert("refused_not_a_number".to_string(), ExpectValue::Bool(nan));
+            m.insert(
+                "refused_non_physical_mach".to_string(),
+                ExpectValue::Bool(non_physical),
+            );
+            m.insert(
+                "refused_station_not_modelled".to_string(),
+                ExpectValue::Bool(station),
+            );
+        }
+    }
+    m
+}
+
 /// M12. The regime sweep. Every output is a module refusing or a module
 /// answering; this evaluator adds nothing of its own.
 fn evaluate_envelope(c: &Case) -> BTreeMap<String, ExpectValue> {
@@ -674,6 +740,8 @@ fn evaluate(c: &Case) -> BTreeMap<String, ExpectValue> {
         evaluate_inlet(c)
     } else if owner("ventus-propulsion") {
         evaluate_propulsion(c)
+    } else if owner("ventus-scram") {
+        evaluate_scram(c)
     } else if owner("ventus-mass") {
         // The two halves of M7 take disjoint input sets; pick by what the case
         // names, not by what happens to parse.

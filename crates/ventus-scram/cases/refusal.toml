@@ -1,0 +1,74 @@
+# Dual-mode / scram track — refusals, not a cycle.
+#
+# There is no published engine deck for this vehicle in this regime. The
+# yardstick is ADR-003 and the refusals in code: a case that asked for Isp
+# would be asking this crate to invent one. M12 already uses "THE SOURCE IS
+# THE CODE" for the same reason.
+
+[[case]]
+name    = "scram_cycle_refuses_at_the_programme_stretch"
+source  = "ADR-003: dual-mode / scram stations are not modelled. THE SOURCE IS THE DECISION, not a published engine deck."
+reason  = """
+THE STUB'S JOB, PINNED AS A CASE.
+
+Asking ventus-scram for a scram cycle at Mach 5 must refuse with
+StationsNotModelled. It must not emit specific impulse or specific thrust.
+A future implementation that starts returning Ok without the stations named
+in ADR-003 is a fake engine, and this case is the lock.
+
+WHAT THIS DOES NOT CLAIM. It does not say the aircraft reaches Mach 5. Capture
+equals body near M 3.85 on the current configuration (M12). M4's model refusal
+near M 5.65-5.70 is a subsonic-combustion ramjet burner limit, not this crate
+and not aircraft capability. Mach 5 here is the programme stretch named as
+intent.
+"""
+inputs  = { mach = 5.0, geopotential_altitude_m = 26000.0, regime = "scram" }
+expect  = { refused_stations_not_modelled = true, cycle_numbers_emitted = false }
+abs_tol = 0.0
+
+[[case]]
+name    = "dual_mode_refuses_at_the_mach_4_cruise_intent"
+source  = "ADR-003: Mach 4 cruise is programme intent; the dual-mode stations do not exist as models. Inlet/body geometry (capture vs Sears-Haack) is out of this crate's scope and lives in M12."
+reason  = """
+Cruise at or above Mach 4 is the programme goal and is still an unsolved
+capture-area problem on the body that exists. This crate does not close that
+gap by emitting a dual-mode cycle. The request is well-formed and the answer
+is a refusal.
+"""
+inputs  = { mach = 4.0, geopotential_altitude_m = 26000.0, regime = "dual_mode_transition" }
+expect  = { refused_stations_not_modelled = true, cycle_numbers_emitted = false }
+abs_tol = 0.0
+
+[[case]]
+name    = "ramjet_requests_are_sent_back_to_m4"
+source  = "ADR-003: do not extend ideal_ramjet. Subsonic-combustion ramjet physics stays in ventus-propulsion."
+reason  = """
+A ramjet request at the validated design point (M 3.50 @ 26 km) must not be
+re-solved here. The refusal is UseIdealRamjet, so a caller cannot acquire a
+second, unvalidated ramjet by importing the stretch crate.
+"""
+inputs  = { mach = 3.5, geopotential_altitude_m = 26000.0, regime = "ram_subsonic_burner" }
+expect  = { refused_use_ideal_ramjet = true, cycle_numbers_emitted = false }
+abs_tol = 0.0
+
+[[case]]
+name    = "no_validated_isp_at_mach_5"
+source  = "ADR-003 non-goal: no fake Isp/thrust at Mach 5. Same missing-key mechanism as M11 programme_cost_usd_1986_verified and M2 gamma_at_design_point_freestream."
+status  = "known_limit"
+reason  = """
+THE NUMBER THIS TRACK IS NOT ALLOWED TO PRINT.
+
+There is no cited dual-mode / scram engine deck for VENTUS-1. X-43 / X-51 are
+regime anchors, not a source of Isp to transcribe. The evaluator deliberately
+does not emit `specific_impulse_s` or `specific_thrust_n_s_kg`. This case
+therefore fails with a missing key, which is the intended behaviour: the
+harness reports an absent number rather than a wrong one.
+
+WHAT RESOLVING IT WOULD LOOK LIKE. Modelled stations (inlet isolator, combustor
+with a supersonic core, nozzle) AND a cited yardstick. At that point the key
+gets wired, this annotation goes STALE, and the harness says so. Until then
+no report from this project should quote a Mach 5 Isp from this crate.
+"""
+inputs  = { mach = 5.0, geopotential_altitude_m = 26000.0, regime = "scram" }
+expect  = { specific_impulse_s = 0.0 }
+rel_tol = 1e-12
