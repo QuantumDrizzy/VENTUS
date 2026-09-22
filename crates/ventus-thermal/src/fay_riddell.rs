@@ -522,6 +522,13 @@ mod tests {
         Freestream::from_atmos(&a, 3.5, DEFAULT_GAMMA).unwrap()
     }
 
+    /// Proposed M 4.00 constant-q row in docs/design-point-m4.md: 27 747 m
+    /// geopotential, q held at 18.463 kPa. Not a design point.
+    fn proposed_m4_freestream() -> Freestream {
+        let a = ventus_atmos::at_geopotential(27_747.0).unwrap();
+        Freestream::from_atmos(&a, 4.0, DEFAULT_GAMMA).unwrap()
+    }
+
     fn nose_at(altitude_m: f64, mach: f64, radius_m: f64, body: BodyKind) -> StagnationBalance {
         let a = ventus_atmos::at_geopotential(altitude_m).unwrap();
         let fs = Freestream::from_atmos(&a, mach, DEFAULT_GAMMA).unwrap();
@@ -640,6 +647,13 @@ mod tests {
                 BodyKind::Cylinder,
             ),
             (24_000.0, 3.2, VENTUS_NOSE_RADIUS_M, BodyKind::Sphere),
+            (27_747.0, 4.0, VENTUS_NOSE_RADIUS_M, BodyKind::Sphere),
+            (
+                27_747.0,
+                4.0,
+                VENTUS_LEADING_EDGE_RADIUS_M,
+                BodyKind::Cylinder,
+            ),
         ] {
             let b = nose_at(h, m, r, body);
             assert!(
@@ -879,5 +893,146 @@ mod tests {
              the dropped dissociation term needs revisiting",
             edge.temperature_k
         );
+        // Same bound at the proposed M 4.00 row. Calorically perfect T0 is
+        // 942.5 K there; still far below O2 dissociation. The dropped Lewis
+        // term stays dropped. This is not a fly claim.
+        let m4 = stagnation_edge(&proposed_m4_freestream()).unwrap();
+        assert!(
+            m4.temperature_k < 1200.0,
+            "proposed M 4 T0 = {:.0} K has entered the Fay-Riddell dissociation \
+             regime; the dropped Lewis term needs revisiting",
+            m4.temperature_k
+        );
+        assert!(
+            rel_err(m4.temperature_k, 942.5) < 5e-4,
+            "proposed M 4 T0 = {:.2} K, expected 942.5 K calorically perfect",
+            m4.temperature_k
+        );
+    }
+
+    /// THE PROPOSED-ROW RESULT. Same correlation, same declared radii, same
+    /// eps = 0.85 / sink 0 K as the M 3.50 snapshot. T_wall jumps ~137 K.
+    /// Ti-6242S, which was the lightest survivor at M 3.50, dies. Inconel 718
+    /// is the lightest survivor. Radii are not retuned. This is a correlation
+    /// run, not an aircraft close.
+    #[test]
+    fn proposed_m4_kills_ti6242s_at_the_declared_radii() {
+        let fs = proposed_m4_freestream();
+        let nose = ventus1_nose(&fs, 0.85, 0.0, PRANDTL_AIR).unwrap();
+        let le = ventus1_leading_edge(&fs, 0.85, 0.0, PRANDTL_AIR).unwrap();
+
+        let ti = CANDIDATES.iter().find(|m| m.name == "Ti-6Al-4V").unwrap();
+        let ti_ht = CANDIDATES.iter().find(|m| m.name == "Ti-6242S").unwrap();
+        let ph = CANDIDATES
+            .iter()
+            .find(|m| m.name.starts_with("17-7PH"))
+            .unwrap();
+        let inconel = CANDIDATES.iter().find(|m| m.name == "Inconel 718").unwrap();
+
+        for (label, b) in [("nose", nose), ("LE", le)] {
+            assert!(
+                (850.0..890.0).contains(&b.wall_temperature_k),
+                "{label}: T_wall = {:.1} K is outside the envelope this model produced at the proposed M 4 row",
+                b.wall_temperature_k
+            );
+            assert!(
+                b.wall_temperature_k > ti.sustained_limit_k,
+                "{label}: Ti-6Al-4V survived {:.1} K",
+                b.wall_temperature_k
+            );
+            assert!(
+                b.wall_temperature_k > ti_ht.sustained_limit_k,
+                "{label}: Ti-6242S survived {:.1} K at the declared radius; \
+                 do not retune R to save it",
+                b.wall_temperature_k
+            );
+            assert!(
+                b.wall_temperature_k > ph.sustained_limit_k,
+                "{label}: 17-7PH survived {:.1} K",
+                b.wall_temperature_k
+            );
+            assert!(
+                b.wall_temperature_k < inconel.sustained_limit_k,
+                "{label}: Inconel died at {:.1} K",
+                b.wall_temperature_k
+            );
+            assert_eq!(
+                lightest_survivor(b.wall_temperature_k).unwrap().name,
+                "Inconel 718",
+                "{label}"
+            );
+            assert!(
+                rel_err(b.convective_flux_w_m2, b.radiative_flux_w_m2) < 1e-9,
+                "{label}: balance did not close"
+            );
+        }
+
+        // The numbers docs/design-point-m4.md section 5.4 quotes. rel 1e-3 is a
+        // regression pin, not a published precision.
+        assert!(
+            rel_err(nose.wall_temperature_k, 867.3) < 1e-3,
+            "proposed M 4 nose T_wall = {:.2} K",
+            nose.wall_temperature_k
+        );
+        assert!(
+            rel_err(le.wall_temperature_k, 876.2) < 1e-3,
+            "proposed M 4 LE T_wall = {:.2} K",
+            le.wall_temperature_k
+        );
+        assert!(
+            rel_err(nose.convective_flux_w_m2, 27_275.0) < 2e-3,
+            "proposed M 4 nose q = {} W/m2",
+            nose.convective_flux_w_m2
+        );
+        assert!(
+            rel_err(le.convective_flux_w_m2, 28_407.0) < 2e-3,
+            "proposed M 4 LE q = {} W/m2",
+            le.convective_flux_w_m2
+        );
+
+        // The M 3.50 snapshot must not have moved. Same radii, same eps.
+        let snap = design_freestream();
+        let snap_nose = ventus1_nose(&snap, 0.85, 0.0, PRANDTL_AIR).unwrap();
+        assert!(
+            rel_err(snap_nose.wall_temperature_k, 729.9) < 1e-3,
+            "M 3.50 nose moved: {:.2} K",
+            snap_nose.wall_temperature_k
+        );
+    }
+
+    /// Blunting at the proposed M 4.00 row is still not a save of Ti-6Al-4V,
+    /// and the radius that would bring Ti-6242S back is a fuselage, not a nose.
+    /// Named as a refusal, not a design option. Radii stay [TO DETERMINE]
+    /// structural minima.
+    #[test]
+    fn proposed_m4_blunting_is_not_a_material_save() {
+        let fs = proposed_m4_freestream();
+        let ti = CANDIDATES.iter().find(|m| m.name == "Ti-6Al-4V").unwrap();
+        let ti_ht = CANDIDATES.iter().find(|m| m.name == "Ti-6242S").unwrap();
+
+        let fuselage =
+            stagnation_radiation_equilibrium(&fs, 1.0, 0.85, 0.0, PRANDTL_AIR, BodyKind::Sphere)
+                .unwrap()
+                .wall_temperature_k;
+        assert!(
+            fuselage > ti.sustained_limit_k,
+            "Ti-6Al-4V came alive at R = 1 m on the proposed M 4 row ({fuselage:.1} K); \
+             that would be a silent save"
+        );
+        // Ti-6242S does come back somewhere between 0.10 m (dead) and 0.25 m
+        // (alive). That is still not a nose.
+        let at_10cm =
+            stagnation_radiation_equilibrium(&fs, 0.10, 0.85, 0.0, PRANDTL_AIR, BodyKind::Sphere)
+                .unwrap()
+                .wall_temperature_k;
+        assert!(
+            at_10cm > ti_ht.sustained_limit_k,
+            "Ti-6242S was alive at R = 0.10 m ({at_10cm:.1} K); the declared \
+             25 mm default would then look like a choice rather than a minimum"
+        );
+        let declared = ventus1_nose(&fs, 0.85, 0.0, PRANDTL_AIR)
+            .unwrap()
+            .wall_temperature_k;
+        assert!(declared > ti_ht.sustained_limit_k + 20.0);
     }
 }

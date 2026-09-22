@@ -223,6 +223,9 @@ fn dump_candidate() {
     println!("  still open              lean blowout (operative phi 0.50 cited afterburner floor;");
     println!("                          ramjet-no-holder class still open);");
     println!("                          lip suction; spike/unstart;");
+    println!(
+        "                          nose/LE Fay-Riddell computed (867/876 K, Inconel; not a close);"
+    );
     println!("                          1 m Ti-6Al-4V skin; thermally perfect T0;");
     println!("                          transonic pinch. This is not a flying M 4 aircraft.");
 }

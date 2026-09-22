@@ -1120,9 +1120,10 @@ pub fn snapshot_geometry() -> ventus_aero::geometry::Geometry {
 ///
 /// A different volume distribution, not a heavier copy of the snapshot
 /// (that ratio is scale-invariant). Not a closed aircraft: blowout, unstart,
-/// and the 1 m thermal station remain open. Additive drag on a declared
-/// candidate cowl is [`additive_drag_on_m4_candidate_cowl`]. Not a replacement
-/// of the M 3.50 yardstick.
+/// and Fay-Riddell at this row (nose 867 K, Ti-6242S dead) are not a fly
+/// claim. Additive drag on a declared candidate cowl is
+/// [`additive_drag_on_m4_candidate_cowl`]. Not a replacement of the M 3.50
+/// yardstick.
 #[must_use]
 pub fn m4_candidate_geometry() -> ventus_aero::geometry::Geometry {
     ventus_aero::geometry::ventus1_m4_candidate(DESIGN_DYNAMIC_PRESSURE_PA)
