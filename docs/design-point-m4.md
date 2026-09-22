@@ -1,6 +1,6 @@
 # VENTUS-1 — Mach 4 design-point sketch
 
-**Revision:** r5 sketch (2026-09-21)
+**Revision:** r6 sketch (2026-09-22)
 **Status:** **PROPOSED re-baseline. Not a closed aircraft.** This document does
 not replace [`docs/design-point.md`](design-point.md). The case-gated snapshot
 every module is held to remains **M 3.50 at 26 km geopotential**.
@@ -9,6 +9,11 @@ Regenerate the atmosphere / cycle / capture row with
 `cargo run --release -p ventus-envelope --example m4_sketch`.
 §1 and the capture numbers are that dump. Everything marked **[TO COMPUTE]**,
 **[TO CITE]**, **[TO DETERMINE]** is open and must not be quoted as a result.
+
+r6 adds a **named M 4 candidate geometry** in code (`GeometrySpec::M4_CANDIDATE`,
+fineness 10 on the snapshot length). On that body, capture/body falls below 1
+at M 4.00. That is a geometry finding, not a flying aircraft and not a
+replacement of the M 3.50 snapshot.
 
 ---
 
@@ -21,22 +26,29 @@ This document is the **airframe and ramjet-path sketch** for a Mach 4 cruise
 row: pick a flight condition that is comparable to the validated snapshot, then
 say honestly what M12 already knows about that row on the *current* geometry.
 
-It is not a claim that VENTUS-1 reaches Mach 4. On this configuration it does
-not. The capture-area bind is at M 3.85, *before* the proposed cruise, and the
-other geometry and combustor gaps listed below are already live at M 3.50.
+It is not a claim that VENTUS-1 reaches Mach 4. On the **snapshot**
+configuration it does not. The capture-area bind is at M 3.85, *before* the
+proposed cruise. A named candidate body (fineness 10, same length) can host
+the inlet at M 4.00 (capture/body = 0.864) and still does not fly: lean
+blowout, cowl-lip force, unstart, and the 1 m thermal station remain open,
+and the other geometry and combustor gaps listed below are already live at
+M 3.50.
 
-| | Validated snapshot | This sketch |
-|---|---|---|
-| Mach | **3.50** | **4.00 proposed** |
-| Altitude | 26 000 m geopotential | 27 747 m geopotential |
-| q∞ | 18.463 kPa | **18.463 kPa — held** |
-| Role | every module's yardstick | a proposed re-baseline, not closed |
-| Capture / body | 0.745 | **1.146 — inlet larger than the body** |
+| | Validated snapshot | This sketch, snapshot body | This sketch, M 4 candidate |
+|---|---|---|---|
+| Mach | **3.50** | **4.00 proposed** | **4.00 proposed** |
+| Altitude | 26 000 m geopotential | 27 747 m geopotential | same constant-q row |
+| q∞ | 18.463 kPa | **18.463 kPa — held** | held |
+| Role | every module's yardstick | proposed row on the M6b body | named host body, not a yardstick |
+| Fineness | 12 `[TO CITE]` | 12 — **the same body** | **10 `[TO DETERMINE]`** |
+| A_body | 3.369 m² | 3.369 m² | **4.851 m²** |
+| Capture / body | 0.745 | **1.146 — inlet larger than the body** | **0.864 — hosts** |
 
 Do not silently edit M 3.50 numbers in `design-point.md`, the case corpus, or
 M12's pinned constants into Mach 4. A future re-baseline that *lands in code*
 would be a new revision of that document, with new cases, and it would have to
-close the must-have list in §6 first.
+close the must-have list in §6 first. The candidate geometry is a configuration
+beside the snapshot, not instead of it.
 
 ---
 
@@ -174,14 +186,36 @@ drag cannot host an inlet larger than itself. Closing the balance needs a
 different volume distribution or wing-mounted nacelles, which change the
 frontal area and therefore the drag this ratio was computed from.
 
-**The cycle numbers behind that ratio are optimistic.** M12 feeds the
+**The named candidate is that volume-distribution change, in code.**
+`GeometrySpec::M4_CANDIDATE` keeps the snapshot's 28 t, C_L, aspect ratio,
+wing and length, and drops fineness from 12 to **10 `[TO DETERMINE]`**. Scale
+alone would not have moved the ratio (A_c and A_body both grow with mass).
+A fatter station on the same length does. Wave drag goes as A², so the
+capture the engine must present grows too — 4.191 m² against the snapshot
+row's 3.859 m² — but the station grows faster:
+
+| | Snapshot body (f = 12) | M 4 candidate (f = 10) |
+|---|---|---|
+| A_body | 3.369 m² | **4.851 m²** (×1.44 = 12²/10²) |
+| A_c required (first iterate, this body's drag) | 3.859 m² | **4.191 m²** |
+| A_c / A_body | **1.146** | **0.864** |
+| Body can host | no | **yes** |
+| Case | `current_geometry_does_not_close_capture_at_proposed_m4` | `m4_candidate_geometry_hosts_capture_at_proposed_m4` |
+
+Fineness 10 is not a cited airframe. It is the round slender-body value below
+12 that puts A_max above the M 4 self-consistent capture (~3.98 m²) with
+margin after the extra wave drag is paid. It is not a cowl drawing, not
+nacelles, and not a claim that 0.864 is a good inlet packing.
+
+**The cycle numbers behind that ratio are still optimistic.** M12 feeds the
 four-ramp *inviscid* recovery (0.719 at M 4.00) into `ideal_ramjet`. MIL-E-5008B
 at M 4.00 is 0.670 against 0.139 for a normal shock — still a factor of 4.83,
 which is why the inlet matters *more* than at M 3.50, not less. A real inlet
 loses several points to bleed, shock/boundary-layer interaction and the
 subsonic diffuser, which M3 does not model. Worse recovery is less specific
-thrust is a *larger* capture. 1.146 is a lower bound on how broken the current
-body is, not a closing number.
+thrust is a *larger* capture. 0.864 is a lower bound on how much station the
+candidate needs, not a closing number. The snapshot's 1.146 remains a lower
+bound on how broken *that* body is.
 
 ### 4.2 Lean-blowout band / φ at design
 
@@ -227,9 +261,13 @@ inside an excluded region. There is no usable band between 3.85 and 4.54.
 What the surviving root says: *some* larger Sears-Haack could still balance
 thrust and drag at M 4.00, at the cost of being a different aircraft — 18 %
 more cross-section than M6b derived from the 28 t cruise mass, before
-spillage, unstart margin, or a real recovery. Past M 4.54 even that solution
-stops existing. The proposed row is in the gap between "this aeroplane does
-not close" and "no aeroplane of this family closes".
+spillage, unstart margin, or a real recovery. The named candidate is past
+that minimum (4.851 m² against the ~3.98 m² self-consistent root) so that
+the first-iterate ratio is below 1 rather than sitting on the bind. Past
+M 4.54 even that solution stops existing. The proposed row on the snapshot
+body is in the gap between "this aeroplane does not close" and "no aeroplane
+of this family closes". The candidate leaves that gap on capture and stays
+inside it on everything else.
 
 ### 4.4 Peak specific thrust wants M 2.30
 
@@ -272,15 +310,17 @@ named.
 M6b derives one body from one declared cruise mass (28 t) plus the design
 point. That body's maximum cross-section is 3.369 m². M 4 wants more than
 that in capture alone, before the cowl, boundary-layer bleed, or nacelles.
-Closing M 4 means **changing the volume distribution** — a larger body, a
-different fineness, wing-mounted nacelles, or an integrated underslung inlet
-whose frontal area is paid for in wave drag and then re-solved. Wave drag
-goes as A²; the fixed point is already written in M12. Growing A without
-re-solving drag is how a sketch becomes a fake close.
+The snapshot body therefore does not host.
 
-C_L = 0.154, aspect ratio 1.7 and fineness 12 remain `[TO CITE]`. They do not
-become more cited at M 4. Küchemann's bound 4(M+3)/M is **7.00** at M 4.00
-against 7.43 at M 3.50; the L/D target would have to be restated, not copied.
+The named candidate grows that station: fineness 10, A_max = 4.851 m², same
+length, Sears-Haack wave drag re-solved. Capture/body = 0.864 at M 4.00.
+That is **must-have 1 of §6, for a candidate, not for a design point.**
+C_L = 0.154, aspect ratio 1.7 remain `[TO CITE]`. Fineness 12 remains the
+snapshot `[TO CITE]`; fineness 10 is `[TO DETERMINE]`. Küchemann's bound
+4(M+3)/M is **7.00** at M 4.00 against 7.43 at M 3.50; the L/D target would
+have to be restated, not copied. Extra wave drag on the fatter station is
+already inside the 0.864. What is not inside it: a layout, a cowl, or a
+claim that this is now the aircraft.
 
 ### 5.3 Combustor flame stability — not `ideal_ramjet` alone
 
@@ -344,6 +384,12 @@ snapshot cannot.
 1. **A body that can host the inlet at M 4.00**, self-consistent against wave
    drag (M6b re-derived, or a different configuration explicitly declared).
    Capture / body ≤ 1 on the *new* geometry, pinned as a case.
+   **r6:** a named candidate (`GeometrySpec::M4_CANDIDATE`, fineness 10)
+   has capture/body = **0.864** at M 4.00, pinned as
+   `m4_candidate_geometry_hosts_capture_at_proposed_m4`. The snapshot body
+   still does not host (1.146). Remaining: a cited fineness, a layout that
+   is not a scale Sears-Haack, and a decision that this candidate *is* the
+   re-baseline — which it is not, until items 2–6 close.
 2. **A cowl-lip state, so additive drag is a newton rather than a refusal**,
    and a declared internal contraction so Kantrowitz can be applied to *this*
    inlet rather than to the gas in general. The spike *schedule* and unstart
@@ -377,10 +423,13 @@ snapshot cannot.
 
 ## 7. Explicit non-claims
 
-- **Not flyable.** Capture exceeds the body; blowout is uncited at the
-  operative bound; the engine is unsized; the nose is uncomputed. A green
-  test suite on the M 3.50 corpus does not move any of that. Kantrowitz and
-  spilled *area* being modelled is not a started mixed-compression inlet.
+- **Not flyable.** The snapshot capture exceeds the body. The candidate
+  hosts (0.864) and still does not fly: blowout is uncited at the
+  operative bound; the engine is unsized; the nose is uncomputed; there is
+  no cowl lip. A green test suite on the M 3.50 corpus does not move any of
+  that. Kantrowitz and spilled *area* being modelled is not a started
+  mixed-compression inlet. Capture/body < 1 on a fatter Sears-Haack is not
+  a started inlet either.
 - **Not Lockheed data.** No SR-72, no classified dual-mode deck, no copied
   trajectory. X-43 / X-51 remain regime anchors for the stretch, not a
   source of Isp, geometry, or this row's recovery.
@@ -390,7 +439,9 @@ snapshot cannot.
   burner and does not re-implement scram physics.
 - **Not a replacement of the M 3.50 snapshot.** If a number in this file
   disagrees with `docs/design-point.md`, the snapshot wins until a
-  re-baseline commit changes that document on purpose.
+  re-baseline commit changes that document on purpose. `ventus1()` is still
+  fineness 12. `capture_area_ratio` is still that body. The candidate is
+  `ventus1_m4_candidate` / `m4_candidate_capture_area_ratio`.
 
 ---
 
@@ -402,10 +453,14 @@ cargo run -p ventus-atmos --example table -- 27747
 ```
 
 The first command reprints the proposed row against the validated snapshot,
-including capture / body and the 26 km counterfactual. The second reprints
-the US76 state at the inverted altitude. Neither command is a close.
+including capture / body and the 26 km counterfactual, and the named M 4
+candidate station. The second reprints the US76 state at the inverted
+altitude. Neither command is a close.
 
-M12 pins the current-geometry failure at M 4.00 as a case,
-`current_geometry_does_not_close_capture_at_proposed_m4`. If that ratio ever
-falls to 1.0 without a new body, the case is what should fail, not this
-prose.
+M12 pins the snapshot-geometry failure at M 4.00 as
+`current_geometry_does_not_close_capture_at_proposed_m4`, and the candidate
+hosting as `m4_candidate_geometry_hosts_capture_at_proposed_m4`. If the
+snapshot ratio ever falls to 1.0 without a new snapshot body, the first
+case is what should fail. If the candidate ratio ever exceeds 1.0, the
+second case is what should fail. Do not retune either expect to make M 4
+look closed.

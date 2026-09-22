@@ -29,7 +29,10 @@ pub use boundary_layer::{
     PRANDTL_AIR,
 };
 pub use drag::{breakdown, kuchemann_bound, DragBreakdown, DragError};
-pub use geometry::{ventus1, Geometry};
+pub use geometry::{
+    derive, ventus1, ventus1_m4_candidate, Geometry, GeometrySpec, FINENESS_RATIO,
+    M4_CANDIDATE_FINENESS_RATIO,
+};
 
 // DONE: compressible flat-plate boundary layer by the reference-temperature
 // method (boundary_layer.rs). It needs only the local edge state and a running
@@ -38,7 +41,8 @@ pub use geometry::{ventus1, Geometry};
 // DONE: geometry derived from the design point (geometry.rs), and supersonic
 // drag with Sears-Haack wave drag, linearised drag due to lift and
 // reference-temperature friction (drag.rs). The geometry gap declared in
-// ADR-000 and design-point.md 5.2 is closed.
+// ADR-000 and design-point.md 5.2 is closed. The M 4 host-body candidate is
+// a second [`geometry::GeometrySpec`], not a silent edit of [`ventus1`].
 //
 // TODO(M6): area ruling beyond the Sears-Haack ideal, and integrating skin
 // friction along the body rather than taking one station.

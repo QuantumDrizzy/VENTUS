@@ -15,7 +15,11 @@ cruise demonstrator. Ten physics fronts, each with an external yardstick.
 Hard constraints: Windows 10 + MSVC, CUDA 13.0 sm_120, no cloud, no wind tunnel.
 The product is the *design system*, not the airframe. The case-gated snapshot
 is Mach 3.50 at 26 km; programme cruise ≥ Mach 4 is a sketch in
-`docs/design-point-m4.md`, not a second design point.
+`docs/design-point-m4.md`, not a second design point. The M 3.50 Sears-Haack
+(`ventus1`) remains the yardstick every module is held to. A named M 4
+candidate (`GeometrySpec::M4_CANDIDATE`) may sit beside that yardstick so
+capture/body can be asked of a different station without silently replacing
+the snapshot.
 
 The dominant risk is not physics — it is **traceability erosion**: in six months
 there will be 200 numbers and nobody will know which came from a published table
@@ -428,10 +432,12 @@ failure), M5 and M6, M7, M8, M9, M10.
 |---|---|---|
 | Acceleration corridor (transonic thrust pinch) | M6 + M4 produce T − D | engine sizing in M4 |
 | Vehicle geometry (length, wing area, mass class) | derived from physics | **start of M6** — area rule and Sears-Haack are unbuildable without it |
-| Mach 4 cruise on a self-consistent body | inlet capture vs body, flame stability, LE heating — `docs/design-point-m4.md` | any re-baseline that would replace the M 3.50 snapshot |
+| Mach 4 cruise on a self-consistent body | inlet capture vs body: a **named candidate** hosts at M 4.00 (fineness 10, ratio 0.864); flame stability, LE heating, cowl lip still open — `docs/design-point-m4.md` | any re-baseline that would replace the M 3.50 snapshot |
 
 Geometry (5.2) closed in M6b and is declared in `docs/design-point.md` §5.
 Lean blowout (5.3) and inlet capture/unstart (5.4) were tightened, not closed:
 operative φ bound and Kantrowitz/spillage identities are in code; a primary
 φ_LBO citation, a flame holder, a cowl lip, and a spike schedule are not.
 The Mach 4 row is a sketch only; the case-gated snapshot remains M 3.50 / 26 km.
+A named candidate geometry now exists in M6b/M12 so capture/body can go below 1
+at the proposed row without that snapshot moving.

@@ -9,11 +9,13 @@
 
 use ventus_aero::boundary_layer::{EdgeState, Regime, PRANDTL_AIR};
 use ventus_envelope::{
-    altitude_for_constant_q_m, capture_area_ratio, evaluate, required_capture_area_m2,
-    self_consistent_capture_area_m2, CAPTURE_AREA_CLOSES_AT_MACH, DESIGN_DYNAMIC_PRESSURE_PA,
-    DESIGN_POINT_EQUIVALENCE_RATIO, DESIGN_RAMP_COUNT, LEAN_BLOWOUT_PHI_MAX, LEAN_BLOWOUT_PHI_MIN,
-    NO_BODY_CLOSES_ABOVE_MACH, PEAK_SPECIFIC_THRUST_MACH, PEAK_SPECIFIC_THRUST_N_S_KG,
-    PROPOSED_M4_CRUISE_MACH, STOICHIOMETRIC_FUEL_AIR_RATIO,
+    altitude_for_constant_q_m, capture_area_ratio, evaluate, m4_candidate_capture_area_ratio,
+    m4_candidate_geometry, required_capture_area_for, required_capture_area_m2,
+    self_consistent_capture_area_m2, snapshot_geometry, CAPTURE_AREA_CLOSES_AT_MACH,
+    DESIGN_DYNAMIC_PRESSURE_PA, DESIGN_POINT_EQUIVALENCE_RATIO, DESIGN_RAMP_COUNT,
+    LEAN_BLOWOUT_PHI_MAX, LEAN_BLOWOUT_PHI_MIN, NO_BODY_CLOSES_ABOVE_MACH,
+    PEAK_SPECIFIC_THRUST_MACH, PEAK_SPECIFIC_THRUST_N_S_KG, PROPOSED_M4_CRUISE_MACH,
+    STOICHIOMETRIC_FUEL_AIR_RATIO,
 };
 use ventus_gasdyn::{normal_shock, stagnation_pressure_ratio, stagnation_temperature_ratio};
 use ventus_inlet::shock_train::mil_e_5008b_recovery;
@@ -51,6 +53,8 @@ fn main() {
     println!("  capture area = body             M {CAPTURE_AREA_CLOSES_AT_MACH:.3}");
     println!("  no body closes (inside that)    M {NO_BODY_CLOSES_ABOVE_MACH:.3}");
     println!("  four-ramp model still answers   M 5.65 — not aircraft capability");
+
+    dump_candidate();
 }
 
 fn dump_row(label: &str, mach: f64) {
@@ -63,7 +67,7 @@ fn dump_row(label: &str, mach: f64) {
     let q = 0.7 * atmos.pressure_pa * mach * mach;
     let mil = mil_e_5008b_recovery(mach);
     let nshock = normal_shock(mach, GAMMA).unwrap();
-    let geometry = ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA);
+    let geometry = snapshot_geometry();
 
     println!("--- {label}: M {mach:.2} ---");
     println!("  h_geopotential          {h:.2} m");
@@ -150,7 +154,7 @@ fn dump_row(label: &str, mach: f64) {
         required_capture_area_m2(mach).unwrap()
     );
     println!(
-        "  A_body (M6b)            {:.4} m2",
+        "  A_body (snapshot)       {:.4} m2",
         geometry.max_cross_section_m2
     );
     println!(
@@ -162,4 +166,43 @@ fn dump_row(label: &str, mach: f64) {
         None => println!("  A_c self-consistent     none  (no body closes)"),
     }
     println!();
+}
+
+fn dump_candidate() {
+    let mach = PROPOSED_M4_CRUISE_MACH;
+    let snapshot = snapshot_geometry();
+    let candidate = m4_candidate_geometry();
+    let a_c = required_capture_area_for(mach, &candidate).unwrap();
+    let ratio = m4_candidate_capture_area_ratio(mach).unwrap();
+    let snapshot_ratio = capture_area_ratio(mach).unwrap();
+
+    println!("\n--- M 4 candidate geometry (NOT a close, NOT a snapshot replacement) ---");
+    println!("  spec                    GeometrySpec::M4_CANDIDATE");
+    println!(
+        "  fineness                {:.1}  (snapshot {:.1})  [TO DETERMINE]",
+        candidate.fineness_ratio(),
+        snapshot.fineness_ratio()
+    );
+    println!(
+        "  length                  {:.4} m  (same as snapshot)",
+        candidate.length_m
+    );
+    println!(
+        "  A_body                  {:.4} m2  (snapshot {:.4} m2, x{:.3})",
+        candidate.max_cross_section_m2,
+        snapshot.max_cross_section_m2,
+        candidate.max_cross_section_m2 / snapshot.max_cross_section_m2
+    );
+    println!(
+        "  volume                  {:.4} m3  (snapshot {:.4} m3)",
+        candidate.volume_m3, snapshot.volume_m3
+    );
+    println!("  A_c required (this body) {a_c:.4} m2");
+    println!(
+        "  A_c / A_body            {ratio:.4}   (snapshot {snapshot_ratio:.4}; candidate hosts if < 1)"
+    );
+    println!("  still open              lean blowout (operative phi 0.50 [TO VERIFY]);");
+    println!("                          cowl-lip additive drag; spike/unstart;");
+    println!("                          1 m Ti-6Al-4V skin; thermally perfect T0;");
+    println!("                          transonic pinch. This is not a flying M 4 aircraft.");
 }

@@ -38,6 +38,12 @@
 //! laid out, so the Sears-Haack wave drag that depends on it is a scale
 //! estimate, not a shape result. A real area-ruled distribution would come from
 //! a layout this project does not have.
+//!
+//! Two named specs share the cruise mass and the wing, and differ only in
+//! fineness: [`GeometrySpec::SNAPSHOT`] is the M 3.50 yardstick;
+//! [`GeometrySpec::M4_CANDIDATE`] is a fatter station that can host the M 4
+//! capture. Neither is a closed airframe. The snapshot constructor [`ventus1`]
+//! must keep pointing at the first.
 
 use ventus_units::float::abs;
 
@@ -59,11 +65,70 @@ pub const ASPECT_RATIO: f64 = 1.7;
 
 /// Fuselage fineness ratio, length over maximum diameter. Slender bodies at
 /// M 3.5 sit near 12; the SR-71 is comparable. **[TO CITE]**
+///
+/// This is the **snapshot** body [`ventus1`] uses. The M 4 host-body candidate
+/// is a different slenderness, [`M4_CANDIDATE_FINENESS_RATIO`], and does not
+/// replace this number.
 pub const FINENESS_RATIO: f64 = 12.0;
+
+/// Fineness of the M 4 host-body candidate: same length as [`ventus1`], fatter
+/// fuselage.
+///
+/// **[TO DETERMINE]** — not a cited airframe. Fineness 12 is the snapshot.
+/// This is the round slender-body value below 12 that puts Sears-Haack `A_max`
+/// on the snapshot length above the M 4 self-consistent capture M12 already
+/// computes, so `A_c / A_body` can fall below 1 at the proposed row. It is a
+/// volume-distribution change, not a heavier aircraft of the same shape
+/// (scale is invariant on this ratio). It does not close blowout, spillage
+/// force, unstart, or the thermal nose.
+pub const M4_CANDIDATE_FINENESS_RATIO: f64 = 10.0;
 
 /// Ratio of wetted area to reference wing area. A blended delta runs near 3.
 /// **[TO CITE]** — it enters the friction drag linearly, so it matters.
 pub const WETTED_AREA_RATIO: f64 = 3.0;
+
+/// The snapshot body is more slender than the M 4 candidate. If these ever
+/// invert, the candidate is no longer the fatter host the capture-area work
+/// named, and the M 4 ratio assertion should be deleted in the same change.
+const _: () = assert!(
+    M4_CANDIDATE_FINENESS_RATIO > 0.0 && M4_CANDIDATE_FINENESS_RATIO < FINENESS_RATIO,
+    "the M 4 candidate is no longer fatter than the snapshot body"
+);
+
+/// Named geometry inputs. Wing area and length still follow from cruise mass
+/// and the design point; fineness then sets the Sears-Haack station.
+///
+/// [`GeometrySpec::SNAPSHOT`] is the M 3.50 yardstick. [`GeometrySpec::M4_CANDIDATE`]
+/// is a proposed host body for the M 4.00 row, not a replacement of that
+/// yardstick and not a closed aircraft.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GeometrySpec {
+    pub cruise_mass_kg: f64,
+    pub cruise_lift_coefficient: f64,
+    pub aspect_ratio: f64,
+    pub fineness_ratio: f64,
+    pub wetted_area_ratio: f64,
+}
+
+impl GeometrySpec {
+    /// M6b snapshot: 28 t, C_L 0.154, AR 1.7, fineness 12.
+    pub const SNAPSHOT: Self = Self {
+        cruise_mass_kg: CRUISE_MASS_KG,
+        cruise_lift_coefficient: CRUISE_LIFT_COEFFICIENT,
+        aspect_ratio: ASPECT_RATIO,
+        fineness_ratio: FINENESS_RATIO,
+        wetted_area_ratio: WETTED_AREA_RATIO,
+    };
+
+    /// M 4 host-body candidate: same mass and wing, fineness 10.
+    pub const M4_CANDIDATE: Self = Self {
+        cruise_mass_kg: CRUISE_MASS_KG,
+        cruise_lift_coefficient: CRUISE_LIFT_COEFFICIENT,
+        aspect_ratio: ASPECT_RATIO,
+        fineness_ratio: M4_CANDIDATE_FINENESS_RATIO,
+        wetted_area_ratio: WETTED_AREA_RATIO,
+    };
+}
 
 /// The derived vehicle.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -82,37 +147,65 @@ pub struct Geometry {
     pub wing_loading_pa: f64,
 }
 
-/// Derive the vehicle from the cruise dynamic pressure.
+/// Derive a vehicle from a [`GeometrySpec`] and the cruise dynamic pressure.
+///
+/// Length is still the SR-71 scaled by the square root of the wing-area ratio
+/// (a linear dimension scales as the square root of an area). Fineness then
+/// sets the maximum diameter. Two specs that share mass, C_L and aspect ratio
+/// therefore share wing, span and length, and differ only in the Sears-Haack
+/// station — which is the capture-hosting lever, and the only one this
+/// module is allowed to pull without inventing a new aircraft family.
 ///
 /// # Panics
-/// Never; every input is a compile-time constant and the arithmetic is total.
+/// Never; the arithmetic is total. Non-physical specs produce non-physical
+/// geometry rather than a hidden default.
 #[must_use]
-pub fn ventus1(dynamic_pressure_pa: f64) -> Geometry {
-    let wing_loading = dynamic_pressure_pa * CRUISE_LIFT_COEFFICIENT;
-    let weight_n = CRUISE_MASS_KG * ventus_units::constants::G0_M_S2;
+pub fn derive(spec: GeometrySpec, dynamic_pressure_pa: f64) -> Geometry {
+    let wing_loading = dynamic_pressure_pa * spec.cruise_lift_coefficient;
+    let weight_n = spec.cruise_mass_kg * ventus_units::constants::G0_M_S2;
     let wing_area = weight_n / wing_loading;
-    let span = libm::sqrt(ASPECT_RATIO * wing_area);
+    let span = libm::sqrt(spec.aspect_ratio * wing_area);
 
     // Length from the SR-71 scaled by the square root of the area ratio: a
     // linear dimension scales as the square root of an area. SR-71: 32.7 m at
     // 167.2 m^2. [TO CITE]
     let length = 32.7 * libm::sqrt(wing_area / 167.2);
 
-    let max_diameter = length / FINENESS_RATIO;
+    let max_diameter = length / spec.fineness_ratio;
     let max_cross_section = core::f64::consts::PI * max_diameter * max_diameter / 4.0;
     // Sears-Haack: V = (3 pi / 16) A_max L.
     let volume = 3.0 * core::f64::consts::PI / 16.0 * max_cross_section * length;
 
     Geometry {
-        cruise_mass_kg: CRUISE_MASS_KG,
+        cruise_mass_kg: spec.cruise_mass_kg,
         wing_area_m2: wing_area,
         span_m: span,
         length_m: length,
         max_cross_section_m2: max_cross_section,
-        wetted_area_m2: WETTED_AREA_RATIO * wing_area,
+        wetted_area_m2: spec.wetted_area_ratio * wing_area,
         volume_m3: volume,
         wing_loading_pa: wing_loading,
     }
+}
+
+/// Snapshot geometry: M 3.50 yardstick. [`GeometrySpec::SNAPSHOT`].
+///
+/// # Panics
+/// Never; every input is a compile-time constant and the arithmetic is total.
+#[must_use]
+pub fn ventus1(dynamic_pressure_pa: f64) -> Geometry {
+    derive(GeometrySpec::SNAPSHOT, dynamic_pressure_pa)
+}
+
+/// M 4 host-body candidate. Same cruise mass, wing and length as [`ventus1`];
+/// fatter Sears-Haack station ([`M4_CANDIDATE_FINENESS_RATIO`]).
+///
+/// This is **not** a re-baseline of VENTUS-1. M12 still reports capture/body
+/// on [`ventus1`]. The candidate exists so that ratio can be asked of a
+/// different volume distribution without silently replacing the snapshot.
+#[must_use]
+pub fn ventus1_m4_candidate(dynamic_pressure_pa: f64) -> Geometry {
+    derive(GeometrySpec::M4_CANDIDATE, dynamic_pressure_pa)
 }
 
 impl Geometry {
@@ -122,8 +215,18 @@ impl Geometry {
         self.cruise_mass_kg * ventus_units::constants::G0_M_S2
     }
 
+    /// Length over maximum diameter implied by the Sears-Haack station.
+    #[must_use]
+    pub fn fineness_ratio(&self) -> f64 {
+        let diameter = libm::sqrt(4.0 * self.max_cross_section_m2 / core::f64::consts::PI);
+        self.length_m / diameter
+    }
+
     /// Check that the geometry closes: `L = q S C_L` must equal the weight.
     /// The identity the whole derivation rests on.
+    ///
+    /// Uses the snapshot C_L. Both named specs share that value; a future spec
+    /// with a different C_L would need its own residual.
     #[must_use]
     pub fn closure_residual(&self, dynamic_pressure_pa: f64) -> f64 {
         let lift = dynamic_pressure_pa * self.wing_area_m2 * CRUISE_LIFT_COEFFICIENT;
@@ -225,5 +328,41 @@ mod tests {
         // And twice the linear dimensions.
         assert!(rel_err(b.span_m, 2.0 * a.span_m) < 1e-12);
         assert!(rel_err(b.length_m, 2.0 * a.length_m) < 1e-12);
+    }
+
+    /// THE M 4 CANDIDATE IS A DIFFERENT STATION, NOT A DIFFERENT AIRCRAFT FAMILY.
+    ///
+    /// Same mass, wing, span and length as the snapshot. Only the Sears-Haack
+    /// cross-section grows, as 1/f², because that is the lever that can host
+    /// an inlet the snapshot body cannot. A uniformly larger aeroplane of the
+    /// same shape would leave capture/body unchanged.
+    #[test]
+    fn the_m4_candidate_shares_the_wing_and_fattens_the_station() {
+        let snapshot = ventus1(Q);
+        let candidate = ventus1_m4_candidate(Q);
+
+        assert!(rel_err(candidate.cruise_mass_kg, snapshot.cruise_mass_kg) < 1e-15);
+        assert!(rel_err(candidate.wing_area_m2, snapshot.wing_area_m2) < 1e-15);
+        assert!(rel_err(candidate.span_m, snapshot.span_m) < 1e-15);
+        assert!(rel_err(candidate.length_m, snapshot.length_m) < 1e-15);
+        assert!(candidate.closure_residual(Q) < 1e-12);
+
+        let expected_area = snapshot.max_cross_section_m2
+            * (FINENESS_RATIO / M4_CANDIDATE_FINENESS_RATIO)
+            * (FINENESS_RATIO / M4_CANDIDATE_FINENESS_RATIO);
+        assert!(
+            rel_err(candidate.max_cross_section_m2, expected_area) < 1e-12,
+            "A_max = {:.4} m2 against 1/f^2 scaling {:.4}",
+            candidate.max_cross_section_m2,
+            expected_area
+        );
+        assert!(candidate.max_cross_section_m2 > snapshot.max_cross_section_m2);
+        assert!(rel_err(candidate.fineness_ratio(), M4_CANDIDATE_FINENESS_RATIO) < 1e-12);
+        assert!(rel_err(snapshot.fineness_ratio(), FINENESS_RATIO) < 1e-12);
+
+        // The snapshot constructor is still the snapshot: a later edit that
+        // quietly pointed ventus1 at the candidate would make every M 3.50
+        // capture ratio a lie.
+        assert!(rel_err(snapshot.fineness_ratio(), M4_CANDIDATE_FINENESS_RATIO) > 0.05);
     }
 }
