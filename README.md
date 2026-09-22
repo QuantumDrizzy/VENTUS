@@ -296,16 +296,20 @@ at 26 km** until a future re-baseline lands in code. The Mach 4 path is a sketch
 — [`docs/design-point-m4.md`](docs/design-point-m4.md) — and on the snapshot
 geometry capture already exceeds the body (M 3.85 bind; ratio 1.15 at M 4.00).
 A named candidate body (fineness 10) hosts at that row (ratio 0.864) and is
-not the snapshot. Dual-mode / scram is a separate crate (`ventus-scram`) that
-currently **refuses**: there is no Isp and no thrust at Mach 5 to quote, and
-M4's model refusal near M 5.65–5.70 is still a subsonic-combustion ramjet
-burner limit, not aircraft capability. Decision and non-goals:
+not the snapshot. Fay-Riddell at that proposed row, same declared radii, is
+in the sketch: nose 867 K / LE 876 K, Ti-6242S dead, Inconel lightest
+survivor -- a correlation run, not a fly claim. Dual-mode / scram is a
+separate crate (`ventus-scram`) that currently **refuses**: there is no Isp
+and no thrust at Mach 5 to quote, and M4's model refusal near M 5.65-5.70
+is still a subsonic-combustion ramjet burner limit, not aircraft
+capability. Decision and non-goals:
 [`docs/adr/ADR-003-dual-mode-scram.md`](docs/adr/ADR-003-dual-mode-scram.md).
 
 | | |
 |---|---|
 | Validated design point | M 3.50 @ 26 km — case-gated snapshot |
-| Proposed M 4 row | sketch: [`docs/design-point-m4.md`](docs/design-point-m4.md) — snapshot body **does not close**; candidate body **hosts** (0.864) and still does not fly |
+| Proposed M 4 row | sketch: [`docs/design-point-m4.md`](docs/design-point-m4.md) -- snapshot body **does not close**; candidate body **hosts** (0.864) and still does not fly |
+| Proposed M 4 nose / LE | Fay-Riddell 867 K / 876 K at declared R; Ti-6242S **dead**; Inconel lightest survivor (~50 K). Correlation run, not a fly claim |
 | Snapshot configuration bind | capture = body ~ M 3.85 (M12); ratio 1.15 at proposed M 4.00 |
 | M 4 candidate geometry | `GeometrySpec::M4_CANDIDATE`, fineness 10 `[TO DETERMINE]`; same mass/wing/length; **not** a re-baseline |
 | Lean blowout (operative) | no holder declared → Useller Fig. 8 φ 0.50 (V-gutter afterburner floor, digit cited); ramjet-no-holder class still open; design φ 0.4615 sits below it |
