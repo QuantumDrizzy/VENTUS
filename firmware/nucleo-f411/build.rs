@@ -1,5 +1,5 @@
 //! Bake the git commit into the firmware, so every HIL reply identifies the
-//! exact build that produced it — the same discipline the validation reports
+//! exact build that produced it -- the same discipline the validation reports
 //! carry with their run_id and commit hash.
 
 use std::env;

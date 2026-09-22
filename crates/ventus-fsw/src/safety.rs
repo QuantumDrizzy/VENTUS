@@ -14,8 +14,8 @@
 //! # What this is not
 //!
 //! Flight certification, a GUI, ejector-seat physics, voting hardware, or
-//! the unpublished Desktop Nucleo protocol (draft ADR-004 on Desktop; this
-//! crate has not seen it). [`DiscreteFrame::from_wire`] is a test packing.
+//! GPIO sampling. [`DiscreteFrame::to_wire`] is the HIL discrete byte
+//! (ADR-004 D6).
 
 use crate::Health;
 
@@ -68,11 +68,9 @@ pub enum FlightMode {
 }
 
 impl FlightMode {
-    /// Wire tag for tests and a future HIL translator.
-    ///
-    /// **Not** the Nucleo frame layout (Desktop ADR-004, unpublished). A
-    /// value that is not one of these tags is [`None`], never a panic and
-    /// never a silent `Startup`.
+    /// Wire tag. This is also the HIL SAFETY_TICK / GATED_STEP reply byte
+    /// for mode (ADR-004 D6). A value that is not one of these tags is
+    /// [`None`], never a panic and never a silent `Startup`.
     #[must_use]
     pub const fn to_wire(self) -> u8 {
         match self {
@@ -227,6 +225,25 @@ impl SurfaceAuthority {
         match self {
             SurfaceAuthority::Command => true,
             SurfaceAuthority::HoldLast => false,
+        }
+    }
+
+    /// Wire tag: 0 HoldLast, 1 Command. HIL reply byte 1 (ADR-004 D6).
+    #[must_use]
+    pub const fn to_wire(self) -> u8 {
+        match self {
+            SurfaceAuthority::HoldLast => 0,
+            SurfaceAuthority::Command => 1,
+        }
+    }
+
+    /// Inverse of [`Self::to_wire`]. Unknown -> `None`.
+    #[must_use]
+    pub const fn from_wire(raw: u8) -> Option<Self> {
+        match raw {
+            0 => Some(SurfaceAuthority::HoldLast),
+            1 => Some(SurfaceAuthority::Command),
+            _ => None,
         }
     }
 }
@@ -385,8 +402,9 @@ impl DualSample {
 
 /// One control-frame sample of every critical discrete.
 ///
-/// Fail-safe default: all deasserted. [`Self::from_wire`] is a **test packing**,
-/// not the unpublished Nucleo protocol.
+/// Fail-safe default: all deasserted. [`Self::to_wire`] / [`Self::from_wire`]
+/// is the HIL discrete byte (ADR-004 D6): byte 0 of SAFETY_TICK, byte 32 of
+/// GATED_STEP.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DiscreteFrame {
     pub abort: DualSample,
@@ -407,7 +425,20 @@ impl DiscreteFrame {
     }
 
     /// Pack eight bits: abort A/B, emergency A/B, master-arm A/B, reset-bit A/B.
-    /// High bits of a `u16` are ignored so a garbage word cannot panic.
+    #[must_use]
+    pub const fn to_wire(self) -> u8 {
+        (self.abort.a as u8)
+            | (self.abort.b as u8) << 1
+            | (self.emergency.a as u8) << 2
+            | (self.emergency.b as u8) << 3
+            | (self.master_arm.a as u8) << 4
+            | (self.master_arm.b as u8) << 5
+            | (self.reset_bit.a as u8) << 6
+            | (self.reset_bit.b as u8) << 7
+    }
+
+    /// Inverse of [`Self::to_wire`]. High bits of a `u16` are ignored so a
+    /// garbage word cannot panic.
     #[must_use]
     pub const fn from_wire(bits: u16) -> Self {
         Self {
@@ -444,8 +475,8 @@ pub const fn resolve_sample(discrete: CriticalDiscrete, sample: DualSample) -> b
 /// Software heartbeat. Presence this control frame, nothing else.
 ///
 /// Not an STM32 IWDG, not a windowed peripheral, not a claim that hardware
-/// is being kicked. A later HIL bind sets [`Heartbeat::present`] from whatever
-/// the unpublished protocol uses for "this frame arrived."
+/// is being kicked. HIL SAFETY_TICK sets [`Heartbeat::present`] from flag
+/// bit 0 of the request (ADR-004 D6). GPIO / IWDG are a later bind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Heartbeat {
     pub present: bool,
@@ -462,6 +493,29 @@ pub enum WatchdogLevel {
     Ok,
     Degraded,
     TripSafe,
+}
+
+impl WatchdogLevel {
+    /// Wire tag: 0 Ok, 1 Degraded, 2 TripSafe. HIL reply byte 3 (ADR-004 D6).
+    #[must_use]
+    pub const fn to_wire(self) -> u8 {
+        match self {
+            WatchdogLevel::Ok => 0,
+            WatchdogLevel::Degraded => 1,
+            WatchdogLevel::TripSafe => 2,
+        }
+    }
+
+    /// Inverse of [`Self::to_wire`]. Unknown -> `None`.
+    #[must_use]
+    pub const fn from_wire(raw: u8) -> Option<Self> {
+        match raw {
+            0 => Some(WatchdogLevel::Ok),
+            1 => Some(WatchdogLevel::Degraded),
+            2 => Some(WatchdogLevel::TripSafe),
+            _ => None,
+        }
+    }
 }
 
 /// Consecutive missing control-frame heartbeats.
@@ -1357,5 +1411,47 @@ mod tests {
             CriticalDiscrete::ResetBit,
             DualSample::split(false, true)
         ));
+    }
+
+    /// The eight-bit packing is bijective. HIL byte 0 is this function
+    /// (ADR-004 D6); a silent remap would make abort look deasserted.
+    #[test]
+    fn discrete_frame_wire_packing_round_trips_eight_bits() {
+        for bits in 0u16..=255 {
+            let frame = DiscreteFrame::from_wire(bits);
+            assert_eq!(frame.to_wire() as u16, bits);
+            assert_eq!(DiscreteFrame::from_wire(frame.to_wire() as u16), frame);
+        }
+        assert_eq!(
+            DiscreteFrame::from_wire(0x0100),
+            DiscreteFrame::from_wire(0),
+            "high bits must be ignored, never panic or arm"
+        );
+    }
+
+    #[test]
+    fn authority_and_watchdog_wire_tags_are_total_over_u8() {
+        let mut known_auth = 0u8;
+        let mut known_wd = 0u8;
+        for raw in 0u8..=255 {
+            match SurfaceAuthority::from_wire(raw) {
+                Some(a) => {
+                    assert_eq!(a.to_wire(), raw);
+                    known_auth += 1;
+                }
+                None => assert!(raw > 1, "gap in authority tags at {raw}"),
+            }
+            match WatchdogLevel::from_wire(raw) {
+                Some(w) => {
+                    assert_eq!(w.to_wire(), raw);
+                    known_wd += 1;
+                }
+                None => assert!(raw > 2, "gap in watchdog tags at {raw}"),
+            }
+        }
+        assert_eq!(known_auth, 2);
+        assert_eq!(known_wd, 3);
+        assert_eq!(SurfaceAuthority::HoldLast.to_wire(), 0);
+        assert_eq!(SurfaceAuthority::Command.to_wire(), 1);
     }
 }

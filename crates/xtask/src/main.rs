@@ -4,6 +4,7 @@
 //!   cargo xtask build       rust + native; detects vcvars, fails with the fix
 //!   cargo xtask check-dag   the declared edge set (D5); cargo enforces acyclicity
 //!   cargo xtask bench m9    GATED on validate passing at the same commit (D3)
+//!   cargo xtask hil <COM>   Nucleo-F411RE bit-exact gate (ADR-004); refuses without a port
 //!   cargo xtask report      design point tables + plots (invokes analysis/)
 //!
 //! vcvars note for `build`: if VSCMD_ARG_TGT_ARCH != x64, abort with the exact
@@ -93,12 +94,12 @@ const ROUTES: &[(&str, Route)] = &[
     (
         "ventus-fsw",
         Route::Identities(concat!(
-            "M10's claims are bit-for-bit agreement with M1 and the totality of the ",
-            "safety kernel's mode table (ADR-005). Both are cross-checks against this ",
-            "project's own code, not an external number. Putting them in the corpus would ",
-            "mean writing a `source` field that cites ourselves, which is exactly the ",
-            "drift the mandatory source exists to stop. They are asserted by equality ",
-            "and transition tests in the crate.",
+            "M10's claims are bit-for-bit agreement with M1, the totality of the ",
+            "safety kernel's mode table (ADR-005), and host loopback of the HIL wire ",
+            "(ADR-004) including confirmed abort. None of those is an external number. ",
+            "Putting them in the corpus would mean writing a `source` field that cites ",
+            "ourselves, which is exactly the drift the mandatory source exists to stop. ",
+            "They are asserted by equality and transition tests in the crate.",
         )),
     ),
     (

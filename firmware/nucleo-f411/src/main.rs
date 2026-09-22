@@ -1,14 +1,18 @@
-//! M10 — flight software on the Nucleo-F411RE (STM32F411RE, Cortex-M4F).
+//! M10 -- flight software on the Nucleo-F411RE (STM32F411RE, Cortex-M4F).
 //!
-//! The main loop is exactly three behaviours, per ADR-003: read one byte,
+//! The main loop is exactly three behaviours, per ADR-004: read one byte,
 //! attempt to close a frame, answer a closed frame. All of the logic lives in
 //! `ventus_fsw::hil`, the same module the host's gate runs, so there is no
 //! second implementation to drift. The air-data replies come from
-//! `ventus_fsw::air_data` — the same atmosphere the digital twin uses — which
+//! `ventus_fsw::air_data` -- the same atmosphere the digital twin uses -- which
 //! is the whole point of the exercise: US76 computed on a 100 MHz Cortex-M4F
 //! that must agree with the host BIT FOR BIT, software f64 and all (the M4F
 //! has no double-precision FPU; the arithmetic runs in software, which is
-//! slower and still deterministic — the two properties that matter here).
+//! slower and still deterministic -- the two properties that matter here).
+//!
+//! Safety commands (ADR-005) ride the same dispatch. The session holds a
+//! `SafetyKernel`; this file does not grow a second mode table. GPIO lines
+//! for abort / arm are not bound -- the host injects dual-sample bits.
 
 #![no_std]
 #![no_main]
@@ -57,10 +61,13 @@ fn main() -> ! {
     .unwrap();
     let (mut tx, mut rx) = serial.split();
 
-    let env = hil::DeviceEnv {
+    // DeviceEnv is the Copy identity HELLO reports. HilSession holds the
+    // SafetyKernel (and the pitch loop for GATED_STEP) so new commands ride
+    // handle_frame without a second dispatch in this file.
+    let mut session = hil::HilSession::new(hil::DeviceEnv {
         platform: hil::PLATFORM_NUCLEO_F411,
         build_id: *include_bytes!(concat!(env!("OUT_DIR"), "/build_id.bin")),
-    };
+    });
 
     let mut frame = [0u8; hil::MAX_FRAME];
     let mut reply = [0u8; hil::MAX_FRAME];
@@ -92,7 +99,8 @@ fn main() -> ! {
                 n = 0;
             }
             Ok(parsed) => {
-                if let Ok(len) = hil::handle_frame(&env, &frame[..parsed.frame_len], &mut reply) {
+                if let Ok(len) = hil::handle_frame(&mut session, &frame[..parsed.frame_len], &mut reply)
+                {
                     for &b in &reply[..len] {
                         let _ = tx.write(b);
                     }

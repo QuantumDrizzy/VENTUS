@@ -1,4 +1,5 @@
 /target/
+/firmware/nucleo-f411/target/
 /out/
 /native/build/
 firmware/nucleo-f411/target/

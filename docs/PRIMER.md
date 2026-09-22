@@ -264,7 +264,9 @@ than filled in.
 | Shocks, expansions, γ | `crates/ventus-gasdyn` — NACA Report 1135 |
 | The inlet | `crates/ventus-inlet` — shock trains, Oswatitsch |
 | The cycle | `crates/ventus-propulsion` — ideal ramjet |
-| Dual-mode / scram track | `crates/ventus-scram` — stub; refuses until stations exist (ADR-003) |
+| Dual-mode / scram track | `crates/ventus-scram` -- stub; refuses until stations exist (ADR-003) |
+| Flight software / HIL | `crates/ventus-fsw` -- shared atmosphere; safety kernel (ADR-005); wire protocol (ADR-004) |
+| Nucleo firmware | `firmware/nucleo-f411` -- excluded from the workspace; flashes the same crate |
 | Boundary layer | `crates/ventus-aero` — reference-temperature method |
 | Heating and materials | `crates/ventus-thermal` — radiation equilibrium |
 | Every number, with sources | `docs/design-point.md` |

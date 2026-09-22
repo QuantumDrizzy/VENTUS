@@ -26,8 +26,11 @@
 //! - **A safety kernel beside the loop, not inside it** (ADR-005). Modes,
 //!   guarded discretes, and a software watchdog produce a gate on whether
 //!   [`step`] may write a new surface command. That is the first cut of
-//!   emergency logic. It is not certification, not a cockpit, and not the
-//!   unpublished Desktop HIL protocol.
+//!   emergency logic. It is not certification and not a cockpit.
+//! - **One HIL wire protocol** (ADR-004), in this crate, not beside it. The
+//!   Nucleo firmware and the host gate both call [`hil::handle`]. Safety
+//!   commands tick [`SafetyKernel`] / [`gated_step`]; they do not invent a
+//!   second mode table. GPIO discrete sampling is not bound.
 //!
 //! # Latency budget
 //!
@@ -73,6 +76,30 @@ pub enum Health {
     /// A sensor returned NaN. Same response, different cause, reported
     /// separately because they mean different things to whoever reads the log.
     SensorFault,
+}
+
+impl Health {
+    /// Wire tag: 0 Nominal, 1 AirDataInvalid, 2 SensorFault. HIL SAFETY_TICK
+    /// request byte 2 and GATED_STEP reply health byte (ADR-004 D6).
+    #[must_use]
+    pub const fn to_wire(self) -> u8 {
+        match self {
+            Health::Nominal => 0,
+            Health::AirDataInvalid => 1,
+            Health::SensorFault => 2,
+        }
+    }
+
+    /// Inverse of [`Self::to_wire`]. Unknown -> `None`, never a silent Nominal.
+    #[must_use]
+    pub const fn from_wire(raw: u8) -> Option<Self> {
+        match raw {
+            0 => Some(Health::Nominal),
+            1 => Some(Health::AirDataInvalid),
+            2 => Some(Health::SensorFault),
+            _ => None,
+        }
+    }
 }
 
 /// Air data derived from the shared atmosphere model.
@@ -686,5 +713,20 @@ mod tests {
             input_health(CRUISE_ALT, CRUISE_TAS, 0.05, 0.0),
             Health::Nominal
         );
+    }
+
+    #[test]
+    fn health_wire_tags_are_total_over_u8() {
+        let mut known = 0u8;
+        for raw in 0u8..=255 {
+            match Health::from_wire(raw) {
+                Some(h) => {
+                    assert_eq!(h.to_wire(), raw);
+                    known += 1;
+                }
+                None => assert!(raw > 2, "gap in health tags at {raw}"),
+            }
+        }
+        assert_eq!(known, 3);
     }
 }

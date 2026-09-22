@@ -7,9 +7,9 @@ license = "UNLICENSED"
 publish = false
 
 # M10 on real hardware: the Nucleo-F411RE (STM32F411RE, Cortex-M4F).
-# This crate is deliberately NOT a workspace member — it builds for
+# This crate is deliberately NOT a workspace member -- it builds for
 # thumbv7em-none-eabihf, not for the host, and the workspace profiles do not
-# apply to it. See ADR-003.
+# apply to it. See ADR-004.
 
 [dependencies]
 cortex-m = "0.7"

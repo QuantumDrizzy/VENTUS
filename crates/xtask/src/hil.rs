@@ -1,26 +1,33 @@
-//! The hardware-in-the-loop gate (ADR-003).
+//! The hardware-in-the-loop gate (ADR-004).
 //!
 //! Opens the Nucleo-F411RE's virtual COM port and confronts the device's
-//! air-data path against the host's — BIT FOR BIT — over a deterministic
-//! altitude sweep. The expected values come from `ventus_fsw::air_data`, the
-//! same function the device runs compiled for ARM; any difference means the
-//! port, the hardware arithmetic, or the wire has lied.
+//! air-data path against the host's -- BIT FOR BIT -- over a deterministic
+//! altitude sweep, then walks the safety kernel (ADR-005) over the same
+//! cablea frames. The expected values come from `ventus_fsw::air_data` /
+//! `SafetyKernel` / `gated_step`, the same functions the device runs compiled
+//! for ARM; any difference means the port, the hardware arithmetic, or the
+//! wire has lied.
 //!
 //! Without a port argument this fails with the exact remedy rather than
-//! degrading, like every other xtask check.
+//! degrading, like every other xtask check. Host-side loopback of the safety
+//! commands lives in `cargo test -p ventus-fsw`; this file does not claim a
+//! board-run PASS without hardware.
 
 use std::process::ExitCode;
 use std::time::Duration;
 
 use ventus_fsw::hil;
+use ventus_fsw::safety::{DiscreteFrame, DualSample, FlightMode, Heartbeat, SurfaceAuthority};
+use ventus_fsw::{ControlFrame, Health};
 
 const BAUDRATE: u32 = 115_200;
 const TIMEOUT_S: u64 = 2;
 const RETRIES: usize = 2;
 
-/// The true airspeed every sweep point uses — the design-point cruise value,
+/// The true airspeed every sweep point uses -- the design-point cruise value,
 /// so the point that matters most is in the sweep by construction.
 const TAS_M_S: f64 = 1046.95;
+const CRUISE_ALT_M: f64 = 26_000.0;
 
 pub fn run(port: Option<&str>) -> ExitCode {
     let Some(port_name) = port else {
@@ -28,6 +35,8 @@ pub fn run(port: Option<&str>) -> ExitCode {
         eprintln!("remedy: cargo xtask hil COM7  (Windows) or /dev/ttyACM0 (Linux)");
         eprintln!("        the Nucleo's ST-Link VCP appears as \"USB Serial Device\" in");
         eprintln!("        Device Manager once the board is plugged in by USB.");
+        eprintln!("        host loopback of the protocol (including abort-on-the-wire)");
+        eprintln!("        is `cargo test -p ventus-fsw`; do not read a missing COM as PASS.");
         return ExitCode::from(2);
     };
 
@@ -50,7 +59,10 @@ pub fn run(port: Option<&str>) -> ExitCode {
         return ExitCode::FAILURE;
     };
     if cmd != hil::CMD_HELLO || payload.len() != 10 {
-        eprintln!("hil  hello  : MALFORMED (cmd {cmd:#04x}, {} bytes)", payload.len());
+        eprintln!(
+            "hil  hello  : MALFORMED (cmd {cmd:#04x}, {} bytes)",
+            payload.len()
+        );
         return ExitCode::FAILURE;
     }
     let device_proto = payload[0];
@@ -71,7 +83,10 @@ pub fn run(port: Option<&str>) -> ExitCode {
         if build_ok { "" } else { " != HEAD" },
     );
     if device_proto != hil::PROTOCOL_VERSION {
-        eprintln!("remedy: the device answers protocol {device_proto}, this host speaks {} - rebuild both sides from the same commit.", hil::PROTOCOL_VERSION);
+        eprintln!(
+            "remedy: the device answers protocol {device_proto}, this host speaks {} - rebuild both sides from the same commit.",
+            hil::PROTOCOL_VERSION
+        );
         return ExitCode::FAILURE;
     }
     if !build_ok {
@@ -93,11 +108,13 @@ pub fn run(port: Option<&str>) -> ExitCode {
     // The design points this project actually cares about.
     points.push(24_090.96); // SR-71 cruise geopotential, the [CORRECTED] figure
     points.push(26_000.0); // VENTUS-1 cruise
-    // Deterministic pseudo-random points across the whole domain. An LCG, not
-    // rand: no dependency, and the sweep is identical on every machine.
+                           // Deterministic pseudo-random points across the whole domain. An LCG, not
+                           // rand: no dependency, and the sweep is identical on every machine.
     let mut x: u64 = 0x5645_4E54_5553_3131; // "VENTUS11"
     for _ in 0..12 {
-        x = x.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+        x = x
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         let frac = (x >> 11) as f64 / (1u64 << 53) as f64;
         points.push(frac * 84_852.0);
     }
@@ -116,7 +133,10 @@ pub fn run(port: Option<&str>) -> ExitCode {
                     }
                 };
                 if cmd != hil::CMD_AIR_DATA || payload.len() != 32 {
-                    mismatches.push(format!("h={altitude}: reply not air-data (cmd {cmd:#04x}, {} bytes)", payload.len()));
+                    mismatches.push(format!(
+                        "h={altitude}: reply not air-data (cmd {cmd:#04x}, {} bytes)",
+                        payload.len()
+                    ));
                     failures += 1;
                     continue;
                 }
@@ -132,7 +152,11 @@ pub fn run(port: Option<&str>) -> ExitCode {
                     expected.dynamic_pressure_pa,
                     expected.static_temperature_k,
                 ];
-                if got.iter().zip(want.iter()).all(|(g, w)| g.to_bits() == w.to_bits()) {
+                if got
+                    .iter()
+                    .zip(want.iter())
+                    .all(|(g, w)| g.to_bits() == w.to_bits())
+                {
                     exact += 1;
                 } else {
                     let field = ["altitude", "mach", "q", "temperature"]
@@ -169,13 +193,14 @@ pub fn run(port: Option<&str>) -> ExitCode {
     for (altitude, want_code) in &error_cases {
         match exchange(&mut *port, hil::CMD_AIR_DATA, &f64s(*altitude, TAS_M_S)) {
             Ok((cmd, payload))
-                if cmd == hil::CMD_AIR_DATA | hil::ERROR_FLAG
-                    && payload == &[*want_code] =>
+                if cmd == hil::CMD_AIR_DATA | hil::ERROR_FLAG && payload == [*want_code] =>
             {
                 error_ok += 1;
             }
             Ok((cmd, payload)) => {
-                eprintln!("             h={altitude}: error reply cmd {cmd:#04x} payload {payload:?}, wanted code {want_code}");
+                eprintln!(
+                    "             h={altitude}: error reply cmd {cmd:#04x} payload {payload:?}, wanted code {want_code}"
+                );
                 failures += 1;
             }
             Err(e) => {
@@ -184,14 +209,221 @@ pub fn run(port: Option<&str>) -> ExitCode {
             }
         }
     }
-    println!("hil  errors  : {error_ok}/{} out-of-domain codes as declared", error_cases.len());
+    println!(
+        "hil  errors  : {error_ok}/{} out-of-domain codes as declared",
+        error_cases.len()
+    );
+
+    failures += safety_walk(&mut *port);
 
     if failures == 0 {
-        println!("hil  verdict : PASS - the ARM port computes the twin's atmosphere bit for bit");
+        println!(
+            "hil  verdict : PASS - the ARM port computes the twin's atmosphere bit for bit, and abort is not silent"
+        );
         ExitCode::SUCCESS
     } else {
         println!("hil  verdict : FAIL ({failures} failure(s))");
         ExitCode::FAILURE
+    }
+}
+
+/// Safety subcheck on the open COM port. Shares the device session with the
+/// air-data sweep (HELLO already ran; the kernel is still at Startup because
+/// PING/HELLO/AIR_DATA do not tick it).
+fn safety_walk(port: &mut dyn serialport::SerialPort) -> usize {
+    let mut failures = 0usize;
+
+    match exchange(port, hil::CMD_SAFETY_STATE, &[]) {
+        Ok((cmd, payload)) => match hil::unpack_safety_reply(&payload) {
+            Some(state) if cmd == hil::CMD_SAFETY_STATE && state.mode == FlightMode::Startup => {
+                println!("hil  safety  : STATE at Startup, HoldLast");
+            }
+            other => {
+                eprintln!("hil  safety  : STATE expected Startup, got {other:?} cmd {cmd:#04x}");
+                failures += 1;
+                return failures;
+            }
+        },
+        Err(e) => {
+            eprintln!("hil  safety  : STATE {e}");
+            eprintln!(
+                "remedy: flash firmware that speaks protocol {}",
+                hil::PROTOCOL_VERSION
+            );
+            failures += 1;
+            return failures;
+        }
+    }
+
+    let healthy = hil::pack_safety_tick(
+        DiscreteFrame::fail_safe(),
+        Heartbeat::PRESENT,
+        true,
+        Health::Nominal,
+    );
+    let mut mode = FlightMode::Startup;
+    for _ in 0..16 {
+        match tick(port, &healthy) {
+            Ok(s) => mode = s.mode,
+            Err(e) => {
+                eprintln!("hil  safety  : TICK to Ready: {e}");
+                failures += 1;
+                return failures;
+            }
+        }
+        if mode == FlightMode::Ready {
+            break;
+        }
+    }
+    if mode != FlightMode::Ready {
+        eprintln!("hil  safety  : did not reach Ready (stuck in {mode:?})");
+        failures += 1;
+        return failures;
+    }
+
+    let armed = hil::pack_safety_tick(
+        DiscreteFrame {
+            master_arm: DualSample::both(true),
+            ..DiscreteFrame::fail_safe()
+        },
+        Heartbeat::PRESENT,
+        true,
+        Health::Nominal,
+    );
+    for _ in 0..4 {
+        match tick(port, &armed) {
+            Ok(s) => mode = s.mode,
+            Err(e) => {
+                eprintln!("hil  safety  : TICK to Nominal: {e}");
+                failures += 1;
+                return failures;
+            }
+        }
+        if mode == FlightMode::Nominal {
+            break;
+        }
+    }
+    if mode != FlightMode::Nominal {
+        eprintln!("hil  safety  : did not reach Nominal (stuck in {mode:?})");
+        failures += 1;
+        return failures;
+    }
+
+    // Build a real surface command under Nominal, then abort with a reversed
+    // demand. If abort is silent, last_command_rad will follow the demand.
+    let mut last_cmd = 0.0f64;
+    for _ in 0..20 {
+        match gated(port, arm_frame(0.05, 0.0)) {
+            Ok(g) => {
+                last_cmd = g.last_command_rad;
+                mode = g.safety.mode;
+            }
+            Err(e) => {
+                eprintln!("hil  safety  : GATED_STEP arm: {e}");
+                failures += 1;
+                return failures;
+            }
+        }
+    }
+    if mode != FlightMode::Nominal || last_cmd <= 0.0 {
+        eprintln!(
+            "hil  safety  : expected Nominal with a real command, got {mode:?} cmd={last_cmd}"
+        );
+        failures += 1;
+        return failures;
+    }
+
+    let held = match gated(port, abort_frame(0.05, 0.0)) {
+        Ok(g) if g.safety.mode == FlightMode::Nominal && g.last_command_rad > 0.0 => {
+            g.last_command_rad
+        }
+        other => {
+            eprintln!("hil  safety  : abort debounce expected Nominal, got {other:?}");
+            failures += 1;
+            return failures;
+        }
+    };
+
+    match gated(port, abort_frame(-0.2, 0.0)) {
+        Ok(g)
+            if g.safety.mode == FlightMode::Emergency
+                && g.safety.authority == SurfaceAuthority::HoldLast
+                && g.last_command_rad.to_bits() == held.to_bits() => {}
+        other => {
+            eprintln!(
+                "hil  safety  : confirmed abort must Emergency+HoldLast and freeze {held}, got {other:?}"
+            );
+            failures += 1;
+            return failures;
+        }
+    }
+
+    match gated(port, abort_frame(-0.2, 0.0)) {
+        Ok(g)
+            if g.safety.mode == FlightMode::Safe
+                && g.safety.authority == SurfaceAuthority::HoldLast
+                && g.last_command_rad.to_bits() == held.to_bits() =>
+        {
+            println!("hil  safety  : abort confirmed -> Safe, surfaces frozen bit-for-bit");
+        }
+        other => {
+            eprintln!("hil  safety  : abort-to-Safe freeze failed: {other:?}");
+            failures += 1;
+        }
+    }
+
+    failures
+}
+
+fn tick(
+    port: &mut dyn serialport::SerialPort,
+    payload: &[u8],
+) -> Result<hil::SafetyWireState, String> {
+    let (cmd, payload) = exchange(port, hil::CMD_SAFETY_TICK, payload)?;
+    if cmd != hil::CMD_SAFETY_TICK {
+        return Err(format!("TICK error cmd {cmd:#04x}"));
+    }
+    hil::unpack_safety_reply(&payload).ok_or_else(|| format!("TICK malformed {payload:?}"))
+}
+
+fn gated(
+    port: &mut dyn serialport::SerialPort,
+    frame: ControlFrame,
+) -> Result<hil::GatedStepWire, String> {
+    let packed = hil::pack_gated_step(frame);
+    let (cmd, payload) = exchange(port, hil::CMD_GATED_STEP, &packed)?;
+    if cmd != hil::CMD_GATED_STEP {
+        return Err(format!(
+            "GATED_STEP error cmd {cmd:#04x} payload {payload:?}"
+        ));
+    }
+    hil::unpack_gated_step_reply(&payload)
+        .ok_or_else(|| format!("GATED_STEP malformed {} bytes", payload.len()))
+}
+
+fn arm_frame(commanded: f64, measured: f64) -> ControlFrame {
+    ControlFrame {
+        altitude_m: CRUISE_ALT_M,
+        true_airspeed_m_s: TAS_M_S,
+        commanded_pitch_rad: commanded,
+        measured_pitch_rad: measured,
+        discretes: DiscreteFrame {
+            master_arm: DualSample::both(true),
+            ..DiscreteFrame::fail_safe()
+        },
+        heartbeat: Heartbeat::PRESENT,
+        bit_clear: true,
+    }
+}
+
+fn abort_frame(commanded: f64, measured: f64) -> ControlFrame {
+    ControlFrame {
+        discretes: DiscreteFrame {
+            abort: DualSample::both(true),
+            master_arm: DualSample::both(true),
+            ..DiscreteFrame::fail_safe()
+        },
+        ..arm_frame(commanded, measured)
     }
 }
 
@@ -206,7 +438,8 @@ fn exchange(
     let n = hil::encode(cmd, payload, &mut wire).map_err(|e| format!("encode: {e:?}"))?;
 
     for _attempt in 0..RETRIES {
-        port.write_all(&wire[..n]).map_err(|e| format!("write: {e}"))?;
+        port.write_all(&wire[..n])
+            .map_err(|e| format!("write: {e}"))?;
         port.flush().map_err(|e| format!("flush: {e}"))?;
 
         let mut buf = [0u8; hil::MAX_FRAME];
@@ -229,7 +462,9 @@ fn exchange(
             }
         }
     }
-    Err(format!("no complete reply after {RETRIES} attempts (timeout {TIMEOUT_S} s each)"))
+    Err(format!(
+        "no complete reply after {RETRIES} attempts (timeout {TIMEOUT_S} s each)"
+    ))
 }
 
 /// One byte from the port. `io::Read::bytes` is `where Self: Sized`, so a
