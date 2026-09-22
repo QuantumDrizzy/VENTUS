@@ -224,9 +224,11 @@ bound on how broken *that* body is.
 ### 4.2 Lean-blowout band / φ at design
 
 `ideal_ramjet` has no flame-stability model. The literature band M12 carries is
-φ = 0.30–0.50, still `[TO VERIFY]` at both ends, which the cycle crosses between
-**M 3.23 and M 4.42**. Both the snapshot and the proposed row sit **inside**
-that band.
+φ = 0.30–0.50, which the cycle crosses between **M 3.23 and M 4.42**. The 0.50
+end is now a **cited afterburner floor** (NACA RM E54E06 Figure 8, 6-foot
+V-gutter at 1600 psf). The 0.30 end is still `[TO VERIFY]` and holder-required.
+Both the snapshot and the proposed row sit **inside** that band, and **below**
+the operative 0.50.
 
 | | φ | Reading against the band |
 |---|---|---|
@@ -235,10 +237,12 @@ that band.
 
 **What tightened, and what did not.** No flame holder is declared. The
 permissive end is therefore not available to this aircraft, and inventing a
-holder that saves either row is refused. The operative bound is the strict end
-0.50 `[TO VERIFY]`. Both rows sit below it. Under that bound neither the
-snapshot nor the proposed row holds a flame. The decision criterion is
-unchanged: a cited `φ_LBO` ≷ 0.4615 (snapshot) or ≷ 0.3795 (this row).
+holder that saves either row is refused. The operative bound is Useller Fig. 8
+φ = 0.50 (V-gutter afterburner floor, digit cited). Both rows sit below it.
+Under that bound neither the snapshot nor the proposed row holds a flame. A
+ramjet-no-holder chart has still not been read. The decision criterion for a
+verified close is unchanged: a cited ramjet-no-holder `φ_LBO` ≷ 0.4615
+(snapshot) or ≷ 0.3795 (this row).
 
 Lean blowout is a floor on φ, not a ceiling. Lower φ at M 4 is **worse**, not
 better. If the cited limit comes back at 0.40, the snapshot is already
@@ -249,8 +253,10 @@ still have a flame on paper. The 0.30 end is not a free gift of altitude.
 **[CORRECTED] Burner entry is not ~1.6 kPa.** That figure is either freestream
 static at this row (1.65 kPa) or `p∞ · π_d` with ram omitted at 26 km
 (1.60 kPa). Burner-entry *total* pressure after ram is ~122 kPa (MIL) / ~133 kPa
-(four-ramp inviscid). Ram is what makes a flame possible at all; Lefebvre
-loading still needs a volume and a holder (tier 2).
+(four-ramp inviscid). That sits above King's 36–86 kPa afterburner band and is
+still afterburner-scale, not turbojet-main-burner-scale. Ram is what makes a
+flame possible at all; Lefebvre loading still needs a volume and a holder
+(tier 2).
 
 The burner ceiling M4 reports at M 5.70 remains a **ceiling far above the real
 limit**. It does not become more real by asking the cycle at M 4.
@@ -337,7 +343,8 @@ fineness, or a claim that this is now the aircraft.
 the whole airflow. There is no rich primary zone. `BURNER_PRESSURE_RATIO` and
 `BURNER_EFFICIENCY` are efficiency factors, not geometry. There is still no
 combustor length, no flame holder, no blockage. Tier 1 of
-`LEAN_BLOWOUT_RESOLUTION` (a cited φ band) can decide whether M 4 is even
+`LEAN_BLOWOUT_RESOLUTION` now has a cited afterburner floor (Useller Fig. 8
+φ = 0.50); a ramjet-no-holder chart can still decide whether M 4 is even
 worth aiming at. Tier 2 is an M4b. Neither is this sketch.
 
 ADR-003's dual-mode / scram combustor is a separate station list. Wiring it
@@ -409,11 +416,12 @@ snapshot cannot.
    folded into M6b drag, and a declared internal contraction. The spike
    *schedule* and unstart *dynamics* remain refused until that geometry
    exists.
-3. **Flame stability that is not a comment.** A cited lean-blowout φ band at
-   comparable burner-entry pressure (~122 kPa total, not 1.6 kPa), so the
-   proposed row is either inside a closed question or dead. No holder may be
-   invented to claim the 0.30 end. Without a primary citation, both M 3.50
-   and M 4.00 sit below the operative (strict) bound.
+3. **Flame stability that is not a comment.** Useller Fig. 8 now cites
+   φ = 0.50 as a V-gutter afterburner floor at 1600 psf; King Fig. 16 is
+   the matching duct chart. Both M 3.50 and M 4.00 sit below that floor.
+   Remaining: a ramjet-no-holder chart at comparable burner-entry pressure
+   (~122 kPa total, not 1.6 kPa). No holder may be invented to claim the
+   0.30 end.
 4. **Stagnation-point / leading-edge heating** at the proposed row (M5), not
    a flat plate. The 1 m station already kills Ti-6Al-4V on the plate.
 5. **Thermally perfect T₀** at the proposed row, `h₀ = h + V²/2`, the same
@@ -439,11 +447,12 @@ snapshot cannot.
 ## 7. Explicit non-claims
 
 - **Not flyable.** The snapshot capture exceeds the body. The candidate
-  hosts (0.864) and still does not fly: blowout is uncited at the
-  operative bound; the engine is unsized; the nose is uncomputed; lip
-  suction, spike, and unstart remain refusals. A green test suite on the
-  M 3.50 corpus does not move any of that. A declared cowl that reports
-  `D_add = 0` at shock-on-lip is not a started mixed-compression inlet.
+  hosts (0.864) and still does not fly: blowout sits below the cited
+  Useller Fig. 8 afterburner floor and has no ramjet-no-holder chart; the
+  engine is unsized; the nose is uncomputed; lip suction, spike, and
+  unstart remain refusals. A green test suite on the M 3.50 corpus does
+  not move any of that. A declared cowl that reports `D_add = 0` at
+  shock-on-lip is not a started mixed-compression inlet.
   Capture/body < 1 on a fatter Sears-Haack is not a started inlet either.
 - **Not Lockheed data.** No SR-72, no classified dual-mode deck, no copied
   trajectory. X-43 / X-51 remain regime anchors for the stretch, not a

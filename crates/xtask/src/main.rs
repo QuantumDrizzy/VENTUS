@@ -700,10 +700,67 @@ fn evaluate_envelope(c: &Case) -> BTreeMap<String, ExpectValue> {
             "operative_phi_bound".to_string(),
             ExpectValue::Float(ventus_envelope::OPERATIVE_LEAN_BLOWOUT_PHI),
         );
+        m.insert(
+            "phi_lbo_digit_cited".to_string(),
+            ExpectValue::Bool(ventus_envelope::PHI_LBO_DIGIT_CITED),
+        );
+        m.insert(
+            "phi_lbo_ramjet_no_holder_cited".to_string(),
+            ExpectValue::Bool(ventus_envelope::PHI_LBO_RAMJET_NO_HOLDER_CITED),
+        );
+        m.insert(
+            "useller_fig_8_phi_six_foot".to_string(),
+            ExpectValue::Float(ventus_envelope::USELLER_FIG_8_PHI_SIX_FOOT),
+        );
+        m.insert(
+            "useller_fig_8_phi_short_chamber".to_string(),
+            ExpectValue::Float(ventus_envelope::USELLER_FIG_8_PHI_SHORT_CHAMBER),
+        );
+        m.insert(
+            "useller_fig_8_pressure_pa".to_string(),
+            ExpectValue::Float(ventus_envelope::USELLER_FIG_8_PRESSURE_PA),
+        );
+        m.insert(
+            "useller_flameholder_blockage".to_string(),
+            ExpectValue::Float(ventus_envelope::USELLER_FLAMEHOLDER_BLOCKAGE),
+        );
+        m.insert(
+            "king_fig16_phi_cold_high_p".to_string(),
+            ExpectValue::Float(ventus_envelope::KING_FIG16_PHI_COLD_HIGH_P),
+        );
+        m.insert(
+            "king_fig16_phi_hot_high_p".to_string(),
+            ExpectValue::Float(ventus_envelope::KING_FIG16_PHI_HOT_HIGH_P),
+        );
+        m.insert(
+            "king_fig16_fa_cold_high_p".to_string(),
+            ExpectValue::Float(ventus_envelope::KING_FIG16_FA_COLD_HIGH_P),
+        );
+        m.insert(
+            "king_afterburner_pressure_min_pa".to_string(),
+            ExpectValue::Float(ventus_envelope::KING_AFTERBURNER_PRESSURE_MIN_PA),
+        );
+        m.insert(
+            "king_afterburner_pressure_max_pa".to_string(),
+            ExpectValue::Float(ventus_envelope::KING_AFTERBURNER_PRESSURE_MAX_PA),
+        );
         if let Some(p02) = p.burner_entry_total_pressure_pa {
             m.insert(
                 "burner_entry_total_pressure_pa".to_string(),
                 ExpectValue::Float(p02),
+            );
+            m.insert(
+                "burner_entry_above_king_pressure_band".to_string(),
+                ExpectValue::Bool(
+                    ventus_envelope::king_afterburner_pressure_band_contains(p02) == Some(false)
+                        && p02 > ventus_envelope::KING_AFTERBURNER_PRESSURE_MAX_PA,
+                ),
+            );
+            m.insert(
+                "burner_entry_afterburner_scale_not_turbojet_combustor".to_string(),
+                ExpectValue::Bool(ventus_envelope::burner_pressure_scale(p02).is_some_and(
+                    ventus_envelope::BurnerPressureScale::above_king_band_still_afterburner,
+                )),
             );
         }
         if let Some(t02) = p.burner_entry_total_temperature_k {
@@ -712,9 +769,10 @@ fn evaluate_envelope(c: &Case) -> BTreeMap<String, ExpectValue> {
                 ExpectValue::Float(t02),
             );
         }
-        // Deliberately do NOT emit `lean_blowout_verified`. The arithmetic is
-        // pinned above; a verified fly/no-fly needs a primary φ_LBO. The
-        // known_limit case that asks for the key fails closed.
+        // Deliberately do NOT emit `lean_blowout_verified`. The 0.50 digit is
+        // cited (Useller Fig. 8) as a V-gutter afterburner floor; a verified
+        // fly/no-fly still needs a ramjet-no-holder chart. The known_limit
+        // case that asks for the key fails closed.
         if let Some(r) = ventus_envelope::capture_area_ratio(mach) {
             m.insert("capture_area_ratio".to_string(), ExpectValue::Float(r));
         }

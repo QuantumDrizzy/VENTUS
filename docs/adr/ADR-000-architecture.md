@@ -437,8 +437,9 @@ failure), M5 and M6, M7, M8, M9, M10.
 Geometry (5.2) closed in M6b and is declared in `docs/design-point.md` §5.
 Lean blowout (5.3) and inlet capture/unstart (5.4) were tightened, not closed:
 operative φ bound, Kantrowitz/spillage identities, and additive force from a
-declared cowl lip are in code; a primary φ_LBO citation, a flame holder, lip
-suction, and a spike schedule are not.
+declared cowl lip are in code. The φ_LBO *digit* 0.50 is now cited (NACA RM
+E54E06 Fig. 8, V-gutter afterburner floor); a ramjet-no-holder chart, a flame
+holder, lip suction, and a spike schedule are not.
 The Mach 4 row is a sketch only; the case-gated snapshot remains M 3.50 / 26 km.
 A named candidate geometry now exists in M6b/M12 so capture/body can go below 1
 at the proposed row without that snapshot moving.

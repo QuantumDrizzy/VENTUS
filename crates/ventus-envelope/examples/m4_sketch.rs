@@ -49,7 +49,10 @@ fn main() {
     println!("  peak specific thrust            M {PEAK_SPECIFIC_THRUST_MACH:.2}");
     println!("  design-point phi                {DESIGN_POINT_EQUIVALENCE_RATIO:.4}");
     println!("  lean-blowout literature band (phi 0.50-0.30)  M 3.23 — 4.42");
-    println!("           operative bound = strict end 0.50 (no holder declared)  [TO VERIFY]");
+    println!(
+        "           operative bound = strict end 0.50 (Useller Fig. 8, V-gutter afterburner floor)"
+    );
+    println!("           ramjet-no-holder chart: not read; no holder declared");
     println!("  capture area = body             M {CAPTURE_AREA_CLOSES_AT_MACH:.3}");
     println!("  no body closes (inside that)    M {NO_BODY_CLOSES_ABOVE_MACH:.3}");
     println!("  four-ramp model still answers   M 5.65 — not aircraft capability");
@@ -217,7 +220,8 @@ fn dump_candidate() {
         Some(Err(e)) => println!("  D_add candidate cowl    refused ({e:?})"),
         None => println!("  D_add candidate cowl    (no freestream)"),
     }
-    println!("  still open              lean blowout (operative phi 0.50 [TO VERIFY]);");
+    println!("  still open              lean blowout (operative phi 0.50 cited afterburner floor;");
+    println!("                          ramjet-no-holder class still open);");
     println!("                          lip suction; spike/unstart;");
     println!("                          1 m Ti-6Al-4V skin; thermally perfect T0;");
     println!("                          transonic pinch. This is not a flying M 4 aircraft.");
