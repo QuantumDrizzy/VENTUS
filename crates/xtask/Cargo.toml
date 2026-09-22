@@ -18,8 +18,10 @@ ventus-cost = { path = "../ventus-cost" }
 ventus-envelope = { path = "../ventus-envelope" }
 ventus-units = { path = "../ventus-units" }
 ventus-validate = { path = "../ventus-validate" }
+ventus-fsw = { path = "../ventus-fsw" }
 serde.workspace = true
 toml.workspace  = true
+serialport.workspace = true
 
 [lints]
 workspace = true

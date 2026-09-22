@@ -78,17 +78,18 @@ VENTUS answers it structurally rather than by care:
 | M7 | Mass fractions, empty mass, Breguet range | SR-71 unrefuelled range - the end-to-end check | **done** |
 | M8 | 6-DOF rigid-body dynamics | energy drift < 1e-10 over 1e6 steps | **done** |
 | M9 | 2-D Euler solver | shock angle 0.006 deg vs exact theta-beta-M | **physics done**, GPU build blocked |
-| M10 | Flight software | shares M1 bit-for-bit with the twin; safety kernel first cut | **done** ([ADR-005](docs/adr/ADR-005-safety-modes.md)) |
+| M10 | Flight software | shares M1 bit-for-bit with the twin; safety kernel first cut; HIL wire (cablea) | **done** ([ADR-004](docs/adr/ADR-004-hil.md), [ADR-005](docs/adr/ADR-005-safety-modes.md)) |
 | M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
 | M12 | Regime sweep: where the chain stops answering | each module's own declared validity bound | **done** |
 | Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
 
 ```
-cargo test --workspace     267 tests
+cargo test --workspace     282 tests
 cargo xtask validate       124 cases: 113 pass, 0 fail, 11 known limit, 0 stale
                            33 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 cargo xtask bench          gated on the corpus passing at the same commit
+cargo xtask hil <COM>      Nucleo-F411RE bit-exact gate (ADR-004); refuses without a board
 ```
 
 **New here?** [`docs/PRIMER.md`](docs/PRIMER.md) walks the whole causal chain —
@@ -99,10 +100,11 @@ read if you want to understand high-speed flight rather than this codebase.
 Not every module belongs in that corpus, and the reason is declared per crate
 rather than left to inference. The corpus holds claims traceable to a **published
 external number**; M8's yardsticks are conservation laws and a convergence order,
-and M10's are bit-for-bit agreement with M1 plus the totality of the safety
-kernel's mode table (ADR-005), both cross-checks against this project's own
-code. Neither is a citation, so forcing them in would mean writing
-a `source` field that cites ourselves — the exact drift the mandatory source
+and M10's are bit-for-bit agreement with M1, the totality of the safety
+kernel's mode table (ADR-005), and host loopback of the HIL wire including
+confirmed abort (ADR-004) -- all cross-checks against this project's own
+code. None of those is a citation, so forcing them in would mean writing
+a `source` field that cites ourselves -- the exact drift the mandatory source
 exists to stop. `xtask validate` prints those modules and the argument for each,
 and refuses a crate that declares no route at all (ADR-000 D12).
 
@@ -359,8 +361,14 @@ Decisions and their trade-offs live in [`docs/adr/`](docs/adr/). The load-bearin
 - **Safety kernel beside the pitch loop, not inside it**
   ([ADR-005](docs/adr/ADR-005-safety-modes.md)). Modes, guarded discretes and a
   software watchdog gate whether `step` may write a new surface command. First
-  cut: not certification, not a cockpit, not the unpublished Desktop HIL
-  protocol (that work is ADR-004 on Desktop; this is 005 so they do not collide).
+  cut: not certification, not a cockpit. Bound to the HIL wire in
+  [ADR-004](docs/adr/ADR-004-hil.md): the host pushes dual-channel discretes
+  and reads the gate back. GPIO pins are not bound.
+- **HIL protocol in the no_std crate, not beside it**
+  ([ADR-004](docs/adr/ADR-004-hil.md)). One frame family (`[7E C5][len][cmd][payload][crc8]`),
+  host and Nucleo both call `ventus_fsw::hil`. `cargo xtask hil <COM>` is a
+  gate; without a board it refuses. Host loopback of abort-on-the-wire is
+  `cargo test -p ventus-fsw`.
 
 ## Layout
 
@@ -368,7 +376,8 @@ Decisions and their trade-offs live in [`docs/adr/`](docs/adr/). The load-bearin
 crates/          Rust workspace: units, atmos, gasdyn, inlet, propulsion,
                  scram (dual-mode track, stub), aero, thermal, mass, cost,
                  envelope, dynamics, fsw, validate, xtask
-native/          C++17/CUDA, sm_120 — M9 only
+firmware/        Nucleo-F411RE, excluded from the workspace (ADR-004)
+native/          C++17/CUDA, sm_120 -- M9 only
 crates/*/cases/  the external yardsticks themselves, as TOML. Each case
                  carries its own source, tolerance and reason; there is no
                  separate reference directory (ADR-000 D11).
@@ -389,7 +398,7 @@ cargo xtask validate
 ```
 
 ```bash
-cargo run -p ventus-thermal --example stagnation
+cargo xtask hil COM7          # or /dev/ttyACM0; refuses without a board
 ```
 
 Writes `out/<run_id>/report.md` and `report.csv`. The header carries the commit

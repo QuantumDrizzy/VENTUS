@@ -1,5 +1,6 @@
 [workspace]
 resolver = "2"
+exclude = ["firmware/nucleo-f411"]
 members = [
     "crates/ventus-units",
     "crates/ventus-atmos",
@@ -44,6 +45,9 @@ assertions_on_constants = "deny"
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 toml  = "0.8"
+# Named-port open only. Default features pull libudev on Linux, which
+# `cargo test --workspace` must not require.
+serialport = { version = "4", default-features = false }
 
 # Determinism: the physics core must produce identical results across builds.
 # No fast-math, no target-cpu=native in checked-in profiles.
