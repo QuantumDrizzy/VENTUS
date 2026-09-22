@@ -91,11 +91,12 @@ const ROUTES: &[(&str, Route)] = &[
     (
         "ventus-fsw",
         Route::Identities(concat!(
-            "M10's claim is bit-for-bit agreement with M1, which is a cross-check between ",
-            "two of this project's own modules, not an external number. Putting it in the ",
-            "corpus would mean writing a `source` field that cites ourselves, which is ",
-            "exactly the drift the mandatory source exists to stop. It is asserted by ",
-            "equality tests in the module.",
+            "M10's claims are bit-for-bit agreement with M1 and the totality of the ",
+            "safety kernel's mode table (ADR-005). Both are cross-checks against this ",
+            "project's own code, not an external number. Putting them in the corpus would ",
+            "mean writing a `source` field that cites ourselves, which is exactly the ",
+            "drift the mandatory source exists to stop. They are asserted by equality ",
+            "and transition tests in the crate.",
         )),
     ),
     (
