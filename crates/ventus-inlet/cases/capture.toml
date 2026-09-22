@@ -1,0 +1,135 @@
+# M3 — capture, spillage hook, Kantrowitz starting, spike/unstart refusals.
+#
+# Recovery remains in recovery.toml. These cases are identities and one cited
+# 1-D limit. There is no cowl highlight on this aircraft, so a case that asked
+# for a newton of additive drag without a lip state is asking this crate to
+# invent one.
+
+[[case]]
+name    = "kantrowitz_at_design_mach"
+source  = "Kantrowitz & Donaldson, NACA ACR L5D20 (WR L-713), 1945: Ae/At after a normal shock at the entrance equals (A/A*) at the post-shock Mach. THE SOURCE IS THE COMPOSITION of NACA 1135 relations already in M2."
+reason  = """
+THE 1-D STARTING LIMIT, COMPOSED RATHER THAN TRANSCRIBED.
+
+At M 3.5 a normal shock leaves M2 = 0.45115 (NACA 1135). A/A* there is the
+largest internal contraction that will self-start. It is about 1.45 against an
+isentropic A/A* of about 6.79 at the same Mach — that gap is why a
+mixed-compression inlet needs a translating spike, and it is a property of the
+gas, not of a geometry this project has not drawn.
+"""
+inputs  = { mach = 3.5, gamma = 1.4 }
+expect  = { kantrowitz_contraction = 1.447, isentropic_contraction = 6.790 }
+rel_tol = 5e-3
+
+[[case]]
+name    = "kantrowitz_infinite_mach_limit"
+source  = "Flock & Gülhan, AIAA J. 57(6) 2019 eq. (4), after Kantrowitz & Donaldson 1945: lim M→∞ Ae/At = 1.666 at gamma = 1.4. Implemented as A/A* at the infinite-Mach post-shock Mach sqrt((γ−1)/(2γ))."
+reason  = """
+A mixed-compression inlet cannot buy unlimited starting contraction by flying
+faster. The ceiling is 1.666 at gamma = 1.4. Probed at M = 1e6 rather than by
+taking a limit in closed form, so a drift in M2's area-ratio or shock relations
+cannot hide behind a typed constant.
+"""
+inputs  = { mach = 1.0e6, gamma = 1.4 }
+expect  = { kantrowitz_contraction = 1.666 }
+rel_tol = 1e-3
+
+[[case]]
+name    = "capture_fits_the_body_at_the_design_point_ratio"
+source  = "Identity: A_capture / A_body. The 0.745 figure is M12's design-point capture_area_ratio; this case asserts the inlet-side identity, not the thrust-drag inversion that produced the 0.745."
+reason  = """
+At the validated snapshot the required capture is 74.5 % of the Sears-Haack
+body. The body can host it. Past M 3.85 it cannot — that is a different case.
+"""
+inputs  = { capture_area_m2 = 2.511, body_area_m2 = 3.369 }
+expect  = { capture_to_body_ratio = 0.7453, body_can_host_capture = true }
+rel_tol = 1e-3
+
+[[case]]
+name    = "capture_exceeds_the_body_at_the_proposed_m4_ratio"
+source  = "docs/design-point-m4.md: proposed M 4.00 capture/body ≈ 1.146 on the current Sears-Haack. Identity on two areas; THE SOURCE IS THE RATIO, not a closed design point."
+reason  = """
+NOT A DESIGN POINT. Programme intent is cruise ≥ Mach 4; the snapshot remains
+M 3.50. On the current body the required capture already exceeds the
+cross-section. A ratio above 1 is self-inconsistency. This crate does not close
+that by inventing nacelles.
+
+DO NOT RETUNE the expect toward 1.0 to look like a close. If a new body lands,
+the areas are rewritten in the same change.
+"""
+inputs  = { capture_area_m2 = 3.859, body_area_m2 = 3.369 }
+expect  = { capture_to_body_ratio = 1.1454, body_can_host_capture = false }
+rel_tol = 1e-3
+
+[[case]]
+name    = "shock_on_lip_spills_nothing"
+source  = "Mass-flow ratio μ = A0/Ac. At shock-on-lip, A0 = Ac, spilled area is zero. THE SOURCE IS THE DEFINITION."
+reason  = "A started external-compression inlet at design has no additive streamtube to charge. The spilled area is the hook; the newton still needs a lip state."
+inputs  = { streamtube_area_m2 = 2.511, cowl_area_m2 = 2.511 }
+expect  = { mass_flow_ratio = 1.0, spilled_area_m2 = 0.0, capture_exceeds_cowl = false }
+rel_tol = 1e-12
+
+[[case]]
+name    = "subcritical_cowl_spills_the_leftover_area"
+source  = "Spilled area = (Ac − A0)+. Identity, not a drag correlation."
+reason  = """
+When the cowl is larger than the captured streamtube the difference is spilled.
+This is the hook M3's TODO named. Additive drag in newtons is a different
+question and is refused without a cowl-lip pressure.
+"""
+inputs  = { streamtube_area_m2 = 2.0, cowl_area_m2 = 3.0 }
+expect  = { mass_flow_ratio = 0.6666666666666666, spilled_area_m2 = 1.0, capture_exceeds_cowl = false }
+rel_tol = 1e-12
+
+[[case]]
+name    = "additive_drag_without_a_lip_is_refused"
+source  = "Seddon & Goldsmith, Intake Aerodynamics: additive drag is a control-volume force that needs p_c and u_c at the lip. This aircraft has no cowl highlight. THE SOURCE IS THE DEFINITION, not a C_D(μ) fudge."
+reason  = """
+An incompressible C_D = 2 μ (1−μ) at M 3.5 would be a number about the wrong
+physics. The spilled area is emitted; the force is not. A case that asks for
+additive_drag_n without a lip must fail closed.
+"""
+inputs  = { streamtube_area_m2 = 2.0, cowl_area_m2 = 3.0 }
+expect  = { refused_cowl_lip_not_modelled = true, spilled_area_m2 = 1.0 }
+abs_tol = 0.0
+
+[[case]]
+name    = "spike_schedule_refuses_at_the_design_point"
+source  = "docs/PRIMER.md and ventus-inlet: a mixed-compression inlet needs a translating spike to hold the internal shock system. This aircraft has no spike geometry. THE SOURCE IS THE GAP."
+reason  = """
+Kantrowitz says why the spike exists (isentropic contraction 6.79 against a
+starting limit of 1.45 at M 3.5). It does not say where the spike is. Asking
+for a position must refuse with SpikeScheduleNotModelled, never a stroke in
+metres.
+"""
+inputs  = { mach = 3.5, request_spike_schedule = true }
+expect  = { refused_spike_schedule_not_modelled = true }
+abs_tol = 0.0
+
+[[case]]
+name    = "unstart_margin_refuses_at_the_design_point"
+source  = "Same gap: unstart (shock expulsion) needs an operating throat and a back-pressure. Neither is declared. THE SOURCE IS THE GAP."
+reason  = """
+self_starts(M, γ, Ae/At) is the 1-D Kantrowitz criterion and is modelled.
+A margin in newtons or milliseconds is not. The request is well-formed and
+the answer is a refusal — the same contract as ventus-scram.
+"""
+inputs  = { mach = 3.5, request_unstart_margin = true }
+expect  = { refused_unstart_dynamics_not_modelled = true }
+abs_tol = 0.0
+
+[[case]]
+name    = "no_verified_additive_drag_coefficient_at_design_spillage"
+source  = "Seddon & Goldsmith additive-drag definition requires a cowl-lip state this aircraft does not have. Same missing-key mechanism as M11 programme_cost_usd_1986_verified."
+status  = "known_limit"
+reason  = """
+THE NUMBER THIS MODULE IS NOT ALLOWED TO PRINT FROM A MASS-FLOW RATIO ALONE.
+
+There is no cited C_D,add(μ, M) for this cowl, because there is no cowl. A
+future lip state plus the control-volume identity in additive_drag_n would
+make this annotation STALE. Until then no report from this project should
+quote a spillage-drag coefficient from M3.
+"""
+inputs  = { streamtube_area_m2 = 2.511, cowl_area_m2 = 3.369 }
+expect  = { additive_drag_coefficient = 0.0 }
+rel_tol = 1e-12

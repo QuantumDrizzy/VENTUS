@@ -350,50 +350,113 @@ fn evaluate_thermal(c: &Case) -> BTreeMap<String, ExpectValue> {
     m
 }
 
-/// M3.
+/// M3. Recovery, capture identities, Kantrowitz, and the spike/unstart refusals.
+/// A case names the question with its inputs; keys it does not name are ignored.
 fn evaluate_inlet(c: &Case) -> BTreeMap<String, ExpectValue> {
     let mut m = BTreeMap::new();
     let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
-    let Some(mach) = f("mach") else { return m };
-
-    m.insert(
-        "mil_recovery".into(),
-        ExpectValue::Float(ventus_inlet::mil_e_5008b_recovery(mach)),
-    );
-
-    let Some(n) = c.inputs.get("ramp_count").and_then(toml::Value::as_integer) else {
-        return m;
-    };
-    let gamma = f("gamma").unwrap_or(1.4);
-
-    // A "zero ramp" case is the degenerate single normal shock, used to show
-    // that the train reduces to it.
-    let train = if c
-        .inputs
-        .get("zero_ramp")
-        .and_then(toml::Value::as_bool)
-        .unwrap_or(false)
-    {
-        ventus_inlet::shock_train(mach, &[0.0], gamma).ok()
-    } else {
-        ventus_inlet::optimise_ramps(mach, n as usize, gamma)
-            .ok()
-            .map(|(_, t)| t)
+    let flag = |k: &str| {
+        c.inputs
+            .get(k)
+            .and_then(toml::Value::as_bool)
+            .unwrap_or(false)
     };
 
-    if let Some(t) = train {
+    if let (Some(capture), Some(body)) = (f("capture_area_m2"), f("body_area_m2")) {
+        if let Ok(r) = ventus_inlet::capture_to_body_ratio(capture, body) {
+            m.insert("capture_to_body_ratio".into(), ExpectValue::Float(r));
+        }
+        if let Ok(fits) = ventus_inlet::body_can_host_capture(capture, body) {
+            m.insert("body_can_host_capture".into(), ExpectValue::Bool(fits));
+        }
+    }
+
+    if let (Some(a0), Some(ac)) = (f("streamtube_area_m2"), f("cowl_area_m2")) {
+        if let Ok(s) = ventus_inlet::spillage(a0, ac) {
+            m.insert(
+                "mass_flow_ratio".into(),
+                ExpectValue::Float(s.mass_flow_ratio),
+            );
+            m.insert(
+                "spilled_area_m2".into(),
+                ExpectValue::Float(s.spilled_area_m2),
+            );
+            m.insert(
+                "capture_exceeds_cowl".into(),
+                ExpectValue::Bool(s.capture_exceeds_cowl),
+            );
+        }
         m.insert(
-            "total_recovery".into(),
-            ExpectValue::Float(t.total_recovery),
+            "refused_cowl_lip_not_modelled".into(),
+            ExpectValue::Bool(matches!(
+                ventus_inlet::additive_drag_without_lip(a0, ac),
+                Err(ventus_inlet::CaptureError::CowlLipNotModelled)
+            )),
         );
+        // Deliberately do NOT emit additive_drag_coefficient: there is no cowl.
+        // The known_limit case that asks for it fails with a missing key.
+    }
+
+    if let Some(mach) = f("mach") {
         m.insert(
-            "total_turning_deg".into(),
-            ExpectValue::Float(t.total_turning_rad.to_degrees()),
+            "mil_recovery".into(),
+            ExpectValue::Float(ventus_inlet::mil_e_5008b_recovery(mach)),
         );
-        m.insert(
-            "mach_before_terminal".into(),
-            ExpectValue::Float(t.mach_before_terminal),
-        );
+        let gamma = f("gamma").unwrap_or(1.4);
+        if let Ok(k) = ventus_inlet::kantrowitz_contraction_ratio(mach, gamma) {
+            m.insert("kantrowitz_contraction".into(), ExpectValue::Float(k));
+        }
+        if let Ok(i) = ventus_inlet::isentropic_contraction_ratio(mach, gamma) {
+            m.insert("isentropic_contraction".into(), ExpectValue::Float(i));
+        }
+
+        if flag("request_spike_schedule") {
+            m.insert(
+                "refused_spike_schedule_not_modelled".into(),
+                ExpectValue::Bool(matches!(
+                    ventus_inlet::spike_position_m(mach),
+                    Err(ventus_inlet::StartError::SpikeScheduleNotModelled)
+                )),
+            );
+        }
+        if flag("request_unstart_margin") {
+            m.insert(
+                "refused_unstart_dynamics_not_modelled".into(),
+                ExpectValue::Bool(matches!(
+                    ventus_inlet::unstart_margin(mach),
+                    Err(ventus_inlet::StartError::UnstartDynamicsNotModelled)
+                )),
+            );
+        }
+
+        let Some(n) = c.inputs.get("ramp_count").and_then(toml::Value::as_integer) else {
+            return m;
+        };
+
+        // A "zero ramp" case is the degenerate single normal shock, used to show
+        // that the train reduces to it.
+        let train = if flag("zero_ramp") {
+            ventus_inlet::shock_train(mach, &[0.0], gamma).ok()
+        } else {
+            ventus_inlet::optimise_ramps(mach, n as usize, gamma)
+                .ok()
+                .map(|(_, t)| t)
+        };
+
+        if let Some(t) = train {
+            m.insert(
+                "total_recovery".into(),
+                ExpectValue::Float(t.total_recovery),
+            );
+            m.insert(
+                "total_turning_deg".into(),
+                ExpectValue::Float(t.total_turning_rad.to_degrees()),
+            );
+            m.insert(
+                "mach_before_terminal".into(),
+                ExpectValue::Float(t.mach_before_terminal),
+            );
+        }
     }
     m
 }
@@ -428,6 +491,14 @@ fn evaluate_propulsion(c: &Case) -> BTreeMap<String, ExpectValue> {
             ("specific_impulse_s", cycle.specific_impulse_s),
             ("specific_thrust_n_s_kg", cycle.specific_thrust_n_s_kg),
             ("fuel_air_ratio", cycle.fuel_air_ratio),
+            (
+                "burner_entry_total_pressure_pa",
+                cycle.burner_entry_total_pressure_pa,
+            ),
+            (
+                "burner_entry_total_temperature_k",
+                cycle.burner_entry_total_temperature_k,
+            ),
             ("exit_velocity_m_s", cycle.exit_velocity_m_s),
         ] {
             m.insert(k.to_string(), ExpectValue::Float(v));
@@ -544,12 +615,47 @@ fn evaluate_envelope(c: &Case) -> BTreeMap<String, ExpectValue> {
             (p.ramjet_specific_impulse_s, p.ramjet_specific_thrust_n_s_kg)
         {
             let fuel_air = fs / (isp * ventus_units::constants::G0_M_S2);
+            let phi = fuel_air / ventus_envelope::STOICHIOMETRIC_FUEL_AIR_RATIO;
             m.insert("fuel_air_ratio".to_string(), ExpectValue::Float(fuel_air));
+            m.insert("equivalence_ratio".to_string(), ExpectValue::Float(phi));
             m.insert(
-                "equivalence_ratio".to_string(),
-                ExpectValue::Float(fuel_air / ventus_envelope::STOICHIOMETRIC_FUEL_AIR_RATIO),
+                "below_operative_lean_blowout_bound".to_string(),
+                ExpectValue::Bool(
+                    ventus_envelope::operative_lean_blowout_verdict(phi)
+                        .is_some_and(ventus_envelope::LeanBlowoutVerdict::below_operative),
+                ),
+            );
+            m.insert(
+                "inside_literature_blowout_band".to_string(),
+                ExpectValue::Bool(
+                    ventus_envelope::literature_blowout_band(phi)
+                        .is_some_and(ventus_envelope::LiteratureBlowoutBand::inside),
+                ),
             );
         }
+        m.insert(
+            "flame_holder_declared".to_string(),
+            ExpectValue::Bool(ventus_envelope::FLAME_HOLDER_DECLARED),
+        );
+        m.insert(
+            "operative_phi_bound".to_string(),
+            ExpectValue::Float(ventus_envelope::OPERATIVE_LEAN_BLOWOUT_PHI),
+        );
+        if let Some(p02) = p.burner_entry_total_pressure_pa {
+            m.insert(
+                "burner_entry_total_pressure_pa".to_string(),
+                ExpectValue::Float(p02),
+            );
+        }
+        if let Some(t02) = p.burner_entry_total_temperature_k {
+            m.insert(
+                "burner_entry_total_temperature_k".to_string(),
+                ExpectValue::Float(t02),
+            );
+        }
+        // Deliberately do NOT emit `lean_blowout_verified`. The arithmetic is
+        // pinned above; a verified fly/no-fly needs a primary φ_LBO. The
+        // known_limit case that asks for the key fails closed.
         if let Some(r) = ventus_envelope::capture_area_ratio(mach) {
             m.insert("capture_area_ratio".to_string(), ExpectValue::Float(r));
         }

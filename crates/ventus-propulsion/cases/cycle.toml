@@ -29,6 +29,22 @@ expect  = { burner_gamma = 1.304 }
 rel_tol = 1e-2
 
 [[case]]
+name    = "burner_entry_total_pressure_is_ram_compressed"
+source  = "Ideal ramjet station 2: p02 = p∞ · (p0/p)_isen · π_d. Freestream from M1 at 26 km; π_d = MIL-E-5008B 0.7416. THE SOURCE IS THE CYCLE."
+reason  = """
+[CORRECTED] Burner entry is not ~1.6 kPa.
+
+p∞ = 2.15 kPa. Ram at M 3.5 multiplies static pressure by ~76, then the inlet
+keeps 0.74 of that total: p02 ≈ 122 kPa. The 1.6 kPa figure is p∞ · π_d with
+the ram rise omitted, which would make a flame look impossible. The cycle does
+not omit it. This is MIL recovery; M12's four-ramp inviscid recovery is a few
+points higher and is pinned there.
+"""
+inputs  = { geopotential_altitude_m = 26000.0, mach = 3.5, inlet_recovery = 0.7416, burner_exit_temperature_k = 1700.0 }
+expect  = { burner_entry_total_pressure_pa = 1.218e5 }
+rel_tol = 1e-2
+
+[[case]]
 name    = "specific_impulse_in_the_published_ramjet_band"
 source  = "Hydrocarbon ramjet specific impulse near M 3, published range roughly 900-2000 s [TO CITE]"
 status  = "known_limit"

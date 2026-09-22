@@ -100,29 +100,49 @@ pub const USEFUL_THRUST_FRACTION: f64 = 0.25;
 ///
 /// [CORRECTED] This first reported a single crossing, M 3.91, from a single
 /// equivalence ratio of 0.4. Lean blowout in a ramjet combustor is not a point:
-/// it moves with flame holder geometry, pressure and inlet preheat. The band
-/// carried here is phi 0.30 to 0.50. The strict end is cited: the
-/// stirred-reactor stability boundary of Fig. 10-70 sits at phi = 0.5 lean
-/// (Mattingly, Heiser & Pratt, *Aircraft Engine Design*, 2nd ed., §10.4.2,
-/// reporting Spalding). The permissive end is the observed lean limit of
-/// combustors with a dedicated flame holder and is **[TO VERIFY]**. A point
-/// estimate invites an argument about the point; a band does not, and the band
-/// here says something the point hid.
+/// it moves with flame holder geometry, pressure and inlet preheat, over roughly
+/// phi = 0.3 to 0.5.
+
 ///
 /// Swept against a stoichiometric f/a of [`STOICHIOMETRIC_FUEL_AIR_RATIO`]:
 ///
 /// ```text
-///   phi 0.30  ->  M 4.42
+///   phi 0.30  ->  M 4.42     permissive literature end; needs a flame holder
 ///   phi 0.35  ->  M 4.16
 ///   phi 0.40  ->  M 3.89
 ///   phi 0.45  ->  M 3.58
-///   phi 0.50  ->  M 3.23   <- BELOW the M 3.50 design point
+///   phi 0.50  ->  M 3.23     strict literature end; BELOW the M 3.50 snapshot
 /// ```
 ///
-/// **The design point sits inside the uncertainty band.** At the permissive end
+/// **The design point sits inside the literature band.** At the permissive end
 /// the engine has 0.9 Mach of margin; at the strict end it has already blown out
-/// before reaching the condition the aircraft is designed for. Which of those is
-/// true is not knowable from anything in this repository.
+/// before reaching the condition the aircraft is designed for.
+///
+/// # What this revision tightens, and what it does not
+///
+/// No flame holder has been declared ([`FLAME_HOLDER_DECLARED`] is false and
+/// locked). The permissive end is therefore **not available to this aircraft**.
+/// Inventing a holder that "saves" M 3.50 would be a geometry this repository
+/// does not have, and it is refused rather than sketched.
+///
+/// So the **operative** bound is the strict end, [`LEAN_BLOWOUT_PHI_STRICT`].
+/// Design phi is [`DESIGN_POINT_EQUIVALENCE_RATIO`] = 0.4615, which is below
+/// 0.50. Under that bound the snapshot does not hold a flame. The bound itself
+/// is still `[TO VERIFY]` against a primary afterburner/ramjet stability chart
+/// (Mattingly, *Elements of Propulsion*, Fig. 10-70 is the intended source, not
+/// a figure read in this repository). The decision criterion is
+/// [`LEAN_BLOWOUT_DECISION_CRITERION`]: a cited `φ_LBO` on either side of
+/// 0.4615 closes the question; a holder geometry closes which end applies.
+///
+/// Pressure does not secretly rescue the permissive end. Burner-entry *total*
+/// pressure at the snapshot is ~122 kPa with MIL recovery (~133 kPa on the
+/// four-ramp inviscid recovery M12 feeds the cycle) — ram compression, not
+/// ambient. A figure near 1.6 kPa is either freestream static at the M 4
+/// constant-q altitude (1.65 kPa) or `p∞ · π_d` with ram omitted (1.60 kPa).
+/// Omitting ram would make combustion look impossible; the cycle does not omit
+/// it. Lefebvre-family loading still has `φ_LBO` rising as pressure falls, so
+/// altitude is against us and ram is what buys the pressure back. Evaluating a
+/// correlation still needs a combustor volume and a holder, which is tier 2.
 ///
 /// So the M4 refusal this module reports at M 5.70 is a **ceiling far above the
 /// real limit**, and closing this needs a cited blowout correlation, not a
@@ -184,23 +204,59 @@ pub const FLAME_STABILITY_NOT_MODELLED: &str =
 pub const LEAN_BLOWOUT_RESOLUTION: &str =
     "tier 1: a cited phi band. tier 2: a correlation needing a combustor M4 does not have";
 
+/// Fly / no-fly on phi, written as a criterion rather than a wish.
+///
+/// A cited `φ_LBO` above [`DESIGN_POINT_EQUIVALENCE_RATIO`] means M 3.50 does
+/// not fly. A cited `φ_LBO` below it means the snapshot has margin on phi
+/// (capture may still bind). No flame holder is declared, so the 0.30
+/// literature end is not available. The operative bound is therefore the
+/// strict end 0.50, still `[TO VERIFY]` against a primary chart.
+pub const LEAN_BLOWOUT_DECISION_CRITERION: &str =
+    "cited phi_LBO > 0.4615 → M 3.50 does not fly; cited phi_LBO < 0.4615 → margin on phi; no holder declared, so the 0.30 end is not available";
+
 /// Stoichiometric fuel-air ratio for kerosene in air. Derived from a
 /// representative Jet A composition of CH1.95 (Edwards, *Reference Jet Fuels
-/// for Combustion Testing*, 2017: H/C ≈ 1.95 for the reference jet fuels),
+/// for Combustion Testing*, 2017: H/C � 1.95 for the reference jet fuels),
 /// which gives a stoichiometric f/a of 0.0681; 0.0680 is carried, 0.2 % below
 /// the derived value.
 pub const STOICHIOMETRIC_FUEL_AIR_RATIO: f64 = 0.0680;
 
-/// Permissive end of the lean blowout band: easiest to hold a flame. The
-/// observed lean limit of combustors with a dedicated flame holder, better
-/// atomisation and inlet preheat than the stirred-reactor baseline.
-/// **[TO VERIFY]**
+/// Permissive literature end: easiest to hold a flame, **with a flame holder**.
+///
+/// `[TO VERIFY]` against a primary ramjet/dump-combustor LBO with a declared
+/// holder (ONERA-class measurements near 0.28–0.32 are the *class*, recited
+/// from secondary literature, not read here). Not available to this aircraft
+/// until a holder is declared with a source.
 pub const LEAN_BLOWOUT_PHI_MIN: f64 = 0.30;
-/// Strict end of the lean blowout band: the stirred-reactor stability boundary
-/// at phi = 0.5 lean, from Mattingly, Heiser & Pratt, *Aircraft Engine Design*,
-/// 2nd ed., §10.4.2, Fig. 10-70 (reporting Spalding): the stability limit runs
-/// 10 lbm/(s·atm^1.8·ft³) at phi = 0.5 and 1.7, against 90 at phi = 1.
+/// Strict literature end: poorly stabilized / no dedicated holder.
+///
+/// `[TO VERIFY]` against a primary afterburner/ramjet stability chart.
+/// Intended source: Mattingly, *Elements of Propulsion*, Fig. 10-70. Recited
+/// as the strict-end *class* (~φ = 0.5), not as a digit read from the figure
+/// in this repository.
+
 pub const LEAN_BLOWOUT_PHI_MAX: f64 = 0.50;
+
+/// Alias of [`LEAN_BLOWOUT_PHI_MIN`]: the holder-required end of the band.
+pub const LEAN_BLOWOUT_PHI_PERMISSIVE: f64 = LEAN_BLOWOUT_PHI_MIN;
+/// Alias of [`LEAN_BLOWOUT_PHI_MAX`]: the no-holder end of the band.
+pub const LEAN_BLOWOUT_PHI_STRICT: f64 = LEAN_BLOWOUT_PHI_MAX;
+
+/// No flame holder has been declared for this aircraft.
+///
+/// Locked false: setting this true without a cited holder geometry is the
+/// fake save this revision exists not to make. Delete the assertion in the
+/// same change as the holder.
+pub const FLAME_HOLDER_DECLARED: bool = false;
+
+const _: () = assert!(
+    !FLAME_HOLDER_DECLARED,
+    "a flame holder was declared without deleting this lock; that change must cite geometry"
+);
+
+/// Operative lean-blowout phi for *this* aircraft: the strict end, because
+/// [`FLAME_HOLDER_DECLARED`] is false.
+pub const OPERATIVE_LEAN_BLOWOUT_PHI: f64 = LEAN_BLOWOUT_PHI_STRICT;
 
 /// Mach at which the cycle's fuel-air ratio falls below the blowout limit for a
 /// given equivalence ratio, scanning upward from `from_mach`.
@@ -234,6 +290,92 @@ pub fn lean_blowout_mach(
         }
     }
     None
+}
+
+/// Where the cycle's equivalence ratio sits against the blowout bounds.
+///
+/// This is a comparison, not a combustor. [`Refusal`] is reserved for module
+/// refusals implemented elsewhere; blowout is not one of those.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LeanBlowoutVerdict {
+    /// φ is below [`OPERATIVE_LEAN_BLOWOUT_PHI`]. Under the no-holder bound
+    /// the flame is out. The bound is still `[TO VERIFY]`.
+    BelowOperativeBound,
+    /// φ is at or above the operative (strict) bound. Even a poorly
+    /// stabilized burner would hold, *if* that end is right.
+    AboveOperativeBound,
+}
+
+impl LeanBlowoutVerdict {
+    #[must_use]
+    pub fn below_operative(self) -> bool {
+        match self {
+            LeanBlowoutVerdict::BelowOperativeBound => true,
+            LeanBlowoutVerdict::AboveOperativeBound => false,
+        }
+    }
+}
+
+/// [`LeanBlowoutVerdict`] from a cycle equivalence ratio against the
+/// operative (no-holder) bound.
+#[must_use]
+pub fn operative_lean_blowout_verdict(equivalence_ratio: f64) -> Option<LeanBlowoutVerdict> {
+    if equivalence_ratio.is_nan() || equivalence_ratio <= 0.0 {
+        return None;
+    }
+    if equivalence_ratio < OPERATIVE_LEAN_BLOWOUT_PHI {
+        Some(LeanBlowoutVerdict::BelowOperativeBound)
+    } else {
+        Some(LeanBlowoutVerdict::AboveOperativeBound)
+    }
+}
+
+/// Literature-band placement: below the permissive end, inside, or above the
+/// strict end. The 0.30 end is not operative for this aircraft; this is the
+/// map, not the decision.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LiteratureBlowoutBand {
+    BelowPermissiveEnd,
+    InsideBand,
+    AboveStrictEnd,
+}
+
+impl LiteratureBlowoutBand {
+    #[must_use]
+    pub fn inside(self) -> bool {
+        match self {
+            LiteratureBlowoutBand::InsideBand => true,
+            LiteratureBlowoutBand::BelowPermissiveEnd | LiteratureBlowoutBand::AboveStrictEnd => {
+                false
+            }
+        }
+    }
+}
+
+/// Place φ in the 0.30–0.50 literature band.
+#[must_use]
+pub fn literature_blowout_band(equivalence_ratio: f64) -> Option<LiteratureBlowoutBand> {
+    if equivalence_ratio.is_nan() || equivalence_ratio <= 0.0 {
+        return None;
+    }
+    if equivalence_ratio < LEAN_BLOWOUT_PHI_PERMISSIVE {
+        Some(LiteratureBlowoutBand::BelowPermissiveEnd)
+    } else if equivalence_ratio < LEAN_BLOWOUT_PHI_STRICT {
+        Some(LiteratureBlowoutBand::InsideBand)
+    } else {
+        Some(LiteratureBlowoutBand::AboveStrictEnd)
+    }
+}
+
+/// Cycle equivalence ratio from a [`Point`], or `None` if the engine refused.
+#[must_use]
+pub fn point_equivalence_ratio(p: &Point) -> Option<f64> {
+    let (isp, fs) = (
+        p.ramjet_specific_impulse_s?,
+        p.ramjet_specific_thrust_n_s_kg?,
+    );
+    let fuel_air = fs / (isp * ventus_units::constants::G0_M_S2);
+    Some(fuel_air / STOICHIOMETRIC_FUEL_AIR_RATIO)
 }
 
 // ---------------------------------------------------------------------------
@@ -286,6 +428,23 @@ const _: () = assert!(
         && PROPOSED_M4_CRUISE_MACH < NO_BODY_CLOSES_ABOVE_MACH,
     "proposed M 4 is no longer inside the current geometry's excluded capture band"
 );
+
+/// Operative bound is the strict end while no holder is declared. If these
+/// ever disagree, the fly/no-fly statement in the docs is reading the wrong
+/// number.
+const _: () = assert!(
+    OPERATIVE_LEAN_BLOWOUT_PHI == LEAN_BLOWOUT_PHI_STRICT,
+    "the operative blowout bound is no longer the strict end"
+);
+
+/// Design phi sits below the operative bound. If a future cycle change
+/// pushed phi above 0.50, the "does not fly under the no-holder bound"
+/// statement would be stale.
+const _: () = assert!(
+    DESIGN_POINT_EQUIVALENCE_RATIO < OPERATIVE_LEAN_BLOWOUT_PHI,
+    "design phi no longer sits below the operative lean-blowout bound"
+);
+
 
 /// Why a module stopped answering.
 ///
@@ -426,6 +585,12 @@ pub struct Point {
     /// the ramjet. Peaks at M 2.30 and is already down to 83.7 % of peak at the
     /// M 3.50 design point.
     pub ramjet_specific_thrust_n_s_kg: Option<f64>,
+    /// Burner-entry total pressure [Pa]. Ram compression times inlet recovery,
+    /// not ambient. At the snapshot this is ~133 kPa on the four-ramp recovery
+    /// this sweep feeds the cycle, against 2.15 kPa freestream.
+    pub burner_entry_total_pressure_pa: Option<f64>,
+    /// Burner-entry total temperature [K], calorically perfect ram.
+    pub burner_entry_total_temperature_k: Option<f64>,
     /// Radiation-equilibrium wall temperature at [`SKIN_STATION_M`].
     pub wall_temperature_k: Option<f64>,
     /// Lightest material whose sustained limit clears the wall temperature.
@@ -526,6 +691,8 @@ pub fn evaluate(mach: f64) -> Point {
         inlet_recovery: None,
         ramjet_specific_impulse_s: None,
         ramjet_specific_thrust_n_s_kg: None,
+        burner_entry_total_pressure_pa: None,
+        burner_entry_total_temperature_k: None,
         wall_temperature_k: None,
         lightest_material: None,
         refusals: [None; 5],
@@ -592,6 +759,8 @@ pub fn evaluate(mach: f64) -> Point {
             Ok(cycle) => {
                 p.ramjet_specific_impulse_s = Some(cycle.specific_impulse_s);
                 p.ramjet_specific_thrust_n_s_kg = Some(cycle.specific_thrust_n_s_kg);
+                p.burner_entry_total_pressure_pa = Some(cycle.burner_entry_total_pressure_pa);
+                p.burner_entry_total_temperature_k = Some(cycle.burner_entry_total_temperature_k);
             }
             Err(_) => p.record(Refusal::RamjetThermallyChoked),
         }
@@ -713,19 +882,16 @@ pub fn envelope(from_mach: f64, to_mach: f64, resolution: f64) -> Envelope {
 /// equivalence ratio means the engine has already gone out before reaching
 /// M 3.50.
 ///
-/// The blowout band this project carries is phi 0.3 to 0.5 — strict end cited
-/// (Mattingly Fig. 10-70, above), permissive end [TO VERIFY] — so
-/// 0.4615 sits inside it and well above the middle. The probability mass is NOT
-/// evenly split: phi 0.46 to 0.50 is an ordinary range for a ramjet combustor
-/// without a dedicated flame holder, and every value in it puts the design point
-/// out of reach.
+/// The literature band is phi 0.3 to 0.50, still `[TO VERIFY]` at both ends.
+/// 0.4615 sits inside it and above the middle. No flame holder is declared, so
+/// the operative bound is the strict end 0.50, and 0.4615 is below that.
+/// Under that bound the snapshot does not hold a flame. See
+/// [`LEAN_BLOWOUT_DECISION_CRITERION`].
 ///
-/// What remains open here is the permissive end and any pressure dependence:
-/// the cited stirred-reactor limit is for a turbojet-scale combustor loading,
-/// and the ramjet burner at ~1.6 kPa sits far off it. That question still
-/// decides between "the design point has margin" and "the design point does
-/// not fly", so it stays ahead of the L/D and Isp citations in the queue.
-/// Those change a number by some per cent. This one decides whether it flies.
+/// That keeps this ahead of the L/D and Isp citations in the queue. Those
+/// change a number by some per cent. This one decides between "the design
+/// point has margin" and "the design point does not fly".
+
 pub const DESIGN_POINT_EQUIVALENCE_RATIO: f64 = 0.4615;
 
 /// Mach at which the required capture area equals the vehicle's own body
@@ -814,7 +980,7 @@ pub fn required_capture_area_m2(mach: f64) -> Option<f64> {
 pub fn capture_area_ratio(mach: f64) -> Option<f64> {
     let required = required_capture_area_m2(mach)?;
     let geometry = ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA);
-    Some(required / geometry.max_cross_section_m2)
+    ventus_inlet::capture_to_body_ratio(required, geometry.max_cross_section_m2).ok()
 }
 
 /// Above this Mach **no body size closes the thrust balance**: M 4.536.

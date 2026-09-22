@@ -38,6 +38,13 @@
 //! needs the pressure distribution on the compression surfaces and the cowl,
 //! which this quasi-1D model does not carry. Declared as a gap in
 //! `docs/design-point.md`, not approximated into existence here.
+//!
+//! NOT modelled: flame stability. Burner-entry *total* pressure at the design
+//! point is ram-compressed (~122 kPa with MIL recovery), not the ~1.6 kPa of
+//! omitted-ram static. That pressure is what a Lefebvre-family correlation
+//! would be fed; evaluating one still needs a combustor volume and a flame
+//! holder, which this cycle does not have. The operative fly/no-fly comparison
+//! lives in `ventus-envelope`.
 
 use ventus_gasdyn::{gamma_air, specific_heat_air_j_kg_k, GasDynError};
 use ventus_units::constants::G0_M_S2;
