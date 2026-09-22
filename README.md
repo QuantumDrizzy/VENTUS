@@ -72,7 +72,7 @@ VENTUS answers it structurally rather than by care:
 | M2 | Compressible flow, parameterised in γ | NACA Report 1135 + analytic identities | **done** |
 | M3 | Inlet shock train, optimal ramps | MIL-E-5008B recovery; Oswatitsch, verified not assumed | **done** |
 | M4 | Ideal ramjet cycle, gamma(T) | specific-work collapse, ramjet Isp band | **done** |
-| M5 | Radiation-equilibrium skin, material selection | SR-71 skin 250-300 C at M 3.2 | **done** |
+| M5 | Radiation-equilibrium skin, Fay-Riddell nose/LE, material selection | SR-71 skin 250-300 C at M 3.2; nose residual stated | **done** (nose/LE computed; SR-71 nose is a known_limit) |
 | M6a | Compressible boundary layer | Blasius, Reynolds analogy (both exact) | **done** |
 | M6b | Geometry, wave drag, L/D | Küchemann bound; L/D in the 5.0-6.0 target | **done** |
 | M7 | Mass fractions, empty mass, Breguet range | SR-71 unrefuelled range - the end-to-end check | **done** |
@@ -209,7 +209,8 @@ ratio at that row remains **1.15**. Two configurations, one design point.
 | q∞ | 18.463 kPa |
 | T₀ | **752.8 K** (thermally perfect; 768.1 K if γ = 1.4) |
 | T_aw | **709.3 K / 436.2 °C** (no radiation) |
-| **Skin, radiating** | **548.3 K / 275.2 °C** at 10 m — computed, ε = 0.85 |
+| **Skin, radiating** | **548.3 K / 275.2 C** at 10 m -- computed, eps = 0.85 |
+| **Nose / LE, radiating** | **729.9 K / 734.9 K** -- Fay-Riddell at declared R_n = 25 mm / R_LE = 10 mm `[TO DETERMINE]`. Ti-6Al-4V dead; Ti-6242S lightest survivor |
 | Inlet recovery | 0.742, against 0.213 for a normal shock — **a factor of 3.48** |
 | Zero-fuel mass | **13 624 kg** — derived from 28 t cruise at the *cited* SR-71 zero-fuel fraction |
 | Cruise range | **4 265 — 5 714 km** — reserve-limited; no reserve policy chosen |
@@ -257,12 +258,16 @@ suction remain typed refusals. Four of those five frontiers are statements
 about the **model**. Only the capture area is a statement about the
 **aircraft**.
 
-The material never binds, and that is a mechanism rather than an assertion: the
-balance is `eps sigma T_w^4 = h (T_aw — T_w)`, so the fourth root crushes
-everything on the right, and film-temperature (Eckert) evaluation makes `h` fall
-faster with altitude than freestream scaling predicts. **There is no single
-exponent** — the local slope moves from −0.26 to −0.02 across the sweep, and
-quoting one value would be the same error as quoting the textbook one.
+The material never binds *on the radiating panels*, and that is a mechanism
+rather than an assertion: the balance is `eps sigma T_w^4 = h (T_aw - T_w)`, so
+the fourth root crushes everything on the right, and film-temperature (Eckert)
+evaluation makes `h` fall faster with altitude than freestream scaling predicts.
+**There is no single exponent** -- the local slope moves from -0.26 to -0.02
+across the sweep, and quoting one value would be the same error as quoting the
+textbook one. The nose and leading edges are not that station: Fay-Riddell at
+the declared structural-minimum radii puts T_wall at 730-735 K, and Ti-6Al-4V
+is dead there. M12 still evaluates the 10 m panel. That is not a claim that
+the airframe is thermally fine at every station.
 
 **What it costs is the one question the project answers badly, and says so.**
 M11 runs DAPCA IV anchored on the SR-71. The anchor is already **1.54x past** the
@@ -371,6 +376,10 @@ cargo test --workspace
 
 ```bash
 cargo xtask validate
+```
+
+```bash
+cargo run -p ventus-thermal --example stagnation
 ```
 
 Writes `out/<run_id>/report.md` and `report.csv`. The header carries the commit

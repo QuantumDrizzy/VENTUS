@@ -16,9 +16,11 @@
 //!
 //! Module deliverables:
 //!   - radiative-equilibrium skin temperature (q_conv = eps*sigma*T^4)
-//!   - the surviving material set. [TO PROVE] the expected answer is the one the
-//!     SR-71 arrived at: beta-titanium or Ti-6242S for hot structure, Ti-6Al-4V
-//!     only where radiation keeps the skin cool, Inconel at leading edges.
+//!   - stagnation-point / leading-edge heating after Fay-Riddell, at a
+//!     declared `[TO DETERMINE]` radius -- not a radius chosen to save Ti
+//!   - the surviving material set. Flat radiating panels: Ti-6Al-4V. Nose and
+//!     leading edges: Ti-6242S / beta-Ti / Inconel; Ti-6Al-4V does not survive
+//!     the declared structural-minimum radius.
 //!   - thermal growth: Ti alloys, dL/L = 2.9 to 3.5e-3 = 2.9 to 3.5 mm per metre
 //!     of airframe, up from 1.9 mm/m at M 3.0. Quantitative form of the SR-71
 //!     leaking fuel on the ground.
@@ -30,8 +32,14 @@
 #[cfg(test)]
 extern crate std;
 
+pub mod fay_riddell;
 pub mod radiative_equilibrium;
 
+pub use fay_riddell::{
+    heat_flux, stagnation_edge, stagnation_radiation_equilibrium, ventus1_leading_edge,
+    ventus1_nose, BodyKind, FayRiddellHeatFlux, Freestream, StagnationBalance, StagnationEdge,
+    CYLINDER_COEFFICIENT, SPHERE_COEFFICIENT, VENTUS_LEADING_EDGE_RADIUS_M, VENTUS_NOSE_RADIUS_M,
+};
 pub use radiative_equilibrium::{
     lightest_survivor, radiation_equilibrium_wall, survivors, thermal_growth_per_metre, Material,
     RadiationBalance, ThermalError, CANDIDATES, TITANIUM_EXPANSION_PER_K,
@@ -40,6 +48,6 @@ pub use radiative_equilibrium::{
 // DONE: recovery temperature, radiative equilibrium, material selection and
 // thermal growth (radiative_equilibrium.rs).
 //
-// TODO(M5): stagnation-point and leading-edge heating, which need a different
-// correlation (Fay-Riddell) than the flat plate; internal conduction and the
-// transient during acceleration.
+// DONE: stagnation-point and leading-edge heating after Fay-Riddell
+// (fay_riddell.rs). Internal conduction and the transient during acceleration
+// remain open.

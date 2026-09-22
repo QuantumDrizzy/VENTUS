@@ -297,52 +297,104 @@ fn evaluate_aero(c: &Case) -> BTreeMap<String, ExpectValue> {
     m
 }
 
-/// M5. Builds the edge state from M1 rather than taking it as case input, so a
-/// change in the atmosphere propagates into the thermal cases automatically.
+/// M5. Builds the edge / freestream state from M1 rather than taking it as
+/// case input, so a change in the atmosphere propagates into the thermal
+/// cases automatically. A case with `running_length_m` is the flat plate; a
+/// case with `radius_m` is Fay-Riddell. Both may be present.
 fn evaluate_thermal(c: &Case) -> BTreeMap<String, ExpectValue> {
     let mut m = BTreeMap::new();
     let f = |k: &str| c.inputs.get(k).and_then(toml::Value::as_float);
 
-    let (Some(h), Some(mach), Some(x)) = (
-        f("geopotential_altitude_m"),
-        f("mach"),
-        f("running_length_m"),
-    ) else {
+    let (Some(h), Some(mach)) = (f("geopotential_altitude_m"), f("mach")) else {
         return m;
     };
     let Ok(a) = ventus_atmos::at_geopotential(h) else {
         return m;
     };
-    let edge = EdgeState {
-        temperature_k: a.temperature_k,
-        pressure_pa: a.pressure_pa,
-        velocity_m_s: mach * a.speed_of_sound_m_s,
-        mach,
-        gamma: f("gamma").unwrap_or(1.4),
-    };
+    let gamma = f("gamma").unwrap_or(1.4);
+    let emissivity = f("emissivity").unwrap_or(0.85);
+    let sink = f("sink_temperature_k").unwrap_or(0.0);
 
-    if let Ok(b) = ventus_thermal::radiation_equilibrium_wall(
-        &edge,
-        x,
-        f("emissivity").unwrap_or(0.85),
-        f("sink_temperature_k").unwrap_or(0.0),
-        PRANDTL_AIR,
-        Regime::Turbulent,
-    ) {
-        for (k, v) in [
-            ("wall_temperature_k", b.wall_temperature_k),
-            (
-                "adiabatic_wall_temperature_k",
-                b.film.adiabatic_wall_temperature_k,
-            ),
-            ("radiation_relief_k", b.radiation_relief_k()),
-            (
-                "heat_transfer_coefficient_w_m2_k",
-                b.film.heat_transfer_coefficient_w_m2_k,
-            ),
-            ("convective_flux_w_m2", b.convective_flux_w_m2),
-        ] {
-            m.insert(k.to_string(), ExpectValue::Float(v));
+    if let Some(x) = f("running_length_m") {
+        let edge = EdgeState {
+            temperature_k: a.temperature_k,
+            pressure_pa: a.pressure_pa,
+            velocity_m_s: mach * a.speed_of_sound_m_s,
+            mach,
+            gamma,
+        };
+        if let Ok(b) = ventus_thermal::radiation_equilibrium_wall(
+            &edge,
+            x,
+            emissivity,
+            sink,
+            PRANDTL_AIR,
+            Regime::Turbulent,
+        ) {
+            for (k, v) in [
+                ("wall_temperature_k", b.wall_temperature_k),
+                (
+                    "adiabatic_wall_temperature_k",
+                    b.film.adiabatic_wall_temperature_k,
+                ),
+                ("radiation_relief_k", b.radiation_relief_k()),
+                (
+                    "heat_transfer_coefficient_w_m2_k",
+                    b.film.heat_transfer_coefficient_w_m2_k,
+                ),
+                ("convective_flux_w_m2", b.convective_flux_w_m2),
+            ] {
+                m.insert(k.to_string(), ExpectValue::Float(v));
+            }
+        }
+    }
+
+    if let Some(radius) = f("radius_m") {
+        let body = match c.inputs.get("body").and_then(toml::Value::as_str) {
+            Some("cylinder") => Some(ventus_thermal::BodyKind::Cylinder),
+            Some("sphere") | None => Some(ventus_thermal::BodyKind::Sphere),
+            Some(_) => None,
+        };
+        if let (Some(body), Ok(fs)) = (
+            body,
+            ventus_thermal::Freestream::from_atmos(&a, mach, gamma),
+        ) {
+            if let Ok(b) = ventus_thermal::stagnation_radiation_equilibrium(
+                &fs,
+                radius,
+                emissivity,
+                sink,
+                PRANDTL_AIR,
+                body,
+            ) {
+                for (k, v) in [
+                    ("wall_temperature_k", b.wall_temperature_k),
+                    ("convective_flux_w_m2", b.convective_flux_w_m2),
+                    ("stagnation_temperature_k", b.stagnation_temperature_k),
+                    ("radiation_relief_k", b.radiation_relief_k()),
+                    ("velocity_gradient_per_s", b.velocity_gradient_per_s),
+                ] {
+                    m.insert(k.to_string(), ExpectValue::Float(v));
+                }
+                let survives = |name: &str| -> bool {
+                    ventus_thermal::CANDIDATES
+                        .iter()
+                        .find(|mat| mat.name == name)
+                        .is_some_and(|mat| mat.sustained_limit_k >= b.wall_temperature_k)
+                };
+                m.insert(
+                    "ti6al4v_survives".into(),
+                    ExpectValue::Bool(survives("Ti-6Al-4V")),
+                );
+                m.insert(
+                    "ti6242s_survives".into(),
+                    ExpectValue::Bool(survives("Ti-6242S")),
+                );
+                m.insert(
+                    "inconel_survives".into(),
+                    ExpectValue::Bool(survives("Inconel 718")),
+                );
+            }
         }
     }
     m

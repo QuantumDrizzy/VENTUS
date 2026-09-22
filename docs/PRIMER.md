@@ -192,10 +192,13 @@ h (T_aw − T_w) = ε σ T_w⁴
 > get those 161 K and needs β-titanium or a superalloy. The recovery temperature
 > alone would never have surfaced that.
 
-Validation: the same model at the SR-71's own cruise condition gives 270 °C
-against its published 250–300 °C skin band, and falls below the band toward the
-tail — which is the model stating its own scope, since a flat plate has no nose,
-chines or leading edges.
+Validation: the same flat-plate model at the SR-71's own cruise condition gives
+270 C against its published 250-300 C skin band, and falls below the band toward
+the tail -- which is the model stating its own scope. The nose and leading
+edges are a different correlation (Fay-Riddell). At the declared 25 mm nose
+that gives 730 K at the design point -- Ti-6Al-4V is dead there, Ti-6242S is
+the lightest survivor -- and 650 K at the SR-71 condition against a published
+588 K. The residual is carried as a known_limit, not tuned away.
 
 **And then the structure moves.** Titanium expands ~8.6 × 10⁻⁶ per kelvin. From a
 288 K hangar to a 548 K cruise skin, that is 2.2 mm per metre — about **7 cm on a
@@ -244,9 +247,9 @@ If you have sixty seconds:
 > rising.
 
 Every number in that paragraph is computed in this repository and checked against
-a published source. Where the model runs out — leading-edge heating, the thrust
-split, anything needing vehicle geometry — it is marked as open rather than
-filled in.
+a published source. Where the model runs out -- a cited SR-71 nose radius, the
+thrust split, anything still needing a drawing -- it is marked as open rather
+than filled in.
 
 ---
 
