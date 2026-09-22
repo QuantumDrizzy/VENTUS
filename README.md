@@ -12,7 +12,7 @@ carrying the git hash that produced it.
 
 **What that harness does not do, said here rather than left to a `grep`.** It
 gates *cases*. It does not gate *constants*: a modelling constant marked
-`[TO CITE]` in a doc comment compiles and validates fine, and there are **31** of
+`[TO CITE]` in a doc comment compiles and validates fine, and there are **33** of
 them right now. `cargo xtask validate` counts and prints that number with every
 verdict, so it cannot go stale in this file.
 
@@ -84,9 +84,9 @@ VENTUS answers it structurally rather than by care:
 | Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
 
 ```
-cargo test --workspace     228 tests
-cargo xtask validate       118 cases: 108 pass, 0 fail, 10 known limit, 0 stale
-                           31 modelling constants still [TO CITE]
+cargo test --workspace     240 tests
+cargo xtask validate       122 cases: 111 pass, 0 fail, 11 known limit, 0 stale
+                           33 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 cargo xtask bench          gated on the corpus passing at the same commit
 ```
@@ -105,7 +105,7 @@ a `source` field that cites ourselves — the exact drift the mandatory source
 exists to stop. `xtask validate` prints those modules and the argument for each,
 and refuses a crate that declares no route at all (ADR-000 D12).
 
-The ten known limits are not failures being tolerated. Each is a case that is
+The eleven known limits are not failures being tolerated. Each is a case that is
 **expected to fail**, with a written reason. If one ever starts passing, the
 harness reports `STALE_KNOWN_LIMIT` and **fails the build** — the limitation
 is gone, so the annotation has become a false claim in the report, and the
