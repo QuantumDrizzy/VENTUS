@@ -23,6 +23,11 @@
 //!   same inputs give bit-identical outputs on every machine and every run.
 //! - **Total on bad input.** Sensor faults produce a defined response rather
 //!   than a panic. A control loop that can panic is not a control loop.
+//! - **A safety kernel beside the loop, not inside it** (ADR-005). Modes,
+//!   guarded discretes, and a software watchdog produce a gate on whether
+//!   [`step`] may write a new surface command. That is the first cut of
+//!   emergency logic. It is not certification, not a cockpit, and not the
+//!   unpublished Desktop HIL protocol.
 //!
 //! # Latency budget
 //!
@@ -39,8 +44,17 @@
 extern crate std;
 
 pub mod hil;
+pub mod safety;
 
 use ventus_atmos::AtmosError;
+
+pub use safety::{
+    resolve_sample, ChannelPolicy, ControlGate, CriticalDiscrete, DisagreeAction, DiscreteFrame,
+    DiscreteKind, DualSample, FlightMode, Heartbeat, ModeEvent, SafetyInputs, SafetyKernel,
+    SurfaceAuthority, Watchdog, WatchdogLevel, BIT_PASS_FRAMES, BIT_TIMEOUT_FRAMES,
+    DISCRETE_CONFIRM_FRAMES, EMERGENCY_TO_SAFE_FRAMES, WATCHDOG_DEGRADED_MISSES,
+    WATCHDOG_SAFE_MISSES,
+};
 
 /// Control loop rate [Hz]. The latency budget is its reciprocal.
 pub const CONTROL_RATE_HZ: f64 = 100.0;
@@ -141,11 +155,105 @@ impl Default for LoopState {
     }
 }
 
+/// Classify this frame's air-data / sensor inputs without commanding.
+///
+/// Same totality as [`step`]: NaN is [`Health::SensorFault`], altitude outside
+/// the atmosphere domain is [`Health::AirDataInvalid`]. The safety kernel
+/// reads this so a Degraded vehicle still reports *why* the loop does not
+/// believe the sample, without writing a new surface command.
+#[must_use]
+pub fn input_health(
+    altitude_m: f64,
+    true_airspeed_m_s: f64,
+    commanded_pitch_rad: f64,
+    measured_pitch_rad: f64,
+) -> Health {
+    if altitude_m.is_nan()
+        || true_airspeed_m_s.is_nan()
+        || commanded_pitch_rad.is_nan()
+        || measured_pitch_rad.is_nan()
+    {
+        return Health::SensorFault;
+    }
+    match air_data(altitude_m, true_airspeed_m_s) {
+        Ok(_) => Health::Nominal,
+        Err(_) => Health::AirDataInvalid,
+    }
+}
+
+/// One control frame presented to [`gated_step`]: sensors plus the safety
+/// kernel's inputs. `Copy`, fixed size.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ControlFrame {
+    pub altitude_m: f64,
+    pub true_airspeed_m_s: f64,
+    pub commanded_pitch_rad: f64,
+    pub measured_pitch_rad: f64,
+    pub discretes: DiscreteFrame,
+    pub heartbeat: Heartbeat,
+    pub bit_clear: bool,
+}
+
+/// Result of [`gated_step`]: the loop state the surfaces should see, and the
+/// gate that decided whether [`step`] was allowed to write it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GatedStep {
+    pub loop_state: LoopState,
+    pub gate: ControlGate,
+}
+
+/// One control step, gated by [`SafetyKernel`].
+///
+/// Composition, not a replacement: [`step`] is still the pitch PI. This
+/// function classifies inputs, ticks the kernel, and either calls [`step`]
+/// (Nominal) or holds the last command and integrator (every other mode).
+/// Hold-last on bad air data still holds when the kernel has already said
+/// Degraded — two fail-safes, one actuator.
+#[must_use]
+pub fn gated_step(
+    kernel: &mut SafetyKernel,
+    controller: &Controller,
+    state: LoopState,
+    frame: ControlFrame,
+) -> GatedStep {
+    let health = input_health(
+        frame.altitude_m,
+        frame.true_airspeed_m_s,
+        frame.commanded_pitch_rad,
+        frame.measured_pitch_rad,
+    );
+    let gate = kernel.tick(SafetyInputs {
+        discretes: frame.discretes,
+        heartbeat: frame.heartbeat,
+        bit_clear: frame.bit_clear,
+        loop_health: health,
+    });
+
+    let loop_state = if gate.allows_surface_command() {
+        step(
+            controller,
+            state,
+            frame.altitude_m,
+            frame.true_airspeed_m_s,
+            frame.commanded_pitch_rad,
+            frame.measured_pitch_rad,
+        )
+    } else {
+        let mut next = state;
+        next.steps = state.steps.wrapping_add(1);
+        next.health = health;
+        next
+    };
+
+    GatedStep { loop_state, gate }
+}
+
 /// One control step.
 ///
 /// Total: every input path produces a defined output, including NaN and
 /// out-of-domain altitude. Nothing here can panic, allocate, or run for an
-/// unbounded time.
+/// unbounded time. This function does **not** consult the safety kernel; use
+/// [`gated_step`] when modes and discretes are in play.
 #[must_use]
 pub fn step(
     controller: &Controller,
@@ -158,13 +266,17 @@ pub fn step(
     let mut next = state;
     next.steps = state.steps.wrapping_add(1);
 
-    if altitude_m.is_nan()
-        || true_airspeed_m_s.is_nan()
-        || commanded_pitch_rad.is_nan()
-        || measured_pitch_rad.is_nan()
-    {
-        next.health = Health::SensorFault;
-        return next; // hold the last command
+    match input_health(
+        altitude_m,
+        true_airspeed_m_s,
+        commanded_pitch_rad,
+        measured_pitch_rad,
+    ) {
+        health @ (Health::SensorFault | Health::AirDataInvalid) => {
+            next.health = health;
+            return next; // hold the last command
+        }
+        Health::Nominal => {}
     }
 
     let Ok(air) = air_data(altitude_m, true_airspeed_m_s) else {
@@ -364,5 +476,215 @@ mod tests {
     fn the_latency_budget_matches_the_control_rate() {
         assert!(abs(LATENCY_BUDGET_S * CONTROL_RATE_HZ - 1.0) < 1e-15);
         assert!(abs(LATENCY_BUDGET_S - 0.01) < 1e-15, "10 ms at 100 Hz");
+    }
+
+    fn healthy_frame(commanded: f64, measured: f64) -> ControlFrame {
+        ControlFrame {
+            altitude_m: CRUISE_ALT,
+            true_airspeed_m_s: CRUISE_TAS,
+            commanded_pitch_rad: commanded,
+            measured_pitch_rad: measured,
+            discretes: DiscreteFrame::fail_safe(),
+            heartbeat: Heartbeat::PRESENT,
+            bit_clear: true,
+        }
+    }
+
+    fn arm_frame(commanded: f64, measured: f64) -> ControlFrame {
+        ControlFrame {
+            discretes: DiscreteFrame {
+                master_arm: DualSample::both(true),
+                ..DiscreteFrame::fail_safe()
+            },
+            ..healthy_frame(commanded, measured)
+        }
+    }
+
+    fn drive_gated_to_nominal(
+        kernel: &mut SafetyKernel,
+        controller: &Controller,
+        mut state: LoopState,
+    ) -> LoopState {
+        for _ in 0..16 {
+            if kernel.mode() == FlightMode::Ready {
+                break;
+            }
+            let g = gated_step(kernel, controller, state, healthy_frame(0.0, 0.0));
+            state = g.loop_state;
+        }
+        assert_eq!(kernel.mode(), FlightMode::Ready);
+        for _ in 0..4 {
+            if kernel.mode() == FlightMode::Nominal {
+                break;
+            }
+            let g = gated_step(kernel, controller, state, arm_frame(0.05, 0.0));
+            state = g.loop_state;
+        }
+        assert_eq!(kernel.mode(), FlightMode::Nominal);
+        state
+    }
+
+    /// Degraded freezes the last command even when the pitch error would have
+    /// produced a new one. If this fails, the kernel is reporting Degraded
+    /// while `step` is still writing surfaces.
+    #[test]
+    fn degraded_holds_last_command_while_the_pitch_error_would_move() {
+        let c = Controller::ventus1_pitch();
+        let mut kernel = SafetyKernel::new();
+        let mut state = drive_gated_to_nominal(&mut kernel, &c, LoopState::default());
+
+        // Establish a non-zero command under Nominal.
+        for _ in 0..20 {
+            let g = gated_step(&mut kernel, &c, state, arm_frame(0.05, 0.0));
+            state = g.loop_state;
+            assert_eq!(g.gate.mode, FlightMode::Nominal);
+        }
+        assert!(
+            state.last_command_rad > 0.0,
+            "setup must have a real command to hold"
+        );
+
+        let mute = ControlFrame {
+            heartbeat: Heartbeat::MISSING,
+            commanded_pitch_rad: -0.2,
+            measured_pitch_rad: 0.0,
+            discretes: DiscreteFrame {
+                master_arm: DualSample::both(true),
+                ..DiscreteFrame::fail_safe()
+            },
+            ..healthy_frame(-0.2, 0.0)
+        };
+        let mut held = state.last_command_rad;
+        let mut held_integral = state.integral;
+        for _ in 0..WATCHDOG_DEGRADED_MISSES {
+            let g = gated_step(&mut kernel, &c, state, mute);
+            if g.gate.mode == FlightMode::Nominal {
+                held = g.loop_state.last_command_rad;
+                held_integral = g.loop_state.integral;
+            }
+            state = g.loop_state;
+        }
+        assert_eq!(kernel.mode(), FlightMode::Degraded);
+        assert_eq!(
+            state.last_command_rad.to_bits(),
+            held.to_bits(),
+            "the Degraded entry frame must freeze the last Nominal command"
+        );
+        // Stay inside the Degraded miss band; the Safe trip is a different test.
+        for _ in 0..(WATCHDOG_SAFE_MISSES - WATCHDOG_DEGRADED_MISSES - 1) {
+            let g = gated_step(&mut kernel, &c, state, mute);
+            state = g.loop_state;
+            assert_eq!(g.gate.mode, FlightMode::Degraded);
+            assert_eq!(
+                state.last_command_rad.to_bits(),
+                held.to_bits(),
+                "Degraded must HOLD the last command, not reverse it toward the new demand"
+            );
+            assert_eq!(
+                state.integral.to_bits(),
+                held_integral.to_bits(),
+                "Degraded must freeze the integrator too, or the loop winds while frozen"
+            );
+        }
+        assert_eq!(state.health, Health::Nominal, "sensors were still good");
+    }
+
+    /// Confirmed abort freezes the command that was flying. A silent drop of
+    /// the abort assert would keep producing PI output toward the demand.
+    #[test]
+    fn abort_holds_the_command_that_was_flying() {
+        let c = Controller::ventus1_pitch();
+        let mut kernel = SafetyKernel::new();
+        let mut state = drive_gated_to_nominal(&mut kernel, &c, LoopState::default());
+        for _ in 0..20 {
+            let g = gated_step(&mut kernel, &c, state, arm_frame(0.05, 0.0));
+            state = g.loop_state;
+        }
+        let abort_debounce = ControlFrame {
+            discretes: DiscreteFrame {
+                abort: DualSample::both(true),
+                master_arm: DualSample::both(true),
+                ..DiscreteFrame::fail_safe()
+            },
+            ..arm_frame(0.05, 0.0)
+        };
+        let g1 = gated_step(&mut kernel, &c, state, abort_debounce);
+        assert_eq!(
+            g1.gate.mode,
+            FlightMode::Nominal,
+            "debounce: one abort sample must not yet take"
+        );
+        let held = g1.loop_state.last_command_rad;
+        assert!(
+            held > 0.0,
+            "the last Nominal command must be a real deflection"
+        );
+        let abort_reverse = ControlFrame {
+            commanded_pitch_rad: -0.2,
+            measured_pitch_rad: 0.0,
+            discretes: DiscreteFrame {
+                abort: DualSample::both(true),
+                master_arm: DualSample::both(true),
+                ..DiscreteFrame::fail_safe()
+            },
+            ..healthy_frame(-0.2, 0.0)
+        };
+        let g2 = gated_step(&mut kernel, &c, g1.loop_state, abort_reverse);
+        assert_eq!(g2.gate.mode, FlightMode::Emergency);
+        assert_eq!(
+            g2.loop_state.last_command_rad.to_bits(),
+            held.to_bits(),
+            "abort must freeze the flying command — if this fails, abort is being ignored"
+        );
+        assert!(!g2.gate.allows_surface_command());
+        let g3 = gated_step(&mut kernel, &c, g2.loop_state, abort_reverse);
+        assert_eq!(g3.gate.mode, FlightMode::Safe);
+        assert_eq!(g3.loop_state.last_command_rad.to_bits(), held.to_bits());
+    }
+
+    #[test]
+    fn gated_step_is_bit_deterministic_on_the_nominal_path() {
+        let c = Controller::ventus1_pitch();
+        let run = || {
+            let mut kernel = SafetyKernel::new();
+            let mut state = drive_gated_to_nominal(&mut kernel, &c, LoopState::default());
+            for i in 0..200 {
+                let commanded = 0.02 * libm::sin(f64::from(i) * 0.01);
+                let g = gated_step(
+                    &mut kernel,
+                    &c,
+                    state,
+                    arm_frame(commanded, state.last_command_rad * 0.1),
+                );
+                state = g.loop_state;
+            }
+            (state, kernel.gate())
+        };
+        let (a, ga) = run();
+        let (b, gb) = run();
+        assert_eq!(a.last_command_rad.to_bits(), b.last_command_rad.to_bits());
+        assert_eq!(a.integral.to_bits(), b.integral.to_bits());
+        assert_eq!(ga, gb);
+    }
+
+    #[test]
+    fn input_health_matches_step_on_the_bad_paths() {
+        let c = Controller::ventus1_pitch();
+        let good = step(&c, LoopState::default(), CRUISE_ALT, CRUISE_TAS, 0.05, 0.0);
+        for (alt, tas, cmd, meas, expected) in [
+            (f64::NAN, CRUISE_TAS, 0.05, 0.0, Health::SensorFault),
+            (CRUISE_ALT, f64::NAN, 0.05, 0.0, Health::SensorFault),
+            (CRUISE_ALT, CRUISE_TAS, f64::NAN, 0.0, Health::SensorFault),
+            (200_000.0, CRUISE_TAS, 0.05, 0.0, Health::AirDataInvalid),
+            (-100.0, CRUISE_TAS, 0.05, 0.0, Health::AirDataInvalid),
+        ] {
+            assert_eq!(input_health(alt, tas, cmd, meas), expected);
+            let s = step(&c, good, alt, tas, cmd, meas);
+            assert_eq!(s.health, expected);
+        }
+        assert_eq!(
+            input_health(CRUISE_ALT, CRUISE_TAS, 0.05, 0.0),
+            Health::Nominal
+        );
     }
 }
