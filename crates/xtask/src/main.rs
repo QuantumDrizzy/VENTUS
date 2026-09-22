@@ -394,6 +394,10 @@ fn evaluate_thermal(c: &Case) -> BTreeMap<String, ExpectValue> {
                     "inconel_survives".into(),
                     ExpectValue::Bool(survives("Inconel 718")),
                 );
+                m.insert(
+                    "stainless_17_7ph_survives".into(),
+                    ExpectValue::Bool(survives("17-7PH stainless")),
+                );
             }
         }
     }

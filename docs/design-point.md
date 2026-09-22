@@ -1,9 +1,14 @@
 # VENTUS-1 — Design point
 
-**Revision:** r7 (2026-09-22) · supersedes r6
+**Revision:** r8 (2026-09-22) · supersedes r7
 **Programme track:** a proposed M 4.00 constant-q row is sketched in
 [`docs/design-point-m4.md`](design-point-m4.md). It is not a close and it does
 not replace this snapshot. The case-gated design point remains M 3.50 / 26 km.
+Fay-Riddell has now been run at that proposed row (nose 867 K / LE 876 K at
+the same declared radii); Ti-6242S dies there. That is a sketch evaluation,
+not a re-baseline, and **this document's M 3.50 numbers are unchanged**.
+**Change vs r7:** programme-track cross-ref only -- M 4 Fay-Riddell lives in
+the sketch. Snapshot thermal numbers, radii, and material table stay as r7.
 **Change vs r6:** §3.2 and §3.3 -- nose and leading-edge heating COMPUTED by
 Fay-Riddell rather than left as `[TO COMPUTE, M5]`. Declared radii are
 `[TO DETERMINE]` (nose 25 mm sphere, LE 10 mm unswept cylinder), not fitted to
@@ -261,7 +266,11 @@ Radiation-equilibrium skin, computed by `ventus-thermal`
 > radiation. Inconel remains the conservative LE/nose choice and the one the
 > SR-71 used on the hottest metal; it is not the lightest that survives the
 > computation. This is a cruise snapshot at M 3.50, not a fly claim, and not a
-> thermal close at M 4/5.
+> thermal close at M 4/5. The proposed M 4.00 constant-q evaluation of the
+> *same* correlation at the *same* radii is in
+> [`docs/design-point-m4.md`](design-point-m4.md) §5.4 (nose 867 K / LE 876 K;
+> Ti-6242S dead; Inconel lightest survivor). That run does not change these
+> numbers.
 
 **Thermal growth (first order, redone in M5).** Ti alloys, α ≈ 8.6 × 10⁻⁶ K⁻¹.
 Ground 288 K to cruise skin 620–695 K gives ΔT = 332–407 K:

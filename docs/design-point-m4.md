@@ -1,6 +1,6 @@
 # VENTUS-1 — Mach 4 design-point sketch
 
-**Revision:** r7 sketch (2026-09-22)
+**Revision:** r8 sketch (2026-09-22)
 **Status:** **PROPOSED re-baseline. Not a closed aircraft.** This document does
 not replace [`docs/design-point.md`](design-point.md). The case-gated snapshot
 every module is held to remains **M 3.50 at 26 km geopotential**.
@@ -19,6 +19,11 @@ r7 declares a **cowl lip** so additive/spillage force is a newton (zero at
 shock-on-lip on each design highlight; the snapshot cowl refuses at M 4.00
 because capture exceeds it). Lip suction, spike, and unstart remain open.
 
+r8 runs **Fay-Riddell at this row** with the same declared radii as the
+M 3.50 snapshot (nose 25 mm, LE 10 mm, both `[TO DETERMINE]`). T_wall is
+867 K / 876 K. Ti-6242S dies; Inconel 718 is the lightest survivor. That is
+a correlation run, not a fly claim and not a retune of the radii.
+
 ---
 
 ## 0. What this is, and what it is not
@@ -34,9 +39,10 @@ It is not a claim that VENTUS-1 reaches Mach 4. On the **snapshot**
 configuration it does not. The capture-area bind is at M 3.85, *before* the
 proposed cruise. A named candidate body (fineness 10, same length) can host
 the inlet at M 4.00 (capture/body = 0.864) and still does not fly: lean
-blowout, unstart, lip suction, and the 1 m thermal station remain open,
-and the other geometry and combustor gaps listed below are already live at
-M 3.50.
+blowout, unstart, lip suction, and the nose/LE thermal result below remain
+open as aircraft-close items (the correlation has been run; the aircraft
+has not closed), and the other geometry and combustor gaps listed below
+are already live at M 3.50.
 
 | | Validated snapshot | This sketch, snapshot body | This sketch, M 4 candidate |
 |---|---|---|---|
@@ -350,31 +356,79 @@ worth aiming at. Tier 2 is an M4b. Neither is this sketch.
 ADR-003's dual-mode / scram combustor is a separate station list. Wiring it
 in here to "help" φ would be the Mach-switch that ADR-003 rejected.
 
-### 5.4 Thermal — nose and leading edges, beyond a flat plate
+### 5.4 Thermal -- nose and leading edges, beyond a flat plate
 
-On the constant-q row, M5's *flat-plate* radiating wall (ε = 0.85, sink 0 K)
+On the constant-q row, M5's *flat-plate* radiating wall (eps = 0.85, sink 0 K)
 gives:
 
 | x [m] | T_aw [K] | T_wall [K] | vs Ti-6Al-4V 623 K |
 |---|---|---|---|
-| 1 | 865.0 | **638.8 / 365.7 °C** | **above** — conventional Ti-6Al-4V is out at this station |
-| 10 | 865.0 | **597.1 / 323.9 °C** | 26 K below — the M 3.50 10 m station had 75 K |
+| 1 | 865.0 | **638.8 / 365.7 C** | **above** -- conventional Ti-6Al-4V is out at this station |
+| 10 | 865.0 | **597.1 / 323.9 C** | 26 K below -- the M 3.50 10 m station had 75 K |
 
 Radiation is still doing the work (relief ~226 K at 1 m, ~268 K at 10 m). The
 margin that kept flat panels in Ti-6Al-4V at M 3.50 **does not survive at 1 m
 on this row**. Ti-6242S (813 K) still clears the flat plate. That is not a
-material close: a flat plate has no nose, chines, nacelles or leading edges,
-and those are the top of the SR-71's published band. Fay-Riddell at the
-M 3.50 snapshot has now landed (`ventus-thermal`, R_n = 25 mm `[TO DETERMINE]`):
-nose 730 K, LE 735 K, Ti-6Al-4V dead, Ti-6242S the lightest survivor. Applying
-the same correlation at the proposed M 4.00 row is still **[TO COMPUTE, M5]**.
-T0 is higher there; the M 3.50 close is not a fly claim at M 4. The
-expectation of Inconel on the LE/nose is a stronger expectation than at
-M 3.50.
+material close: a flat plate has no nose, chines, nacelles or leading edges.
+
+**[COMPUTED r8 -- Fay-Riddell at this row, same stack as the M 3.50 snapshot.]**
+
+Same declared radii (nose 25 mm sphere, LE 10 mm unswept cylinder, both
+`[TO DETERMINE]` structural minima -- **not** retuned to save an alloy),
+same eps = 0.85, same sink 0 K. Run:
+`cargo run -p ventus-thermal --example stagnation -- --m4`
+
+| Station | Body | R [m] | T0 [K] (gamma = 1.4) | T_wall [K] | T_wall [C] | q [kW/m^2] | radiation relief |
+|---|---|---|---|---|---|---|---|
+| Nose | sphere | 0.025 | 942.5 | **867.3** | 594.2 | 27.28 | 75 K |
+| Leading edge | unswept cylinder | 0.010 | 942.5 | **876.2** | 603.0 | 28.41 | 66 K |
+
+T0 here is calorically perfect. Thermally perfect T0 at this row is still
+**[TO COMPUTE]** (`h0 = h + V^2/2`, same method as `design-point.md` §3.1).
+The M 3.50 correction was -15.3 K; the sign will be the same and the
+magnitude larger. That would *lower* T0 and therefore T_wall. It is not
+invented here from three recited enthalpy-table points, and it is not
+mixed into the correlation (the M 3.50 Fay-Riddell close used calorically
+perfect T0 = 768.1 K, not 752.8 K).
+
+Radiation is worth more than at M 3.50 (~70 K against ~35 K) because T^4
+is stronger, but the wall is still **~137 K hotter** than the snapshot
+nose. Sweep is not applied -- undeclared; a `cos^n(Lambda)` factor would
+be a silent save.
+
+**Blunting is not a save.** At R = 1.0 m (fuselage radius) the spherical
+wall is still 719 K, 96 K above the Ti-6Al-4V limit. Ti-6242S returns
+somewhere between 0.10 m (822 K, dead) and 0.25 m (784 K, alive). That
+is a fuselage, not a nose, and it is not adopted.
+
+#### Material verdict -- proposed M 4.00 vs M 3.50 snapshot
+
+Same limits as `design-point.md` §3.3. Margin is `limit - T_wall` (positive
+= alive). Snapshot numbers are unchanged.
+
+| Material | Limit | M 3.50 nose 729.9 K | M 3.50 LE 734.9 K | M 4.00 nose 867.3 K | M 4.00 LE 876.2 K |
+|---|---|---|---|---|---|
+| Ti-6Al-4V | 623 K | dead, 107 K over | dead, 112 K over | **dead, 244 K over** | **dead, 253 K over** |
+| Ti-6242S | 813 K | **alive, 83 K -- lightest** | **alive, 78 K -- lightest** | **dead, 54 K over** | **dead, 63 K over** |
+| Ti beta B-120VCA | 810 K | alive, 80 K | alive, 75 K | dead, 57 K over | dead, 66 K over |
+| 17-7PH stainless | 703 K | dead, 27 K over | dead, 32 K over | dead, 164 K over | dead, 173 K over |
+| Inconel 718 | 923 K | alive, 193 K | alive, 188 K | **alive, 56 K -- lightest** | **alive, 47 K -- lightest** |
+
+The hypothesis that this row would push past Ti-6242S toward Inconel is
+**confirmed at the declared radii**. It is not forced: the radii were not
+moved, cooling was not invented, and a sweep factor was not applied. The
+lightest survivor at both stations is Inconel 718. The Inconel margin is
+thin (47-56 K) against a correlation whose SR-71 residual is +62 K.
+
+**This is not a flyable thermal close.** Fay-Riddell at a proposed row is
+a number. Capture still exceeds the snapshot body. Lean blowout still sits
+below the cited Useller Fig. 8 afterburner floor. The engine is unsized.
+The M 3.50 snapshot remains the case-gated design point.
 
 M12's line "the material never binds on this trajectory" is evaluated at the
 **10 m** station. It remains true as a module-refusal statement. It is not a
-statement that the airframe is thermally fine at M 4.
+statement that the airframe is thermally fine at M 4. The 1 m plate already
+kills Ti-6Al-4V; the nose and LE kill Ti-6242S as well.
 
 ### 5.5 Acceleration corridor — the transonic pinch still sizes the engine
 
@@ -427,9 +481,14 @@ snapshot cannot.
    (~122 kPa total, not 1.6 kPa). No holder may be invented to claim the
    0.30 end.
 4. **Stagnation-point / leading-edge heating** at the proposed row (M5), not
-   a flat plate. The 1 m station already kills Ti-6Al-4V on the plate. The
-   correlation now exists and is closed at M 3.50; it has not been run at
-   M 4.00.
+   a flat plate. The 1 m station already kills Ti-6Al-4V on the plate.
+   **r8:** Fay-Riddell has been run at this row with the snapshot radii.
+   Nose 867.3 K / LE 876.2 K. Ti-6242S dies; Inconel 718 is the lightest
+   survivor (~50 K margin). Pinned as `proposed_m4_nose_stagnation_wall`
+   and `proposed_m4_leading_edge_stagnation_wall`. Remaining: radii against
+   a drawing (`[TO DETERMINE]`), internal conduction, the SR-71 residual
+   (still a `known_limit`), and the fact that a correlation run is not an
+   aircraft close. Radii are not retuned.
 5. **Thermally perfect T₀** at the proposed row, `h₀ = h + V²/2`, the same
    method as `design-point.md` §3.1, `[TO VERIFY]` tables included.
 6. **A new case corpus at the new snapshot** — US76 row, NACA 1135 at M 4
@@ -455,11 +514,11 @@ snapshot cannot.
 - **Not flyable.** The snapshot capture exceeds the body. The candidate
   hosts (0.864) and still does not fly: blowout sits below the cited
   Useller Fig. 8 afterburner floor and has no ramjet-no-holder chart; the
-  engine is unsized; the M 4.00 nose is uncomputed (Fay-Riddell is closed
-  at the M 3.50 snapshot, not at this row); lip suction, spike, and
-  unstart remain refusals. A green test suite on the M 3.50 corpus does
-  not move any of that. A declared cowl that reports `D_add = 0` at
-  shock-on-lip is not a started mixed-compression inlet.
+  engine is unsized; Fay-Riddell at this row (nose 867 K / LE 876 K) kills
+  Ti-6242S and is a correlation run, not an aircraft close; lip suction,
+  spike, and unstart remain refusals. A green test suite on the M 3.50
+  corpus does not move any of that. A declared cowl that reports `D_add = 0`
+  at shock-on-lip is not a started mixed-compression inlet.
   Capture/body < 1 on a fatter Sears-Haack is not a started inlet either.
 - **Not Lockheed data.** No SR-72, no classified dual-mode deck, no copied
   trajectory. X-43 / X-51 remain regime anchors for the stretch, not a
@@ -481,12 +540,15 @@ snapshot cannot.
 ```
 cargo run --release -p ventus-envelope --example m4_sketch
 cargo run -p ventus-atmos --example table -- 27747
+cargo run -p ventus-thermal --example stagnation -- --m4
 ```
 
 The first command reprints the proposed row against the validated snapshot,
 including capture / body and the 26 km counterfactual, and the named M 4
 candidate station. The second reprints the US76 state at the inverted
-altitude. Neither command is a close.
+altitude. The third reprints Fay-Riddell nose / LE at this row (and, without
+`--m4`, at the M 3.50 snapshot and the SR-71 check). None of these commands
+is a close.
 
 M12 pins the snapshot-geometry failure at M 4.00 as
 `current_geometry_does_not_close_capture_at_proposed_m4`, and the candidate

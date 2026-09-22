@@ -22,7 +22,7 @@ Ti-6Al-4V alive. Even R = 1 m (fuselage-scale bluntness) leaves T_wall =
 this aircraft.
 """
 inputs  = { geopotential_altitude_m = 26000.0, mach = 3.5, radius_m = 0.025, body = "sphere", emissivity = 0.85, sink_temperature_k = 0.0 }
-expect  = { wall_temperature_k = 729.9, convective_flux_w_m2 = 13683.0, stagnation_temperature_k = 768.1, radiation_relief_k = 38.2, ti6al4v_survives = false, ti6242s_survives = true, inconel_survives = true }
+expect  = { wall_temperature_k = 729.9, convective_flux_w_m2 = 13683.0, stagnation_temperature_k = 768.1, radiation_relief_k = 38.2, ti6al4v_survives = false, ti6242s_survives = true, inconel_survives = true, stainless_17_7ph_survives = false }
 rel_tol = 2e-3
 
 [[case]]
@@ -37,7 +37,7 @@ Same material verdict as the nose. Ti-6Al-4V dead by 112 K; Ti-6242S alive
 by 78 K; Inconel alive by 188 K.
 """
 inputs  = { geopotential_altitude_m = 26000.0, mach = 3.5, radius_m = 0.010, body = "cylinder", emissivity = 0.85, sink_temperature_k = 0.0 }
-expect  = { wall_temperature_k = 734.9, convective_flux_w_m2 = 14059.0, ti6al4v_survives = false, ti6242s_survives = true, inconel_survives = true }
+expect  = { wall_temperature_k = 734.9, convective_flux_w_m2 = 14059.0, ti6al4v_survives = false, ti6242s_survives = true, inconel_survives = true, stainless_17_7ph_survives = false }
 rel_tol = 2e-3
 
 [[case]]
@@ -83,3 +83,50 @@ drawing.
 inputs  = { geopotential_altitude_m = 24000.0, mach = 3.2, radius_m = 0.025, body = "sphere", emissivity = 0.85, sink_temperature_k = 0.0 }
 expect  = { wall_temperature_k = 588.15 }
 rel_tol = 1e-3
+
+[[case]]
+name    = "proposed_m4_nose_stagnation_wall"
+source  = "Fay and Riddell 1958 engineering form as in ventus1_nose_stagnation_wall. Freestream is the proposed M 4.00 constant-q row in docs/design-point-m4.md section 2 (M 4.00, 27 747 m geopotential, q = 18.463 kPa). Radius is the same declared 0.025 m [TO DETERMINE], not fitted. NOT a fly claim."
+reason  = """
+THE PROPOSED-ROW NOSE NUMBER docs/design-point-m4.md section 5.4 quotes.
+Same correlation, same eps = 0.85, sink 0 K, same R as the M 3.50 snapshot.
+T_wall = 867.3 K = 594.2 C, q = 27.28 kW/m2. Radiation is worth 75 K --
+more than the 38 K at M 3.50 because T^4 radiation is stronger, but the
+wall is still 137 K hotter than the snapshot nose.
+
+Ti-6Al-4V (623 K) is dead by 244 K. Ti-6242S (813 K), the lightest
+survivor at M 3.50, is dead by 54 K. 17-7PH (703 K) is dead. Inconel 718
+(923 K) is alive by 56 K and is the lightest survivor.
+
+The radius is not retuned. Even R = 1 m leaves T_wall = 719 K, still
+above 623 K. Blunting cannot save conventional titanium; bringing
+Ti-6242S back wants ~0.25 m, a fuselage, not a nose.
+
+This case is a correlation run at a proposed row. It is not a close of
+VENTUS-1 at Mach 4. Capture, blowout, unstart, and the corridor remain
+open. Do not quote these numbers as a flyable airframe.
+"""
+inputs  = { geopotential_altitude_m = 27747.0, mach = 4.0, radius_m = 0.025, body = "sphere", emissivity = 0.85, sink_temperature_k = 0.0 }
+expect  = { wall_temperature_k = 867.3, convective_flux_w_m2 = 27275.0, stagnation_temperature_k = 942.5, radiation_relief_k = 75.1, ti6al4v_survives = false, ti6242s_survives = false, inconel_survives = true, stainless_17_7ph_survives = false }
+rel_tol = 2e-3
+
+[[case]]
+name    = "proposed_m4_leading_edge_stagnation_wall"
+source  = "Fay and Riddell 1958, 2-D/cylinder coefficient 0.570, as in ventus1_leading_edge_stagnation_wall. Same proposed M 4.00 constant-q row. Unswept: no sweep angle is declared. Radius [TO DETERMINE], declared 0.010 m. NOT a fly claim."
+reason  = """
+THE PROPOSED-ROW LEADING-EDGE NUMBER. Cylinder, R = 0.010 m, same
+emissivity. T_wall = 876.2 K = 603.0 C, q = 28.41 kW/m2. Slightly hotter
+than the nose, as at M 3.50: the smaller radius outweighs the 2-D
+coefficient.
+
+Same material verdict as the proposed-row nose. Ti-6Al-4V dead by 253 K;
+Ti-6242S dead by 63 K; 17-7PH dead; Inconel alive by 47 K. Lightest
+survivor is Inconel 718.
+
+Do not apply a cos^n(Lambda) sweep factor. Do not retune the radius.
+This is not a flyable leading edge; it is the correlation at the
+declared structural minimum.
+"""
+inputs  = { geopotential_altitude_m = 27747.0, mach = 4.0, radius_m = 0.010, body = "cylinder", emissivity = 0.85, sink_temperature_k = 0.0 }
+expect  = { wall_temperature_k = 876.2, convective_flux_w_m2 = 28407.0, ti6al4v_survives = false, ti6242s_survives = false, inconel_survives = true, stainless_17_7ph_survives = false }
+rel_tol = 2e-3

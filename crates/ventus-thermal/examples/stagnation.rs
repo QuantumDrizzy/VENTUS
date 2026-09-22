@@ -1,7 +1,12 @@
-//! Stagnation-point radiation-equilibrium wall at a declared nose / LE radius,
-//! for the numbers quoted in docs/design-point.md section 3.2.
+//! Stagnation-point radiation-equilibrium wall at a declared nose / LE radius.
+//!
+//! Prints the M 3.50 snapshot (docs/design-point.md section 3.2), the proposed
+//! M 4.00 constant-q row (docs/design-point-m4.md section 5.4), and the SR-71
+//! cruise check. The M 4.00 row is a correlation run, not a fly claim.
 //!
 //!   cargo run -p ventus-thermal --example stagnation
+//!
+//! Pass `--m4` to print only the proposed row.
 
 use ventus_aero::boundary_layer::PRANDTL_AIR;
 use ventus_thermal::{
@@ -9,17 +14,49 @@ use ventus_thermal::{
     BodyKind, Freestream, VENTUS_LEADING_EDGE_RADIUS_M, VENTUS_NOSE_RADIUS_M,
 };
 
+struct Row {
+    label: &'static str,
+    altitude_m: f64,
+    mach: f64,
+    note: &'static str,
+}
+
+const SNAPSHOT: Row = Row {
+    label: "VENTUS-1  M3.50 / 26 km",
+    altitude_m: 26_000.0,
+    mach: 3.5,
+    note: "snapshot -- case-gated design point",
+};
+
+const PROPOSED_M4: Row = Row {
+    label: "proposed  M4.00 / 27 747 m (constant-q)",
+    altitude_m: 27_747.0,
+    mach: 4.0,
+    note: "NOT a fly claim -- correlation run, not an aircraft close",
+};
+
+const SR71: Row = Row {
+    label: "SR-71     M3.20 / 24 km",
+    altitude_m: 24_000.0,
+    mach: 3.2,
+    note: "anchor -- residual vs published 588 K is a known_limit",
+};
+
+const ALL_ROWS: [Row; 3] = [SNAPSHOT, PROPOSED_M4, SR71];
+const M4_ONLY_ROWS: [Row; 1] = [PROPOSED_M4];
+
 fn main() {
-    for (label, h, m) in [
-        ("VENTUS-1  M3.50 / 26 km", 26_000.0, 3.5),
-        ("SR-71     M3.20 / 24 km", 24_000.0, 3.2),
-    ] {
-        let a = ventus_atmos::at_geopotential(h).unwrap();
-        let fs = Freestream::from_atmos(&a, m, 1.4).unwrap();
+    let m4_only = std::env::args().any(|a| a == "--m4");
+    let rows: &[Row] = if m4_only { &M4_ONLY_ROWS } else { &ALL_ROWS };
+
+    for row in rows {
+        let a = ventus_atmos::at_geopotential(row.altitude_m).unwrap();
+        let fs = Freestream::from_atmos(&a, row.mach, 1.4).unwrap();
         println!(
-            "{label}   T_inf = {:.2} K  p_inf = {:.2} Pa  V = {:.2} m/s",
-            a.temperature_k, a.pressure_pa, fs.velocity_m_s
+            "{}   T_inf = {:.2} K  p_inf = {:.2} Pa  V = {:.2} m/s",
+            row.label, a.temperature_k, a.pressure_pa, fs.velocity_m_s
         );
+        println!("  {}", row.note);
 
         let nose = ventus1_nose(&fs, 0.85, 0.0, PRANDTL_AIR).unwrap();
         let le = ventus1_leading_edge(&fs, 0.85, 0.0, PRANDTL_AIR).unwrap();

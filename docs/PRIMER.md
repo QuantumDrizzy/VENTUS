@@ -198,7 +198,10 @@ the tail -- which is the model stating its own scope. The nose and leading
 edges are a different correlation (Fay-Riddell). At the declared 25 mm nose
 that gives 730 K at the design point -- Ti-6Al-4V is dead there, Ti-6242S is
 the lightest survivor -- and 650 K at the SR-71 condition against a published
-588 K. The residual is carried as a known_limit, not tuned away.
+588 K. The residual is carried as a known_limit, not tuned away. The same
+correlation at the proposed M 4.00 constant-q row (same radii, not a fly
+claim) puts the wall at 867-876 K; Ti-6242S dies and Inconel is the lightest
+survivor. See `docs/design-point-m4.md` §5.4.
 
 **And then the structure moves.** Titanium expands ~8.6 × 10⁻⁶ per kelvin. From a
 288 K hangar to a 548 K cruise skin, that is 2.2 mm per metre — about **7 cm on a
