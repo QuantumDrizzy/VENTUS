@@ -131,16 +131,16 @@ pub const USEFUL_THRUST_FRACTION: f64 = 0.25;
 /// is still `[TO VERIFY]` against a primary afterburner/ramjet stability chart
 /// (Mattingly, *Elements of Propulsion*, Fig. 10-70 is the intended source, not
 /// a figure read in this repository). The decision criterion is
-/// [`LEAN_BLOWOUT_DECISION_CRITERION`]: a cited `φ_LBO` on either side of
+/// [`LEAN_BLOWOUT_DECISION_CRITERION`]: a cited `Ï_LBO` on either side of
 /// 0.4615 closes the question; a holder geometry closes which end applies.
 ///
 /// Pressure does not secretly rescue the permissive end. Burner-entry *total*
 /// pressure at the snapshot is ~122 kPa with MIL recovery (~133 kPa on the
-/// four-ramp inviscid recovery M12 feeds the cycle) — ram compression, not
+/// four-ramp inviscid recovery M12 feeds the cycle) â ram compression, not
 /// ambient. A figure near 1.6 kPa is either freestream static at the M 4
-/// constant-q altitude (1.65 kPa) or `p∞ · π_d` with ram omitted (1.60 kPa).
+/// constant-q altitude (1.65 kPa) or `pâ Â· Ï_d` with ram omitted (1.60 kPa).
 /// Omitting ram would make combustion look impossible; the cycle does not omit
-/// it. Lefebvre-family loading still has `φ_LBO` rising as pressure falls, so
+/// it. Lefebvre-family loading still has `Ï_LBO` rising as pressure falls, so
 /// altitude is against us and ram is what buys the pressure back. Evaluating a
 /// correlation still needs a combustor volume and a holder, which is tier 2.
 ///
@@ -206,17 +206,17 @@ pub const LEAN_BLOWOUT_RESOLUTION: &str =
 
 /// Fly / no-fly on phi, written as a criterion rather than a wish.
 ///
-/// A cited `φ_LBO` above [`DESIGN_POINT_EQUIVALENCE_RATIO`] means M 3.50 does
-/// not fly. A cited `φ_LBO` below it means the snapshot has margin on phi
+/// A cited `Ï_LBO` above [`DESIGN_POINT_EQUIVALENCE_RATIO`] means M 3.50 does
+/// not fly. A cited `Ï_LBO` below it means the snapshot has margin on phi
 /// (capture may still bind). No flame holder is declared, so the 0.30
 /// literature end is not available. The operative bound is therefore the
 /// strict end 0.50, still `[TO VERIFY]` against a primary chart.
 pub const LEAN_BLOWOUT_DECISION_CRITERION: &str =
-    "cited phi_LBO > 0.4615 → M 3.50 does not fly; cited phi_LBO < 0.4615 → margin on phi; no holder declared, so the 0.30 end is not available";
+    "cited phi_LBO > 0.4615 â M 3.50 does not fly; cited phi_LBO < 0.4615 â margin on phi; no holder declared, so the 0.30 end is not available";
 
 /// Stoichiometric fuel-air ratio for kerosene in air. Derived from a
 /// representative Jet A composition of CH1.95 (Edwards, *Reference Jet Fuels
-/// for Combustion Testing*, 2017: H/C � 1.95 for the reference jet fuels),
+/// for Combustion Testing*, 2017: H/C ~ 1.95 for the reference jet fuels),
 /// which gives a stoichiometric f/a of 0.0681; 0.0680 is carried, 0.2 % below
 /// the derived value.
 pub const STOICHIOMETRIC_FUEL_AIR_RATIO: f64 = 0.0680;
@@ -224,7 +224,7 @@ pub const STOICHIOMETRIC_FUEL_AIR_RATIO: f64 = 0.0680;
 /// Permissive literature end: easiest to hold a flame, **with a flame holder**.
 ///
 /// `[TO VERIFY]` against a primary ramjet/dump-combustor LBO with a declared
-/// holder (ONERA-class measurements near 0.28–0.32 are the *class*, recited
+/// holder (ONERA-class measurements near 0.28â0.32 are the *class*, recited
 /// from secondary literature, not read here). Not available to this aircraft
 /// until a holder is declared with a source.
 pub const LEAN_BLOWOUT_PHI_MIN: f64 = 0.30;
@@ -232,7 +232,7 @@ pub const LEAN_BLOWOUT_PHI_MIN: f64 = 0.30;
 ///
 /// `[TO VERIFY]` against a primary afterburner/ramjet stability chart.
 /// Intended source: Mattingly, *Elements of Propulsion*, Fig. 10-70. Recited
-/// as the strict-end *class* (~φ = 0.5), not as a digit read from the figure
+/// as the strict-end *class* (~Ï = 0.5), not as a digit read from the figure
 /// in this repository.
 
 pub const LEAN_BLOWOUT_PHI_MAX: f64 = 0.50;
@@ -298,10 +298,10 @@ pub fn lean_blowout_mach(
 /// refusals implemented elsewhere; blowout is not one of those.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LeanBlowoutVerdict {
-    /// φ is below [`OPERATIVE_LEAN_BLOWOUT_PHI`]. Under the no-holder bound
+    /// Ï is below [`OPERATIVE_LEAN_BLOWOUT_PHI`]. Under the no-holder bound
     /// the flame is out. The bound is still `[TO VERIFY]`.
     BelowOperativeBound,
-    /// φ is at or above the operative (strict) bound. Even a poorly
+    /// Ï is at or above the operative (strict) bound. Even a poorly
     /// stabilized burner would hold, *if* that end is right.
     AboveOperativeBound,
 }
@@ -352,7 +352,7 @@ impl LiteratureBlowoutBand {
     }
 }
 
-/// Place φ in the 0.30–0.50 literature band.
+/// Place Ï in the 0.30â0.50 literature band.
 #[must_use]
 pub fn literature_blowout_band(equivalence_ratio: f64) -> Option<LiteratureBlowoutBand> {
     if equivalence_ratio.is_nan() || equivalence_ratio <= 0.0 {
@@ -422,7 +422,7 @@ const _: () = assert!(
 /// and *inside* the region where a larger body could still exist. If a future
 /// re-baseline moves either frontier across M 4, this sketch's geometry story
 /// is stale and the assertion should be deleted in the same change as the
-/// new body — not silently retuned to keep the proposed Mach looking closed.
+/// new body â not silently retuned to keep the proposed Mach looking closed.
 const _: () = assert!(
     CAPTURE_AREA_CLOSES_AT_MACH < PROPOSED_M4_CRUISE_MACH
         && PROPOSED_M4_CRUISE_MACH < NO_BODY_CLOSES_ABOVE_MACH,
@@ -900,7 +900,7 @@ pub const DESIGN_POINT_EQUIVALENCE_RATIO: f64 = 0.4615;
 /// See [`capture_area_ratio`]. At the M 3.50 design point the ratio is 0.745.
 pub const CAPTURE_AREA_CLOSES_AT_MACH: f64 = 3.847;
 
-/// Programme cruise Mach named in ADR-003 (≥ Mach 4).
+/// Programme cruise Mach named in ADR-003 (â¥ Mach 4).
 ///
 /// **Not a design point and not a computed capability.** The validated snapshot
 /// remains M 3.50 at 26 km. On the *current* geometry [`capture_area_ratio`]
