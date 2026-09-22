@@ -1,0 +1,85 @@
+# M5 - Fay-Riddell stagnation-point / leading-edge heating.
+#
+# The flat-plate cases live in skin_temperature.toml. This file is the nose
+# and the leading edges, which that model does not cover.
+
+[[case]]
+name    = "ventus1_nose_stagnation_wall"
+source  = "Fay, J. A. and Riddell, F. R., Theory of Stagnation Point Heat Transfer in Dissociated Air, Journal of the Aeronautical Sciences, Vol. 25, No. 2, 1958, pp. 73-85, engineering form (no Lewis/dissociation term: T0 = 768 K is far below O2 dissociation). Freestream from NASA-TM-X-74335 at 26 km. Radius is [TO DETERMINE], declared 0.025 m, not fitted."
+reason  = """
+THE NOSE NUMBER docs/design-point.md section 3.2 quotes. Sphere, R = 0.025 m,
+eps = 0.85, sink 0 K, at the r4 design point. T_wall = 729.9 K = 456.8 C,
+q = 13.68 kW/m2. Radiation is worth only 38 K here -- the wall sits close to
+T0 -- because a 25 mm nose is a strong heat-transfer geometry.
+
+Ti-6Al-4V (623 K) is dead by 107 K. Ti-6242S (813 K) is alive by 83 K.
+Inconel 718 (923 K) is alive by 193 K. 17-7PH (703 K) is dead. Lightest
+survivor is Ti-6242S.
+
+The radius is a declared structural minimum, not the radius that would keep
+Ti-6Al-4V alive. Even R = 1 m (fuselage-scale bluntness) leaves T_wall =
+633 K, still above 623 K. Blunting cannot save conventional titanium on
+this aircraft.
+"""
+inputs  = { geopotential_altitude_m = 26000.0, mach = 3.5, radius_m = 0.025, body = "sphere", emissivity = 0.85, sink_temperature_k = 0.0 }
+expect  = { wall_temperature_k = 729.9, convective_flux_w_m2 = 13683.0, stagnation_temperature_k = 768.1, radiation_relief_k = 38.2, ti6al4v_survives = false, ti6242s_survives = true, inconel_survives = true }
+rel_tol = 2e-3
+
+[[case]]
+name    = "ventus1_leading_edge_stagnation_wall"
+source  = "Fay and Riddell 1958 (as above), 2-D/cylinder coefficient 0.570. Unswept: no sweep angle is declared, and a cos^n(Lambda) factor would be a silent save. Radius [TO DETERMINE], declared 0.010 m."
+reason  = """
+THE LEADING-EDGE NUMBER. Cylinder, R = 0.010 m, same design point and
+emissivity. T_wall = 734.9 K = 461.8 C, q = 14.06 kW/m2. Slightly hotter
+than the nose: the smaller radius outweighs the 2-D coefficient.
+
+Same material verdict as the nose. Ti-6Al-4V dead by 112 K; Ti-6242S alive
+by 78 K; Inconel alive by 188 K.
+"""
+inputs  = { geopotential_altitude_m = 26000.0, mach = 3.5, radius_m = 0.010, body = "cylinder", emissivity = 0.85, sink_temperature_k = 0.0 }
+expect  = { wall_temperature_k = 734.9, convective_flux_w_m2 = 14059.0, ti6al4v_survives = false, ti6242s_survives = true, inconel_survives = true }
+rel_tol = 2e-3
+
+[[case]]
+name    = "sr71_nose_fay_riddell_at_ventus_radius"
+source  = "SR-71 cruise condition M 3.2 / ~24 km, same US76 row the flat-plate skin cases use. Correlation as above. Radius is the VENTUS declared 0.025 m, NOT an SR-71 nose radius -- none is cited."
+reason  = """
+Regression pin for the SR-71 flight condition at the VENTUS radius. The
+model gives 649.8 K. This is not the published nose temperature; see the
+known_limit case below. Pinning the computed value so a silent change in
+the correlation is news.
+"""
+inputs  = { geopotential_altitude_m = 24000.0, mach = 3.2, radius_m = 0.025, body = "sphere", emissivity = 0.85, sink_temperature_k = 0.0 }
+expect  = { wall_temperature_k = 649.8, stagnation_temperature_k = 672.5 }
+rel_tol = 2e-3
+
+[[case]]
+name    = "sr71_nose_published_588k"
+source  = "SR-71 published nose temperature ~315 C = 588 K at M 3.2 cruise [TO CITE]. Same recitation as crates/ventus-thermal/src/lib.rs and the flat-plate skin cases."
+status  = "known_limit"
+reason  = """
+THE ANCHOR, and it does not match. Fay-Riddell radiative equilibrium at the
+VENTUS declared R_n = 0.025 m, SR-71 cruise (M 3.2, 24 km), gives 649.8 K
+against the published 588 K -- 62 K hot.
+
+The residual is not a tuning knob. Causes that are in scope to name and out
+of scope to close:
+
+- No cited SR-71 nose radius. Matching 588 K under this model wants R ~ 0.8 m,
+  a blunt body, not a Blackbird. We do not adopt that radius for VENTUS.
+- This is local radiative equilibrium of a spherical cap. A real nose conducts
+  heat aft into cooler structure. Internal conduction is an open M5 item and
+  is not invented here to close the gap.
+- Fay-Riddell was derived for highly cooled, dissociated air. At M 3.2 the
+  wall sits at h_w/h_e ~ 0.97, the opposite limit. Coefficient error of a
+  factor of two is like doubling R and still leaves T_wall ~ 642 K.
+
+The published 588 K is below the Ti-6Al-4V limit (623 K); this model's 650 K
+is above it. The residual is therefore load-bearing for the SR-71-as-check,
+and it is carried as a failing known_limit rather than widened until it
+passes. [TO VERIFY] against a primary SR-71 nose temperature and a nose
+drawing.
+"""
+inputs  = { geopotential_altitude_m = 24000.0, mach = 3.2, radius_m = 0.025, body = "sphere", emissivity = 0.85, sink_temperature_k = 0.0 }
+expect  = { wall_temperature_k = 588.15 }
+rel_tol = 1e-3

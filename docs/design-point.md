@@ -1,9 +1,16 @@
 # VENTUS-1 — Design point
 
-**Revision:** r6 (2026-09-22) · supersedes r5
+**Revision:** r7 (2026-09-22) · supersedes r6
 **Programme track:** a proposed M 4.00 constant-q row is sketched in
 [`docs/design-point-m4.md`](design-point-m4.md). It is not a close and it does
 not replace this snapshot. The case-gated design point remains M 3.50 / 26 km.
+**Change vs r6:** §3.2 and §3.3 -- nose and leading-edge heating COMPUTED by
+Fay-Riddell rather than left as `[TO COMPUTE, M5]`. Declared radii are
+`[TO DETERMINE]` (nose 25 mm sphere, LE 10 mm unswept cylinder), not fitted to
+save an alloy. Ti-6Al-4V dies at both stations; Ti-6242S is the lightest
+survivor. Thermal is not closed for M 4/5. §5.3 from master (Useller Fig. 8
+φ_LBO = 0.50 as a cited V-gutter afterburner floor; ramjet-no-holder class
+still open) is kept.
 **Change vs r5:** §5.4 — a declared cowl lip unlocks additive/spillage *force*
 (pitot-equivalent; zero at shock-on-lip). Spike schedule, unstart, and lip
 suction remain refusals. Lean blowout is unchanged (follow-up).
@@ -138,8 +145,10 @@ the M1 density cases, so this warning is not decorative.
 | T₀ (thermally perfect) | 752.8 K / 479.7 °C | §3.1 |
 | T_aw, turbulent, calorically perfect | **709.3 K / 436.2 °C** | r = Pr^⅓ = 0.8921 applied to the γ = 1.4 stagnation rise |
 | T_aw, turbulent, thermally perfect | **695.6 K / 422.5 °C** | the same recovery factor on T₀ = 752.8 K. **Upper bound, no radiation** |
-| **Skin at radiative equilibrium, flat panels** | **532–580 K / 259–307 °C** | **computed**, ε = 0.85, sink 0 K, x = 1–30 m |
-| Skin at nose and leading edges | **[TO COMPUTE, M5]** | needs a stagnation-point correlation (Fay-Riddell), not a flat plate. Anchor: SR-71 nose ≈ 588 K at M 3.2 |
+| **Skin at radiative equilibrium, flat panels** | **532-580 K / 259-307 C** | **computed**, eps = 0.85, sink 0 K, x = 1-30 m |
+| **Skin at nose (sphere, R_n = 25 mm)** | **729.9 K / 456.8 C** | **computed**, Fay-Riddell, q = 13.68 kW/m^2. Radius `[TO DETERMINE]`, not fitted |
+| **Skin at leading edge (unswept cylinder, R_LE = 10 mm)** | **734.9 K / 461.8 C** | **computed**, Fay-Riddell 2-D, q = 14.06 kW/m^2. Sweep not applied (undeclared) |
+| ~~Skin at nose and leading edges~~ | ~~**[TO COMPUTE, M5]**~~ | ~~needs a stagnation-point correlation (Fay-Riddell), not a flat plate. Anchor: SR-71 nose ~ 588 K at M 3.2~~ **[RESOLVED r7]** |
 
 Radiation-equilibrium skin, computed by `ventus-thermal`
 (`cargo run -p ventus-thermal --example skin`):
@@ -165,21 +174,55 @@ Radiation-equilibrium skin, computed by `ventus-thermal`
 > edges, and those are what make up the upper end of that band.
 >
 > **Sensitivity, measured not assumed.** Published turbulent skin-friction
-> correlations disagree by 3.9 %. A 2 % change in c_f moves the wall by ≈ 1.5 K.
+> correlations disagree by 3.9 %. A 2 % change in c_f moves the wall by ~ 1.5 K.
 > The calorically perfect versus thermally perfect T_aw (13.7 K apart) moves it
-> by ≈ 6 K. Neither threatens the material conclusion below.
+> by ~ 6 K. Neither threatens the material conclusion below.
+>
+> ### Nose and leading edges -- computed, not estimated
+>
+> `cargo run -p ventus-thermal --example stagnation`
+>
+> Declared radii, both `[TO DETERMINE]`, both structural minima of SR-71-class
+> order, **not** the radii that would keep Ti-6Al-4V alive (heat flux falls as
+> `1/sqrt(R)`; inventing a blunt nose to save an alloy is refused):
+>
+> | Station | Body | R [m] | T0 [K] | T_wall [K] | T_wall [C] | q [kW/m^2] | radiation relief |
+> |---|---|---|---|---|---|---|---|
+> | Nose | sphere | 0.025 | 768.1 | **729.9** | 456.8 | 13.68 | 38 K |
+> | Leading edge | unswept cylinder | 0.010 | 768.1 | **734.9** | 461.8 | 14.06 | 33 K |
+>
+> Radiation is worth only ~35 K here, against 161 K on the 10 m panel: a 10-25 mm
+> stagnation region is a strong heat-transfer geometry, so the wall sits close
+> to T0. Sweep is not applied to the leading edge -- the geometry does not
+> declare a sweep angle, and a `cos^n(Lambda)` factor would be a silent save.
+>
+> **Blunting cannot save Ti-6Al-4V on this aircraft.** At R = 1.0 m (the
+> fuselage radius itself) the spherical stagnation wall is still 632.6 K, 10 K
+> above the 623 K creep limit. The radius that would land on 623 K is larger
+> than the airframe.
+>
+> **SR-71 anchor.** Same model at M 3.2 / 24 km, VENTUS R_n = 0.025 m: T_wall =
+> **649.8 K / 376.7 C** against the published nose ~ 588 K / 315 C. Residual
+> **+62 K**. Carried as a failing `known_limit` (`sr71_nose_published_588k`),
+> not widened until it passes. Causes in scope to name and out of scope to
+> close: no cited SR-71 nose radius (matching 588 K under this model wants
+> R ~ 0.8 m, a blunt body); local radiative equilibrium with no conduction aft;
+> Fay-Riddell was derived for highly cooled dissociated air, and at M 3.2 the
+> wall sits at `h_w/h_e ~ 0.97`. `[TO VERIFY]` against a primary nose
+> temperature and a nose drawing. The residual is load-bearing: 588 K is below
+> the Ti-6Al-4V limit, 650 K is above it.
 
-### 3.3 Material survival — M5 becomes a decision, not a confirmation
+### 3.3 Material survival -- M5 becomes a decision, not a confirmation
 
-| Material | Sustained limit | ρ [kg·m⁻³] | Verdict at T_aw = 421 °C |
-|---|---|---|---|
-| Al 2024-T3 / 7075 | ~120 °C | 2 780 | dead, by a factor of 3.5 |
-| Al 2618 (RR58 — Concorde) | ~127 °C | 2 760 | dead |
-| **Ti-6Al-4V** | ~350 °C / 623 K (creep) | 4 430 | **ALIVE on radiating skin (75 K margin); DEAD at T_aw** |
-| Ti-6242S (high-temperature Ti) | ~540 °C | 4 540 | alive |
-| Ti β (B-120VCA — SR-71) | ~500–550 °C | 4 850 | **alive — the answer the SR-71 arrived at** |
-| 17-7PH stainless | ~430 °C | 7 800 | marginal, and +76 % density |
-| Inconel 718 / René 41 | > 650 °C | 8 190 | leading edges, hot structure, engine |
+| Material | Sustained limit | rho [kg/m^3] | Flat skin 548 K | Nose 730 K / LE 735 K |
+|---|---|---|---|---|
+| Al 2024-T3 / 7075 | ~120 C | 2 780 | dead | dead |
+| Al 2618 (RR58 -- Concorde) | ~127 C | 2 760 | dead | dead |
+| **Ti-6Al-4V** | ~350 C / 623 K (creep) | 4 430 | **ALIVE (75 K margin); DEAD at T_aw** | **DEAD (107 K / 112 K over). Blunting does not save it.** |
+| **Ti-6242S** (high-temperature Ti) | ~540 C / 813 K | 4 540 | alive | **ALIVE -- lightest survivor (83 K / 78 K margin)** |
+| Ti beta (B-120VCA -- SR-71) | ~500-550 C / 810 K | 4 850 | alive | **ALIVE (80 K / 75 K margin)** |
+| 17-7PH stainless | ~430 C / 703 K | 7 800 | alive, +76 % density | **DEAD (27 K / 32 K over)** |
+| Inconel 718 / Rene 41 | > 650 C / 923 K | 8 190 | overkill on panels | **ALIVE (193 K / 188 K margin)** |
 
 > ## [RESOLVED r5] Radiation is what keeps the flat panels in conventional titanium
 >
@@ -200,13 +243,25 @@ Radiation-equilibrium skin, computed by `ventus-thermal`
 > Ti-6242S. That is the real design constraint this module produced, and it is
 > not one the recovery temperature alone would have revealed.
 >
-> Asserted as a case (`radiation_relief_k = 161 ± 2 %`) rather than left as prose,
+> Asserted as a case (`radiation_relief_k = 161 +/- 2 %`) rather than left as prose,
 > so that if the relief ever drops below about 90 K the build says so.
 >
-> **Still open:** leading edges and the nose. A flat plate does not model them,
-> and at the SR-71 anchor those are exactly the regions at the top of the
-> published band. **[TO COMPUTE, M5]** with a stagnation-point correlation.
-> The expectation remains Inconel there.
+> **[RESOLVED r7] Leading edges and the nose.** Fay-Riddell at the declared
+> structural-minimum radii (25 mm sphere / 10 mm unswept cylinder, both
+> `[TO DETERMINE]`) puts T_wall at **730 K / 735 K**. Ti-6Al-4V is dead there
+> by ~110 K. Ti-6242S is the lightest survivor (~80 K margin). Inconel is
+> alive with ~190 K. 17-7PH, which survived the radiating panels, dies at the
+> nose. Radiation is worth only ~35 K at these stations -- the wall sits near
+> T0 -- so the margin belongs to the *alloy*, not to the radiation term. That
+> is the opposite of the flat-panel result, and it is why a single material
+> does not close the airframe.
+>
+> The expectation that the nose and LE would be Inconel is **not required** at
+> this snapshot: high-temperature titanium clears T0 = 768 K even with zero
+> radiation. Inconel remains the conservative LE/nose choice and the one the
+> SR-71 used on the hottest metal; it is not the lightest that survives the
+> computation. This is a cruise snapshot at M 3.50, not a fly claim, and not a
+> thermal close at M 4/5.
 
 **Thermal growth (first order, redone in M5).** Ti alloys, α ≈ 8.6 × 10⁻⁶ K⁻¹.
 Ground 288 K to cruise skin 620–695 K gives ΔT = 332–407 K:
@@ -231,6 +286,7 @@ defined (§5.2).
 | M4 | γ(T) in burner and nozzle (ADR-000 D10) | γ = 1.4 is a **fail**, not a limit, in this module |
 | M6 (boundary layer) | Blasius c_f·sqrt(Re) = 0.664 exact; Reynolds analogy exact at Pr = 1 | **DONE** — the geometry-free half |
 | M5 | SR-71 skin 250–300 °C at M 3.2 | **DONE** — 270.2 °C at 1 m, 253.6 °C at 5 m, inside the band |
+| M5 (nose / LE) | SR-71 nose ~ 315 C at M 3.2 | **COMPUTED, residual stated.** Fay-Riddell at VENTUS R_n = 25 mm gives 649.8 K against 588 K (+62 K). Failing `known_limit`, not tuned. Design-point nose 730 K / LE 735 K |
 | M6 (wave drag) | Concorde L/D ≈ 7.5 @ M 2.04, SR-71 ≈ 6 @ M 3.2; Küchemann bound 4(M+3)/M = **7.43** at M 3.5 | target **5.0–6.0**. **Two-sided: > 7.4 exceeds the Küchemann bound and is a bug; < 3.5 is a bug OR a bad configuration — the harness must distinguish them** |
 | M7 | SR-71 empty mass / MTOW / unrefuelled range **[TO CITE]** | in `ventus-mass/cases/`; the empty fraction now carries the empty-mass derivation too (§ 4b) |
 | M8 | Energy conservation of the integrator, ballistic, no atmosphere | drift ≤ 1e-10 relative over 10⁶ steps |
@@ -492,8 +548,9 @@ M 4”.
 ## 6. Reproduction
 
 §1 and §2 are regenerated by `cargo run -p ventus-atmos --example table -- 26000`
-and checked by `cargo xtask validate`. §3 onward is hand-computed until M2 lands,
-after which the stagnation state becomes generated too.
+and checked by `cargo xtask validate`. §3.2 flat-panel skin is
+`cargo run -p ventus-thermal --example skin`; nose and leading edges are
+`cargo run -p ventus-thermal --example stagnation`.
 
 Entries marked **[TO COMPUTE]**, **[TO VERIFY]**, **[TO CITE]**, **[TO DETERMINE]**
 or **[TO PROVE]** are open and must not be quoted as results.
