@@ -37,6 +37,18 @@ pub enum ThermalError {
     InvalidSinkTemperature,
     /// The boundary-layer model refused first.
     BoundaryLayer(BoundaryLayerError),
+    /// Nose / leading-edge radius must be finite and strictly positive.
+    InvalidRadius,
+    /// Prandtl number must be finite and strictly positive.
+    InvalidPrandtl,
+    /// Freestream temperature, pressure, density, velocity or Mach was
+    /// non-physical.
+    InvalidFreestream,
+    /// Fay-Riddell needs a detached bow shock; subsonic (and sonic) freestream
+    /// is refused rather than returning a vanishing-gradient number.
+    Subsonic,
+    /// An input was NaN.
+    NotANumber,
 }
 
 impl From<BoundaryLayerError> for ThermalError {

@@ -365,8 +365,12 @@ margin that kept flat panels in Ti-6Al-4V at M 3.50 **does not survive at 1 m
 on this row**. Ti-6242S (813 K) still clears the flat plate. That is not a
 material close: a flat plate has no nose, chines, nacelles or leading edges,
 and those are the top of the SR-71's published band. Fay-Riddell at the
-proposed row is still **[TO COMPUTE, M5]**. The expectation remains Inconel
-there, and it is a stronger expectation than at M 3.50.
+M 3.50 snapshot has now landed (`ventus-thermal`, R_n = 25 mm `[TO DETERMINE]`):
+nose 730 K, LE 735 K, Ti-6Al-4V dead, Ti-6242S the lightest survivor. Applying
+the same correlation at the proposed M 4.00 row is still **[TO COMPUTE, M5]**.
+T0 is higher there; the M 3.50 close is not a fly claim at M 4. The
+expectation of Inconel on the LE/nose is a stronger expectation than at
+M 3.50.
 
 M12's line "the material never binds on this trajectory" is evaluated at the
 **10 m** station. It remains true as a module-refusal statement. It is not a
@@ -423,7 +427,9 @@ snapshot cannot.
    (~122 kPa total, not 1.6 kPa). No holder may be invented to claim the
    0.30 end.
 4. **Stagnation-point / leading-edge heating** at the proposed row (M5), not
-   a flat plate. The 1 m station already kills Ti-6Al-4V on the plate.
+   a flat plate. The 1 m station already kills Ti-6Al-4V on the plate. The
+   correlation now exists and is closed at M 3.50; it has not been run at
+   M 4.00.
 5. **Thermally perfect T₀** at the proposed row, `h₀ = h + V²/2`, the same
    method as `design-point.md` §3.1, `[TO VERIFY]` tables included.
 6. **A new case corpus at the new snapshot** — US76 row, NACA 1135 at M 4
@@ -449,7 +455,8 @@ snapshot cannot.
 - **Not flyable.** The snapshot capture exceeds the body. The candidate
   hosts (0.864) and still does not fly: blowout sits below the cited
   Useller Fig. 8 afterburner floor and has no ramjet-no-holder chart; the
-  engine is unsized; the nose is uncomputed; lip suction, spike, and
+  engine is unsized; the M 4.00 nose is uncomputed (Fay-Riddell is closed
+  at the M 3.50 snapshot, not at this row); lip suction, spike, and
   unstart remain refusals. A green test suite on the M 3.50 corpus does
   not move any of that. A declared cowl that reports `D_add = 0` at
   shock-on-lip is not a started mixed-compression inlet.
