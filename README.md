@@ -244,12 +244,14 @@ balance at all. That is **not a second usable limit** — past M 3.85 the inlet
 already exceeds the body carrying it, so M 4.54 sits inside a region M 3.85 has
 excluded. It says how the failure happens, not how far the aircraft gets.
 
-M3 now owns the capture-vs-body identity, spilled *area*, the additive-drag
-*definition* (force refused without a cowl lip), and Kantrowitz starting
+M3 now owns the capture-vs-body identity, spilled *area*, a declared cowl
+lip, additive/spillage *force* from that lip (pitot-equivalent; zero at
+shock-on-lip; refused without a lip), and Kantrowitz starting
 (`A_e/A_t ≈ 1.45` at M 3.5 against isentropic `A/A* ≈ 6.79` — why a spike
-exists). The translating-spike *schedule* and unstart *dynamics* remain typed
-refusals. Four of those five frontiers are statements about the **model**. Only
-the capture area is a statement about the **aircraft**.
+exists). The translating-spike *schedule*, unstart *dynamics*, and lip
+suction remain typed refusals. Four of those five frontiers are statements
+about the **model**. Only the capture area is a statement about the
+**aircraft**.
 
 The material never binds, and that is a mechanism rather than an assertion: the
 balance is `eps sigma T_w^4 = h (T_aw — T_w)`, so the fourth root crushes

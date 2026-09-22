@@ -921,8 +921,9 @@ pub fn snapshot_geometry() -> ventus_aero::geometry::Geometry {
 /// [`snapshot_geometry`], fineness 10 rather than 12.
 ///
 /// A different volume distribution, not a heavier copy of the snapshot
-/// (that ratio is scale-invariant). Not a closed aircraft: blowout, cowl-lip
-/// force, unstart, and the 1 m thermal station remain open. Not a replacement
+/// (that ratio is scale-invariant). Not a closed aircraft: blowout, unstart,
+/// and the 1 m thermal station remain open. Additive drag on a declared
+/// candidate cowl is [`additive_drag_on_m4_candidate_cowl`]. Not a replacement
 /// of the M 3.50 yardstick.
 #[must_use]
 pub fn m4_candidate_geometry() -> ventus_aero::geometry::Geometry {
@@ -935,11 +936,11 @@ pub fn m4_candidate_geometry() -> ventus_aero::geometry::Geometry {
 ///
 /// # Why this is computed rather than assumed
 ///
-/// M3 has no capture area - `ventus-inlet` carries an explicit
-/// `TODO(M3): capture area and spillage drag` - so asking "is there excess
-/// thrust?" cannot be answered without inventing one. Inverting the question
-/// needs nothing invented: thrust equals `Fs * rho * V * A_c`, drag comes out of
-/// M6b in newtons, so the area that balances them falls out.
+/// M3 now owns capture-vs-body and, with a declared lip, additive-drag
+/// *force*. Inverting "is there excess thrust?" still needs nothing invented
+/// for the area: thrust equals `Fs * rho * V * A_c`, drag comes out of
+/// M6b in newtons, so the area that balances them falls out. Additive drag
+/// is reported beside that inversion and is **not** fed back into it.
 ///
 /// Uses the snapshot body. For another Sears-Haack station see
 /// [`required_capture_area_for`].
@@ -1033,10 +1034,72 @@ pub fn capture_area_ratio_for(
 /// At [`PROPOSED_M4_CRUISE_MACH`] this is below 1 (the snapshot's
 /// [`capture_area_ratio`] is above 1). That is a geometry finding, not a
 /// claim the vehicle flies: lean blowout is still below the operative bound,
-/// there is no cowl lip, and there is no spike.
+/// and there is no spike. Additive drag on a declared candidate cowl is
+/// [`additive_drag_on_m4_candidate_cowl`].
 #[must_use]
 pub fn m4_candidate_capture_area_ratio(mach: f64) -> Option<f64> {
     capture_area_ratio_for(mach, &m4_candidate_geometry())
+}
+
+/// Shock-on-lip cowl for the M 3.50 snapshot: highlight equals the required
+/// capture at M 3.50, lip radius [`ventus_inlet::VENTUS_COWL_LIP_RADIUS_RATIO`].
+///
+/// Additive drag at the snapshot is therefore zero by construction. Off-design
+/// Mach on this *same* highlight spills (below) or exceeds the cowl (above).
+/// The force is **not** folded into M6b drag; capture-area ratios are unchanged.
+#[must_use]
+pub fn snapshot_design_cowl_lip() -> Option<ventus_inlet::CowlLipGeometry> {
+    let a_c = required_capture_area_m2(3.5)?;
+    ventus_inlet::CowlLipGeometry::ventus_on_highlight(a_c).ok()
+}
+
+/// Shock-on-lip cowl for the M 4 candidate: highlight equals that body's
+/// required capture at [`PROPOSED_M4_CRUISE_MACH`].
+#[must_use]
+pub fn m4_candidate_design_cowl_lip() -> Option<ventus_inlet::CowlLipGeometry> {
+    let a_c = required_capture_area_for(PROPOSED_M4_CRUISE_MACH, &m4_candidate_geometry())?;
+    ventus_inlet::CowlLipGeometry::ventus_on_highlight(a_c).ok()
+}
+
+fn freestream_station(mach: f64, streamtube_m2: f64) -> Option<ventus_inlet::FreestreamStation> {
+    let p = evaluate(mach);
+    let atmos = ventus_atmos::at_geopotential(p.altitude_m?).ok()?;
+    Some(ventus_inlet::FreestreamStation {
+        streamtube_area_m2: streamtube_m2,
+        static_pressure_pa: atmos.pressure_pa,
+        density_kg_m3: atmos.density_kg_m3,
+        velocity_m_s: p.velocity_m_s?,
+    })
+}
+
+/// Additive drag on the snapshot design cowl at this Mach.
+///
+/// `None` if the chain refused before a freestream existed. `Err` is M3
+/// refusing the operating point (typically [`CaptureError::CaptureExceedsCowl`]
+/// above the M 3.50 highlight).
+#[must_use]
+pub fn additive_drag_on_snapshot_cowl(
+    mach: f64,
+) -> Option<Result<ventus_inlet::AdditiveDrag, ventus_inlet::CaptureError>> {
+    let lip = snapshot_design_cowl_lip()?;
+    let a0 = required_capture_area_m2(mach)?;
+    let fs = freestream_station(mach, a0)?;
+    Some(ventus_inlet::additive_drag_from_lip(fs, lip, 1.4))
+}
+
+/// Additive drag on the M 4 candidate's design cowl at this Mach.
+///
+/// At [`PROPOSED_M4_CRUISE_MACH`] the highlight equals the required capture,
+/// so the force is zero (shock-on-lip). That is a number, not a flying
+/// aircraft.
+#[must_use]
+pub fn additive_drag_on_m4_candidate_cowl(
+    mach: f64,
+) -> Option<Result<ventus_inlet::AdditiveDrag, ventus_inlet::CaptureError>> {
+    let lip = m4_candidate_design_cowl_lip()?;
+    let a0 = required_capture_area_for(mach, &m4_candidate_geometry())?;
+    let fs = freestream_station(mach, a0)?;
+    Some(ventus_inlet::additive_drag_from_lip(fs, lip, 1.4))
 }
 
 /// Above this Mach **no body size closes the thrust balance**: M 4.536.

@@ -348,7 +348,8 @@ fn evaluate_thermal(c: &Case) -> BTreeMap<String, ExpectValue> {
     m
 }
 
-/// M3. Recovery, capture identities, Kantrowitz, and the spike/unstart refusals.
+/// M3. Recovery, capture identities, Kantrowitz, declared-lip additive drag,
+/// and the spike/unstart refusals.
 /// A case names the question with its inputs; keys it does not name are ignored.
 fn evaluate_inlet(c: &Case) -> BTreeMap<String, ExpectValue> {
     let mut m = BTreeMap::new();
@@ -384,15 +385,75 @@ fn evaluate_inlet(c: &Case) -> BTreeMap<String, ExpectValue> {
                 ExpectValue::Bool(s.capture_exceeds_cowl),
             );
         }
-        m.insert(
-            "refused_cowl_lip_not_modelled".into(),
-            ExpectValue::Bool(matches!(
-                ventus_inlet::additive_drag_without_lip(a0, ac),
-                Err(ventus_inlet::CaptureError::CowlLipNotModelled)
-            )),
-        );
-        // Deliberately do NOT emit additive_drag_coefficient: there is no cowl.
-        // The known_limit case that asks for it fails with a missing key.
+        let lip_ratio = f("lip_radius_ratio").or_else(|| {
+            f("lip_radius_m").map(|r| {
+                let highlight_radius = (ac / std::f64::consts::PI).sqrt();
+                r / highlight_radius
+            })
+        });
+        if let Some(ratio) = lip_ratio {
+            m.insert(
+                "refused_cowl_lip_not_modelled".into(),
+                ExpectValue::Bool(false),
+            );
+            if let (Some(p), Some(rho), Some(v)) = (
+                f("static_pressure_pa"),
+                f("density_kg_m3"),
+                f("velocity_m_s"),
+            ) {
+                if let Ok(geom) =
+                    ventus_inlet::CowlLipGeometry::from_highlight_and_radius_ratio(ac, ratio)
+                {
+                    let fs = ventus_inlet::FreestreamStation {
+                        streamtube_area_m2: a0,
+                        static_pressure_pa: p,
+                        density_kg_m3: rho,
+                        velocity_m_s: v,
+                    };
+                    let gamma = f("gamma").unwrap_or(1.4);
+                    match ventus_inlet::additive_drag_from_lip(fs, geom, gamma) {
+                        Ok(d) => {
+                            m.insert("additive_drag_n".into(), ExpectValue::Float(d.force_n));
+                            m.insert(
+                                "additive_drag_coefficient".into(),
+                                ExpectValue::Float(d.coefficient),
+                            );
+                            m.insert(
+                                "lip_radius_ratio".into(),
+                                ExpectValue::Float(d.lip_radius_ratio),
+                            );
+                            m.insert(
+                                "additive_drag_within_stated_range".into(),
+                                ExpectValue::Bool(d.within_stated_range),
+                            );
+                        }
+                        Err(ventus_inlet::CaptureError::CaptureExceedsCowl) => {
+                            m.insert(
+                                "refused_capture_exceeds_cowl".into(),
+                                ExpectValue::Bool(true),
+                            );
+                        }
+                        Err(ventus_inlet::CaptureError::Subsonic) => {
+                            m.insert("refused_subsonic".into(), ExpectValue::Bool(true));
+                        }
+                        Err(_) => {}
+                    }
+                }
+            }
+        } else {
+            m.insert(
+                "refused_cowl_lip_not_modelled".into(),
+                ExpectValue::Bool(matches!(
+                    ventus_inlet::additive_drag_without_lip(a0, ac),
+                    Err(ventus_inlet::CaptureError::CowlLipNotModelled)
+                )),
+            );
+            // Without a lip, do NOT emit additive_drag_coefficient. The
+            // known_limit that asked for a Cd from μ alone is gone; the
+            // remaining missing-key known_limit is lip suction.
+        }
+        // Deliberately do NOT emit lip_suction_force_n: r/R is geometry, not a
+        // credited force. The known_limit case that asks for it fails closed.
     }
 
     if let Some(mach) = f("mach") {
@@ -676,6 +737,48 @@ fn evaluate_envelope(c: &Case) -> BTreeMap<String, ExpectValue> {
             "m4_candidate_fineness_ratio".to_string(),
             ExpectValue::Float(candidate.fineness_ratio()),
         );
+        match ventus_envelope::additive_drag_on_snapshot_cowl(mach) {
+            Some(Ok(d)) => {
+                m.insert(
+                    "snapshot_cowl_additive_drag_n".to_string(),
+                    ExpectValue::Float(d.force_n),
+                );
+                m.insert(
+                    "snapshot_cowl_additive_drag_coefficient".to_string(),
+                    ExpectValue::Float(d.coefficient),
+                );
+                m.insert(
+                    "snapshot_cowl_capture_exceeds".to_string(),
+                    ExpectValue::Bool(false),
+                );
+            }
+            Some(Err(ventus_inlet::CaptureError::CaptureExceedsCowl)) => {
+                m.insert(
+                    "snapshot_cowl_capture_exceeds".to_string(),
+                    ExpectValue::Bool(true),
+                );
+            }
+            Some(Err(_)) | None => {}
+        }
+        match ventus_envelope::additive_drag_on_m4_candidate_cowl(mach) {
+            Some(Ok(d)) => {
+                m.insert(
+                    "m4_candidate_cowl_additive_drag_n".to_string(),
+                    ExpectValue::Float(d.force_n),
+                );
+                m.insert(
+                    "m4_candidate_cowl_additive_drag_coefficient".to_string(),
+                    ExpectValue::Float(d.coefficient),
+                );
+            }
+            Some(Err(ventus_inlet::CaptureError::CaptureExceedsCowl)) => {
+                m.insert(
+                    "m4_candidate_cowl_capture_exceeds".to_string(),
+                    ExpectValue::Bool(true),
+                );
+            }
+            Some(Err(_)) | None => {}
+        }
         if let Some(a) = ventus_envelope::self_consistent_capture_area_m2(mach) {
             m.insert(
                 "self_consistent_capture_area_m2".to_string(),

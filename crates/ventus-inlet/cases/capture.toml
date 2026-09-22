@@ -1,9 +1,9 @@
-# M3 — capture, spillage hook, Kantrowitz starting, spike/unstart refusals.
+# M3 — capture, spillage, Kantrowitz starting, declared-lip additive drag,
+# spike/unstart refusals.
 #
-# Recovery remains in recovery.toml. These cases are identities and one cited
-# 1-D limit. There is no cowl highlight on this aircraft, so a case that asked
-# for a newton of additive drag without a lip state is asking this crate to
-# invent one.
+# Recovery remains in recovery.toml. These cases are identities, one cited
+# 1-D limit, and a pitot-equivalent additive force once a lip is declared.
+# Without a lip, the force is still refused. Lip suction is not credited.
 
 [[case]]
 name    = "kantrowitz_at_design_mach"
@@ -79,7 +79,7 @@ rel_tol = 1e-3
 [[case]]
 name    = "shock_on_lip_spills_nothing"
 source  = "Mass-flow ratio μ = A0/Ac. At shock-on-lip, A0 = Ac, spilled area is zero. THE SOURCE IS THE DEFINITION."
-reason  = "A started external-compression inlet at design has no additive streamtube to charge. The spilled area is the hook; the newton still needs a lip state."
+reason  = "A started external-compression inlet at design has no additive streamtube to charge. With a declared lip the newton is zero; without one it is refused."
 inputs  = { streamtube_area_m2 = 2.511, cowl_area_m2 = 2.511 }
 expect  = { mass_flow_ratio = 1.0, spilled_area_m2 = 0.0, capture_exceeds_cowl = false }
 rel_tol = 1e-12
@@ -89,8 +89,8 @@ name    = "subcritical_cowl_spills_the_leftover_area"
 source  = "Spilled area = (Ac − A0)+. Identity, not a drag correlation."
 reason  = """
 When the cowl is larger than the captured streamtube the difference is spilled.
-This is the hook M3's TODO named. Additive drag in newtons is a different
-question and is refused without a cowl-lip pressure.
+This is the hook. Additive drag in newtons is a different question: without a
+declared lip it is refused; with one, see declared_lip_subcritical_spillage_force.
 """
 inputs  = { streamtube_area_m2 = 2.0, cowl_area_m2 = 3.0 }
 expect  = { mass_flow_ratio = 0.6666666666666666, spilled_area_m2 = 1.0, capture_exceeds_cowl = false }
@@ -98,11 +98,12 @@ rel_tol = 1e-12
 
 [[case]]
 name    = "additive_drag_without_a_lip_is_refused"
-source  = "Seddon & Goldsmith, Intake Aerodynamics: additive drag is a control-volume force that needs p_c and u_c at the lip. This aircraft has no cowl highlight. THE SOURCE IS THE DEFINITION, not a C_D(μ) fudge."
+source  = "Seddon & Goldsmith, Intake Aerodynamics: additive drag is a control-volume force that needs a cowl lip. Without a declared lip the force is refused. THE SOURCE IS THE DEFINITION, not a C_D(μ) fudge."
 reason  = """
 An incompressible C_D = 2 μ (1−μ) at M 3.5 would be a number about the wrong
 physics. The spilled area is emitted; the force is not. A case that asks for
-additive_drag_n without a lip must fail closed.
+additive_drag_n without a lip must fail closed. Declaring a lip is a
+different case.
 """
 inputs  = { streamtube_area_m2 = 2.0, cowl_area_m2 = 3.0 }
 expect  = { refused_cowl_lip_not_modelled = true, spilled_area_m2 = 1.0 }
@@ -134,17 +135,61 @@ expect  = { refused_unstart_dynamics_not_modelled = true }
 abs_tol = 0.0
 
 [[case]]
-name    = "no_verified_additive_drag_coefficient_at_design_spillage"
-source  = "Seddon & Goldsmith additive-drag definition requires a cowl-lip state this aircraft does not have. Same missing-key mechanism as M11 programme_cost_usd_1986_verified."
+name    = "declared_lip_shock_on_lip_additive_drag_vanishes"
+source  = "Seddon & Goldsmith pre-entry force on spilled projected area. At shock-on-lip the spilled area is zero, so D_add is identically zero. THE SOURCE IS THE DEFINITION. Atmosphere: docs/design-point.md §1–2."
+reason  = """
+THE CASE THAT USED TO BE A REFUSAL, WITH A LIP.
+
+A declared cowl (highlight = streamtube, r/R = 0.02 [TO DETERMINE]) unlocks
+the force. At design operation there is nothing to charge. Lip suction is
+not in this number.
+"""
+inputs  = { streamtube_area_m2 = 2.511, cowl_area_m2 = 2.511, lip_radius_ratio = 0.02, static_pressure_pa = 2153.09, density_kg_m3 = 0.0336882, velocity_m_s = 1046.95, gamma = 1.4 }
+expect  = { additive_drag_n = 0.0, additive_drag_coefficient = 0.0, mass_flow_ratio = 1.0, spilled_area_m2 = 0.0, refused_cowl_lip_not_modelled = false, additive_drag_within_stated_range = true }
+abs_tol = 1e-6
+
+[[case]]
+name    = "declared_lip_subcritical_spillage_force"
+source  = "Pitot-equivalent additive drag D_add = (p2 − p∞) (Ac − A0)+, with p2/p∞ from NACA 1135 / M2 normal_shock at the freestream Mach. Atmosphere: docs/design-point.md §1–2. [TO CITE] Seddon & Goldsmith, Intake Aerodynamics, additive-drag / pre-entry chapter, for the streamtube force; the p2 closure is composed, not transcribed."
+reason  = """
+THE NEWTON A DECLARED LIP UNLOCKS.
+
+μ = 2/3 at the M 3.50 / 26 km snapshot atmosphere. This is not
+C_D = 2μ(1−μ) = 0.444 — that is the incompressible sharp-lip identity, the
+wrong regime. The pitot sketch gives C_D,add ≈ 0.510. A four-ramp external
+field is not this number. Lip suction is not credited (r/R is a flag).
+The force is not folded into M6b drag.
+"""
+inputs  = { streamtube_area_m2 = 2.0, cowl_area_m2 = 3.0, lip_radius_ratio = 0.02, static_pressure_pa = 2153.09, density_kg_m3 = 0.0336882, velocity_m_s = 1046.95, gamma = 1.4 }
+expect  = { additive_drag_n = 28259.5, additive_drag_coefficient = 0.5102, mass_flow_ratio = 0.6666666666666666, spilled_area_m2 = 1.0, refused_cowl_lip_not_modelled = false, additive_drag_within_stated_range = true }
+rel_tol = 1e-3
+
+[[case]]
+name    = "declared_lip_refuses_when_capture_exceeds_the_cowl"
+source  = "Mass-flow ratio μ = A0/Ac > 1 is not spillage. THE SOURCE IS THE OPERATING POINT."
+reason  = """
+A lip does not invent a force for a highlight that cannot swallow the
+streamtube. That is CaptureExceedsCowl, the same refusal the snapshot
+design cowl returns at the proposed M 4.00 row.
+"""
+inputs  = { streamtube_area_m2 = 4.0, cowl_area_m2 = 3.0, lip_radius_ratio = 0.02, static_pressure_pa = 2153.09, density_kg_m3 = 0.0336882, velocity_m_s = 1046.95, gamma = 1.4 }
+expect  = { refused_capture_exceeds_cowl = true, capture_exceeds_cowl = true, refused_cowl_lip_not_modelled = false }
+abs_tol = 0.0
+
+[[case]]
+name    = "lip_suction_is_not_credited"
+source  = "Seddon & Goldsmith: lip suction on a blunt cowl can cancel additive drag. This crate records r/R and refuses to invent C_s(r/R, M). Same missing-key mechanism as M11 programme_cost_usd_1986_verified."
 status  = "known_limit"
 reason  = """
-THE NUMBER THIS MODULE IS NOT ALLOWED TO PRINT FROM A MASS-FLOW RATIO ALONE.
+THE FORCE THIS MODULE IS NOT ALLOWED TO PRINT FROM A LIP RADIUS ALONE.
 
-There is no cited C_D,add(μ, M) for this cowl, because there is no cowl. A
-future lip state plus the control-volume identity in additive_drag_n would
-make this annotation STALE. Until then no report from this project should
-quote a spillage-drag coefficient from M3.
+A declared lip unlocks the pre-entry (spillage) force. The blunt-lip credit
+that would lower it is a different number, and there is no cited suction
+correlation in this repository. [TO CITE] Seddon & Goldsmith for C_s(r/R, M).
+Until then no report should quote net spillage drag after suction. Two lips
+that differ only in r/R currently return the same D_add; that is the honesty.
 """
-inputs  = { streamtube_area_m2 = 2.511, cowl_area_m2 = 3.369 }
-expect  = { additive_drag_coefficient = 0.0 }
-rel_tol = 1e-12
+inputs  = { streamtube_area_m2 = 2.0, cowl_area_m2 = 3.0, lip_radius_ratio = 0.02, static_pressure_pa = 2153.09, density_kg_m3 = 0.0336882, velocity_m_s = 1046.95, gamma = 1.4 }
+expect  = { lip_suction_force_n = 0.0 }
+abs_tol = 0.0
+
