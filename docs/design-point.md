@@ -325,6 +325,8 @@ disappears leaves no record that it was ever load-bearing.
 |---|---|
 | 5.1 No acceleration corridor | **OPEN.** The engine is not sized. |
 | 5.2 No geometry | **CLOSED** by M6b; M7 and M8 built on it. |
+| 5.3 Lean blowout | **TIGHTENED, not closed.** Operative bound is the strict end (no holder declared); design φ sits below it. Bound still `[TO VERIFY]`. |
+| 5.4 Inlet capture / unstart | **TIGHTENED, not closed.** Capture-vs-body and Kantrowitz are identities; spike schedule and unstart dynamics remain refusals. Capture = body still at M 3.85. |
 
 ### 5.1 No acceleration corridor — blocking at M4 engine sizing
 
@@ -398,6 +400,63 @@ one, and pick it for a stated reason.
 > cruise at 77 t and this back-calculation would give C_L ≈ 0.215, which is not
 > what is asserted here — so the text and the arithmetic disagreed, and the
 > arithmetic was right. See `ventus-mass`, `SR71_EMPTY_FRACTION_OF_CRUISE_MASS`.
+
+### 5.3 Lean blowout — **TIGHTENED.** The question is sharper; the citation is not closed
+
+The cycle at this snapshot runs at **φ = 0.4615**. The literature band remains
+φ = 0.30–0.50, `[TO VERIFY]` at both ends. What changed is which end applies to
+*this* aircraft.
+
+No flame holder is declared. The permissive end (0.30) is a holder-required
+class — ONERA-class dump combustors near 0.28–0.32 are that class, recited from
+secondary literature, not read here — and inventing a holder that “saves”
+M 3.50 is refused. The **operative** bound is therefore the strict end 0.50
+(`[TO VERIFY]` against a primary afterburner/ramjet stability chart; intended
+source Mattingly, *Elements of Propulsion*, Fig. 10-70, not a digit read in this
+repository). Design φ sits below it. Under that bound the snapshot does not
+hold a flame.
+
+**Decision criterion**, pinned in `ventus_envelope::LEAN_BLOWOUT_DECISION_CRITERION`:
+a cited `φ_LBO` above 0.4615 means M 3.50 does not fly; a cited `φ_LBO` below it
+means margin on phi (capture may still bind). Wiring a verified fly/no-fly flag
+without that citation is a `known_limit` missing key.
+
+**[CORRECTED] Burner-entry pressure is not ~1.6 kPa.** Freestream at 26 km is
+2.15 kPa. Writing `p∞ · π_d` omits ram and gives ~1.60 kPa, which would make a
+flame look impossible. The cycle does not omit ram: burner-entry *total*
+pressure is **~122 kPa** with MIL recovery (~133 kPa on the four-ramp inviscid
+recovery M12 feeds the cycle) — sea-level-ish, two orders of magnitude above
+ambient. That is what makes combustion physically possible at 26 km. A figure
+near 1.6 kPa is either that omitted-ram trap or the M 4 constant-q *freestream*
+(1.65 kPa at 27.75 km). Lefebvre-family loading still has `φ_LBO` rising as
+pressure falls, so altitude is against us and ram is what buys the pressure
+back; evaluating the correlation still needs a combustor volume and a holder
+(tier 2, M4b). This snapshot does not declare either.
+
+### 5.4 Inlet capture / unstart — **TIGHTENED.** Identities in; schedule still refused
+
+M3 now computes, rather than TODOing:
+
+- capture vs body, as an identity on two areas (`capture_to_body_ratio`)
+- mass-flow ratio and spilled *area* (the hook)
+- additive drag from the Seddon & Goldsmith streamtube **definition**, when a
+  cowl-lip state is supplied; without a lip, the force is refused (no
+  incompressible `C_D(μ)` at M 3.5)
+- Kantrowitz–Donaldson self-start contraction, composed from M2: at M 3.5 the
+  gas will start `A_e/A_t ≈ 1.45` and an efficient internal diffuser wants
+  `A_e/A* ≈ 6.79`. That gap is why a mixed-compression inlet needs a
+  translating spike, and it is a property of the gas, not of a geometry we have
+  not drawn.
+
+Still refused, typed, matching `ventus-scram`: the translating-spike *schedule*
+and time-accurate unstart. Those need an internal contraction and a throat this
+aircraft has not declared.
+
+The vehicle statement is unchanged: required capture equals the Sears-Haack
+body at **M 3.85**, 74.5 % of it at this snapshot. The current body does not
+close at the proposed M 4.00 row (ratio 1.15). See
+[`docs/design-point-m4.md`](design-point-m4.md). That is not a fake “closes at
+M 4”.
 
 ## 6. Reproduction
 

@@ -232,27 +232,108 @@ fn a_degenerate_sweep_is_refused() {
 
 /// THE NUMBER THAT DECIDES WHETHER THE AIRCRAFT FLIES AT ALL.
 ///
-/// The cycle runs at phi = 0.4615 at the design point. The blowout band carried
-/// here is phi 0.3 to 0.5, so the design point sits inside it and above the
-/// middle - and phi 0.46 to 0.50 is ordinary for a combustor without a dedicated
-/// flame holder. The probability mass is not evenly split.
+/// The cycle runs at phi = 0.4615 at the design point. The literature band is
+/// phi 0.3 to 0.5, so the design point sits inside it and above the middle.
+/// No flame holder is declared, so the operative bound is the strict end,
+/// and 0.4615 is below that.
 #[test]
 fn the_design_point_equivalence_ratio_sits_high_in_the_blowout_band() {
     let p = evaluate(3.50);
-    let fuel_air = p.ramjet_specific_thrust_n_s_kg.unwrap()
-        / (p.ramjet_specific_impulse_s.unwrap() * ventus_units::constants::G0_M_S2);
-    let phi = fuel_air / STOICHIOMETRIC_FUEL_AIR_RATIO;
+    let phi = point_equivalence_ratio(&p).unwrap();
 
     assert!(
         (phi - DESIGN_POINT_EQUIVALENCE_RATIO).abs() < 1e-3,
         "the design-point equivalence ratio moved to {phi:.4}"
     );
-    // Inside the band, and above its midpoint.
+    // Inside the literature band, and above its midpoint.
     assert!(phi > LEAN_BLOWOUT_PHI_MIN && phi < LEAN_BLOWOUT_PHI_MAX);
     assert!(phi > 0.5 * (LEAN_BLOWOUT_PHI_MIN + LEAN_BLOWOUT_PHI_MAX));
+    assert_eq!(
+        literature_blowout_band(phi),
+        Some(LiteratureBlowoutBand::InsideBand)
+    );
 
     std::println!(
         "design point runs at phi = {phi:.4}; any blowout limit above that and it never gets there"
+    );
+}
+
+/// THE OPERATIVE FLY/NO-FLY STATEMENT, WITHOUT INVENTING A HOLDER.
+///
+/// The permissive end is not available: [`FLAME_HOLDER_DECLARED`] is false.
+/// The operative bound is therefore 0.50, still [TO VERIFY]. Design phi is
+/// below it, so under the only bound that applies to this aircraft the
+/// snapshot does not hold a flame.
+#[test]
+fn under_the_no_holder_bound_the_design_point_does_not_hold_a_flame() {
+    assert!(!FLAME_HOLDER_DECLARED);
+    assert_eq!(OPERATIVE_LEAN_BLOWOUT_PHI, LEAN_BLOWOUT_PHI_STRICT);
+
+    let phi = point_equivalence_ratio(&evaluate(3.50)).unwrap();
+    assert_eq!(
+        operative_lean_blowout_verdict(phi),
+        Some(LeanBlowoutVerdict::BelowOperativeBound)
+    );
+    // The proposed M 4 row is further lean, so the same bound is harsher there.
+    let phi_m4 = point_equivalence_ratio(&evaluate(PROPOSED_M4_CRUISE_MACH)).unwrap();
+    assert!(phi_m4 < phi);
+    assert_eq!(
+        operative_lean_blowout_verdict(phi_m4),
+        Some(LeanBlowoutVerdict::BelowOperativeBound)
+    );
+
+    assert_eq!(operative_lean_blowout_verdict(0.0), None);
+    assert_eq!(operative_lean_blowout_verdict(f64::NAN), None);
+    assert_eq!(
+        operative_lean_blowout_verdict(0.51),
+        Some(LeanBlowoutVerdict::AboveOperativeBound)
+    );
+}
+
+/// [CORRECTED] Burner-entry pressure is ram total pressure, not 1.6 kPa.
+///
+/// Freestream at 26 km is 2.15 kPa. Omitting ram and writing p∞ · π_d gives
+/// ~1.60 kPa, which would make combustion look impossible. The cycle does
+/// not omit ram: burner-entry *total* pressure is ~100 kPa, sea-level-ish,
+/// which is what makes a flame physically possible at all. Lefebvre loading
+/// still needs a volume and a holder to evaluate; this test only pins the
+/// station the correlation would be fed.
+#[test]
+fn burner_entry_total_pressure_is_ram_not_ambient() {
+    let p = evaluate(3.50);
+    let p02 = p.burner_entry_total_pressure_pa.unwrap();
+    let atmos = ventus_atmos::at_geopotential(p.altitude_m.unwrap()).unwrap();
+
+    // Ambient is kilopascals, not hundred kilopascals.
+    assert!(
+        atmos.pressure_pa < 3_000.0,
+        "freestream at 26 km moved to {} Pa",
+        atmos.pressure_pa
+    );
+    // Burner entry is two orders of magnitude above ambient: ram did the work.
+    assert!(
+        p02 > 50.0 * atmos.pressure_pa,
+        "burner-entry total {p02:.0} Pa is not ram-compressed against {} Pa ambient",
+        atmos.pressure_pa
+    );
+    assert!(
+        (1.0e5..1.6e5).contains(&p02),
+        "burner-entry total moved to {p02:.0} Pa"
+    );
+    // The 1.6 kPa trap: p∞ · π_d, ram omitted.
+    if let Some(recovery) = p.inlet_recovery {
+        let omitted_ram = atmos.pressure_pa * recovery;
+        assert!(
+            (1_400.0..1_800.0).contains(&omitted_ram),
+            "the omitted-ram figure moved to {omitted_ram:.0} Pa; the 1.6 kPa trap needs restating"
+        );
+        assert!(p02 > 50.0 * omitted_ram);
+    }
+
+    std::println!(
+        "burner entry p0 = {p02:.0} Pa against p∞ = {:.0} Pa (ram ×{:.0})",
+        atmos.pressure_pa,
+        p02 / atmos.pressure_pa
     );
 }
 

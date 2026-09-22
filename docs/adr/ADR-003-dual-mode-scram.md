@@ -79,7 +79,9 @@ would make every existing yardstick a lie.
   host the inlet. That bind is about the airframe, not about M4's burner
   ceiling.
 - Lean blowout is a band that already contains the design point; it is not
-  modelled in M4, and it is not modelled here either.
+  modelled as a combustor in M4. The operative bound for this aircraft is the
+  strict end (no holder declared), still `[TO VERIFY]`. See
+  `docs/design-point.md` §5.3.
 
 **Established, as public *regime* facts, not as VENTUS numbers:**
 
@@ -154,6 +156,8 @@ would make every existing yardstick a lie.
   wrong engine.
 - `[TO CITE]` any efficiency, recovery, or heating-value figure the cycle will
   need. None are entered now.
-- Geometry for Mach 4 cruise (capture versus body) — tracked by M12, not by
-  this crate. Sketched as a proposed row, not a close, in
-  `docs/design-point-m4.md`. The validated snapshot remains M 3.50 @ 26 km.
+- Geometry for Mach 4 cruise (capture versus body) — tracked by M12 and M3
+  capture identities, not by this crate. Sketched as a proposed row, not a
+  close, in `docs/design-point-m4.md`. The validated snapshot remains M 3.50
+  @ 26 km. Spike schedule and unstart dynamics remain typed refusals in
+  `ventus-inlet`.

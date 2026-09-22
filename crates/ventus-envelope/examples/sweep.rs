@@ -9,7 +9,8 @@ use ventus_envelope::{
     capture_area_ratio, envelope, evaluate, lean_blowout_mach, Envelope,
     CAPTURE_AREA_CLOSES_AT_MACH, DESIGN_DYNAMIC_PRESSURE_PA, DESIGN_POINT_EQUIVALENCE_RATIO,
     LEAN_BLOWOUT_PHI_MAX, LEAN_BLOWOUT_PHI_MIN, NO_BODY_CLOSES_ABOVE_MACH,
-    PEAK_SPECIFIC_THRUST_MACH, PEAK_SPECIFIC_THRUST_N_S_KG, WAVE_DRAG_FRACTION_AT_DESIGN_POINT,
+    OPERATIVE_LEAN_BLOWOUT_PHI, PEAK_SPECIFIC_THRUST_MACH, PEAK_SPECIFIC_THRUST_N_S_KG,
+    WAVE_DRAG_FRACTION_AT_DESIGN_POINT,
 };
 
 fn opt(v: Option<f64>, width: usize, prec: usize) -> String {
@@ -105,7 +106,8 @@ fn main() {
     println!("  M {PEAK_SPECIFIC_THRUST_MACH:.2}   specific thrust peaks");
     println!("  M 3.50   design point, at 83.7 % of peak thrust");
     if let (Some(lo), Some(hi)) = (strict, permissive) {
-        println!("  M {lo:.2} to M {hi:.2}   lean blowout, phi {LEAN_BLOWOUT_PHI_MAX:.2} to {LEAN_BLOWOUT_PHI_MIN:.2} [TO CITE]");
+        println!("  M {lo:.2} to M {hi:.2}   lean blowout literature band, phi {LEAN_BLOWOUT_PHI_MAX:.2} to {LEAN_BLOWOUT_PHI_MIN:.2}");
+        println!("           strict end [TO VERIFY] Mattingly Fig. 10-70 class; permissive end needs a holder");
     }
     println!("  M {CAPTURE_AREA_CLOSES_AT_MACH:.2}   required capture area equals the whole body cross-section");
     println!(
@@ -116,10 +118,12 @@ fn main() {
 
     println!();
     println!("THE TWO THAT ACTUALLY DECIDE IT:");
+    println!("  No flame holder is declared. The operative blowout bound is therefore");
+    println!("  the strict end phi = {OPERATIVE_LEAN_BLOWOUT_PHI:.2} [TO VERIFY], not the permissive 0.30.");
     println!("  The cycle runs at phi = {DESIGN_POINT_EQUIVALENCE_RATIO:.4} at the design point, INSIDE the");
-    println!("  blowout band and above its midpoint. phi 0.46-0.50 is ordinary for a");
-    println!("  combustor without a dedicated flame holder, and every value there puts");
-    println!("  M 3.50 out of reach. Not marginal - unreachable.");
+    println!("  literature band and BELOW the operative bound. Under that bound M 3.50");
+    println!("  does not hold a flame. Inventing a holder that saves it is refused.");
+    println!("  Decision: cited phi_LBO ≷ 0.4615.");
     if let Some(r) = capture_area_ratio(3.50) {
         println!();
         println!(

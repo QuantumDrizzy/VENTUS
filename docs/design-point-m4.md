@@ -185,22 +185,34 @@ body is, not a closing number.
 
 ### 4.2 Lean-blowout band / φ at design
 
-`ideal_ramjet` has no flame-stability model. The band M12 carries is
-φ = 0.30–0.50 **[TO CITE]**, which the cycle crosses between **M 3.23 and
-M 4.42**. Both the snapshot and the proposed row sit **inside** that band.
+`ideal_ramjet` has no flame-stability model. The literature band M12 carries is
+φ = 0.30–0.50, still `[TO VERIFY]` at both ends, which the cycle crosses between
+**M 3.23 and M 4.42**. Both the snapshot and the proposed row sit **inside**
+that band.
 
 | | φ | Reading against the band |
 |---|---|---|
-| Snapshot M 3.50 | **0.4615** | inside, above the midpoint; φ 0.46–0.50 is ordinary without a flame holder |
-| Proposed M 4.00 | **0.3795** | further lean; closer to the permissive (last) edge |
+| Snapshot M 3.50 | **0.4615** | inside, above the midpoint; below the operative (no-holder) bound |
+| Proposed M 4.00 | **0.3795** | further lean; closer to the permissive (last) edge, which is not available |
+
+**What tightened, and what did not.** No flame holder is declared. The
+permissive end is therefore not available to this aircraft, and inventing a
+holder that saves either row is refused. The operative bound is the strict end
+0.50 `[TO VERIFY]`. Both rows sit below it. Under that bound neither the
+snapshot nor the proposed row holds a flame. The decision criterion is
+unchanged: a cited `φ_LBO` ≷ 0.4615 (snapshot) or ≷ 0.3795 (this row).
 
 Lean blowout is a floor on φ, not a ceiling. Lower φ at M 4 is **worse**, not
 better. If the cited limit comes back at 0.40, the snapshot is already
 marginal and the proposed row is past it (M12's φ = 0.40 crossing is M 3.89).
-If it comes back at 0.30, both rows still have a flame on paper. Which of those
-is true is not knowable from this repository. Closing it is still
-`LEAN_BLOWOUT_RESOLUTION`: a cited band (cheap) or a combustor M4 does not have
-(a module).
+If it comes back at 0.30 *and a holder is declared with a source*, both rows
+still have a flame on paper. The 0.30 end is not a free gift of altitude.
+
+**[CORRECTED] Burner entry is not ~1.6 kPa.** That figure is either freestream
+static at this row (1.65 kPa) or `p∞ · π_d` with ram omitted at 26 km
+(1.60 kPa). Burner-entry *total* pressure after ram is ~122 kPa (MIL) / ~133 kPa
+(four-ramp inviscid). Ram is what makes a flame possible at all; Lefebvre
+loading still needs a volume and a holder (tier 2).
 
 The burner ceiling M4 reports at M 5.70 remains a **ceiling far above the real
 limit**. It does not become more real by asking the cycle at M 4.
@@ -239,14 +251,17 @@ renamed Mach number.
 ### 5.1 Inlet — ramp count / capture / spillage / unstart
 
 Four external ramps still *clear* MIL-E-5008B at M 4.00 on the inviscid model
-(0.719 against 0.670). Adding a fifth ramp is not the first problem. The
-first problem is that M3 still has no capture area, no spillage drag, and no
-unstart criterion — `TODO(M3)` in `ventus-inlet`, unchanged. At M 3.50 the
-inlet already wants 48° of external turning for four ramps; at M 4 the
-empirical recovery is worse and the gain over a normal shock is larger
-(×4.83 against ×3.48), so mixed compression and a translating spike become
-more necessary, not less. Losing the internal shock system is an unstart.
-This sketch has no spike schedule and no unstart margin.
+(0.719 against 0.670). Adding a fifth ramp is not the first problem.
+
+**What M3 now models**, rather than TODOing: capture vs body (identity),
+mass-flow ratio and spilled *area*, additive drag from the streamtube
+definition when a cowl-lip state is supplied, and the Kantrowitz–Donaldson
+self-start contraction (at M 4, as at M 3.5, isentropic `A/A*` far outruns
+what will self-start). **What it still refuses:** a translating-spike
+*schedule* and time-accurate unstart. Those need an internal contraction and
+a throat this aircraft has not declared. Losing an internal shock system is
+an unstart; this sketch still has no spike geometry and no unstart margin in
+newtons.
 
 A dual-mode / scram inlet (ADR-003) is a **different machine**: it keeps a
 supersonic core. It does not close this ramjet-path capture problem by being
@@ -329,11 +344,15 @@ snapshot cannot.
 1. **A body that can host the inlet at M 4.00**, self-consistent against wave
    drag (M6b re-derived, or a different configuration explicitly declared).
    Capture / body ≤ 1 on the *new* geometry, pinned as a case.
-2. **Inlet capture, spillage and an unstart criterion** (the existing M3
-   TODO). Ramp-count recovery alone is not an inlet.
-3. **Flame stability that is not a comment.** Tier 1: a cited lean-blowout
-   φ band, so the proposed row is either inside a closed question or dead.
-   Without that, both M 3.50 and M 4.00 sit in an uncited band.
+2. **A cowl-lip state, so additive drag is a newton rather than a refusal**,
+   and a declared internal contraction so Kantrowitz can be applied to *this*
+   inlet rather than to the gas in general. The spike *schedule* and unstart
+   *dynamics* remain refused until that geometry exists.
+3. **Flame stability that is not a comment.** A cited lean-blowout φ band at
+   comparable burner-entry pressure (~122 kPa total, not 1.6 kPa), so the
+   proposed row is either inside a closed question or dead. No holder may be
+   invented to claim the 0.30 end. Without a primary citation, both M 3.50
+   and M 4.00 sit below the operative (strict) bound.
 4. **Stagnation-point / leading-edge heating** at the proposed row (M5), not
    a flat plate. The 1 m station already kills Ti-6Al-4V on the plate.
 5. **Thermally perfect T₀** at the proposed row, `h₀ = h + V²/2`, the same
@@ -358,9 +377,10 @@ snapshot cannot.
 
 ## 7. Explicit non-claims
 
-- **Not flyable.** Capture exceeds the body; blowout is uncited; the engine
-  is unsized; the nose is uncomputed. A green test suite on the M 3.50
-  corpus does not move any of that.
+- **Not flyable.** Capture exceeds the body; blowout is uncited at the
+  operative bound; the engine is unsized; the nose is uncomputed. A green
+  test suite on the M 3.50 corpus does not move any of that. Kantrowitz and
+  spilled *area* being modelled is not a started mixed-compression inlet.
 - **Not Lockheed data.** No SR-72, no classified dual-mode deck, no copied
   trajectory. X-43 / X-51 remain regime anchors for the stretch, not a
   source of Isp, geometry, or this row's recovery.

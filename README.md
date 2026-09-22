@@ -19,8 +19,10 @@ verdict, so it cannot go stale in this file.
 The most important one is the lean blowout equivalence ratio in M12. It decides
 whether the design point has margin or does not fly — see the corridor below.
 What resolving it takes is written as a specification rather than as a wish, in
-`ventus_envelope::LEAN_BLOWOUT_RESOLUTION`: a cited band closes the question
-cheaply, while a real correlation needs a combustor M4 does not have.
+`ventus_envelope::LEAN_BLOWOUT_DECISION_CRITERION`: a cited `φ_LBO` on either
+side of 0.4615 closes the question. No flame holder is declared, so the
+permissive literature end is not available; the operative bound is the strict
+end 0.50, still `[TO VERIFY]`. Under that bound M 3.50 does not hold a flame.
 
 ---
 
@@ -215,7 +217,7 @@ records where each module **refuses**, never extrapolating past one.
 |---|---|
 | Specific thrust peaks | **M 2.30** |
 | Design point | **M 3.50**, at 83.7 % of peak thrust |
-| Lean blowout **[TO CITE]** | **M 3.23 — 4.42** (phi 0.5 to 0.3) |
+| Lean blowout **[TO VERIFY]** | **M 3.23 — 4.42** (phi 0.5 to 0.3 literature). **Operative: phi 0.50** (no holder declared); design phi 0.4615 sits below it |
 | Required capture area = whole body cross-section | **M 3.85** |
 | No body size closes the balance *(inside the row above, not past it)* | M 4.54 |
 | Every module still answers to | **M 5.65** (four-ramp inlet) |
@@ -223,21 +225,27 @@ records where each module **refuses**, never extrapolating past one.
 
 **Two of those decide whether the aircraft flies, and neither is the ceiling.**
 The cycle runs at an equivalence ratio of **0.4615** at the design point — inside
-the blowout band and above its midpoint, and phi 0.46–0.50 is ordinary for a
-combustor without a dedicated flame holder. Every value there puts M 3.50 out of
-reach. And the inlet already needs **74.5 %** of the entire body cross-section at
-the design point; past M 3.85 the configuration M6b assumed is self-inconsistent,
-because the Sears-Haack body that sets the wave drag cannot host an inlet larger
-than itself. Wave drag goes as the *square* of cross-section, so that is a fixed
-point rather than a formula — it converges only because wave drag is 8.9 % of
-the total and lift-induced dominates. Solved as a quadratic, the roots vanish
-entirely above M 4.54: no body size closes the balance at all. That is **not a
-second usable limit** — past M 3.85 the inlet already exceeds the body carrying
-it, so M 4.54 sits inside a region M 3.85 has excluded. It says how the failure
-happens, not how far the aircraft gets.
+the literature band and above its midpoint. No flame holder is declared, so the
+operative bound is the strict end 0.50 `[TO VERIFY]`, not the permissive 0.30.
+Every value of that strict end in the ordinary no-holder range puts M 3.50 out
+of reach. Burner-entry *total* pressure is ~122–133 kPa (ram), not the 1.6 kPa
+omitted-ram trap. And the inlet already needs **74.5 %** of the entire body
+cross-section at the design point; past M 3.85 the configuration M6b assumed is
+self-inconsistent, because the Sears-Haack body that sets the wave drag cannot
+host an inlet larger than itself. Wave drag goes as the *square* of
+cross-section, so that is a fixed point rather than a formula — it converges
+only because wave drag is 8.9 % of the total and lift-induced dominates. Solved
+as a quadratic, the roots vanish entirely above M 4.54: no body size closes the
+balance at all. That is **not a second usable limit** — past M 3.85 the inlet
+already exceeds the body carrying it, so M 4.54 sits inside a region M 3.85 has
+excluded. It says how the failure happens, not how far the aircraft gets.
 
-Four of those five frontiers are statements about the **model**. Only the capture
-area is a statement about the **aircraft**.
+M3 now owns the capture-vs-body identity, spilled *area*, the additive-drag
+*definition* (force refused without a cowl lip), and Kantrowitz starting
+(`A_e/A_t ≈ 1.45` at M 3.5 against isentropic `A/A* ≈ 6.79` — why a spike
+exists). The translating-spike *schedule* and unstart *dynamics* remain typed
+refusals. Four of those five frontiers are statements about the **model**. Only
+the capture area is a statement about the **aircraft**.
 
 The material never binds, and that is a mechanism rather than an assertion: the
 balance is `eps sigma T_w^4 = h (T_aw — T_w)`, so the fourth root crushes
@@ -283,6 +291,7 @@ aircraft capability. Decision and non-goals:
 | Validated design point | M 3.50 @ 26 km — case-gated snapshot |
 | Proposed M 4 row | sketch only: [`docs/design-point-m4.md`](docs/design-point-m4.md) — **does not close** |
 | Current configuration bind | capture = body ~ M 3.85 (M12); ratio 1.15 at proposed M 4.00 |
+| Lean blowout (operative) | no holder declared → strict end φ 0.50 `[TO VERIFY]`; design φ 0.4615 sits below it |
 | Ideal ramjet model refusal | ~ M 5.65–5.70 — **not aircraft capability** |
 | Dual-mode / scram cycle | `ventus-scram` stub — stations not modelled |
 
