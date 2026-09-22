@@ -54,11 +54,26 @@ M 3.50. On the current body the required capture already exceeds the
 cross-section. A ratio above 1 is self-inconsistency. This crate does not close
 that by inventing nacelles.
 
-DO NOT RETUNE the expect toward 1.0 to look like a close. If a new body lands,
-the areas are rewritten in the same change.
+DO NOT RETUNE the expect toward 1.0 to look like a close. If a new body
+lands as the *snapshot*, the areas are rewritten in the same change. The
+M 4 candidate is a different case (`m4_candidate_body_hosts_the_proposed_m4_capture`),
+not a quiet edit of this one.
 """
 inputs  = { capture_area_m2 = 3.859, body_area_m2 = 3.369 }
 expect  = { capture_to_body_ratio = 1.1454, body_can_host_capture = false }
+rel_tol = 1e-3
+
+[[case]]
+name    = "m4_candidate_body_hosts_the_proposed_m4_capture"
+source  = "Identity: A_capture / A_body. Areas are the M 4 candidate's first-iterate capture and Sears-Haack station from M12 (fineness 10, same length as the snapshot). THE SOURCE IS THE RATIO, not a closed design point."
+reason  = """
+The snapshot body cannot host 3.859 m2. The named candidate station is
+4.851 m2 and the capture that body actually requires (wave drag included)
+is 4.191 m2. Ratio 0.864, below 1. This crate still does not invent a
+cowl or a flame holder. The snapshot case above must stay red on hosting.
+"""
+inputs  = { capture_area_m2 = 4.191, body_area_m2 = 4.851 }
+expect  = { capture_to_body_ratio = 0.8639, body_can_host_capture = true }
 rel_tol = 1e-3
 
 [[case]]

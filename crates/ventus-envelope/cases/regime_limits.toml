@@ -357,11 +357,39 @@ self-inconsistency, not a closing number. A larger Sears-Haack still has a
 quadratic root here (any_body_closes = true) because M 4.00 is below M 4.536;
 that is a different aeroplane, recorded so the two frontiers are not collapsed.
 
-M3 now owns the capture-vs-body identity (`ventus_inlet::capture_to_body_ratio`);
+The named M 4 candidate (fineness 10, same length) is a *separate* case,
+`m4_candidate_geometry_hosts_capture_at_proposed_m4`. Do not collapse the
+two. M3 now owns the capture-vs-body identity (`ventus_inlet::capture_to_body_ratio`);
 this case is the thrust-drag inversion feeding it. DO NOT RETUNE the expect
-toward 1.0 to look like a close. If a new body lands, the case is rewritten for
-that body in the same change.
+toward 1.0 to look like a close. If a new body lands as the snapshot, the
+case is rewritten for that body in the same change.
 """
 inputs  = { mach = 4.0 }
 expect  = { capture_area_ratio = 1.1457, any_body_closes_the_thrust_balance = true }
+rel_tol = 1e-3
+
+[[case]]
+name    = "m4_candidate_geometry_hosts_capture_at_proposed_m4"
+source  = "docs/design-point-m4.md candidate geometry: GeometrySpec::M4_CANDIDATE, fineness 10 [TO DETERMINE], same length as the M6b snapshot. Capture from thrust/q/recovery against that body's Sears-Haack wave drag. THE SOURCE IS THE CODE, not a closed design point."
+reason  = """
+A NAMED GEOMETRY PATH, NOT A FLYING AIRCRAFT.
+
+The snapshot body cannot host the inlet at M 4.00 (see
+current_geometry_does_not_close_capture_at_proposed_m4). This case is the
+same inversion on a fatter Sears-Haack: same 28 t, same wing, same length,
+fineness 10 instead of 12. Wave drag goes as A^2, so the required capture
+grows, but the station grows faster and the ratio falls below 1
+(0.864 against the snapshot's 1.146).
+
+WHAT THIS DOES NOT CLAIM. It does not replace the M 3.50 snapshot. It does
+not close lean blowout (operative phi 0.50 [TO VERIFY], no holder). It does
+not supply a cowl lip, a spike schedule, or a nose heating result. Growing
+the aircraft at constant shape would not have moved the ratio; this is a
+volume-distribution change, and only that.
+
+DO NOT retune the snapshot case toward 1.0. DO NOT delete this case if the
+ratio later exceeds 1 — that means the candidate no longer hosts.
+"""
+inputs  = { mach = 4.0 }
+expect  = { m4_candidate_capture_area_ratio = 0.8639, m4_candidate_body_can_host_capture = true, m4_candidate_fineness_ratio = 10.0, m4_candidate_max_cross_section_m2 = 4.8507, capture_area_ratio = 1.1457 }
 rel_tol = 1e-3

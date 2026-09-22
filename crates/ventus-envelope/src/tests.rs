@@ -494,14 +494,14 @@ fn above_a_declared_mach_no_body_size_closes_the_thrust_balance() {
     assert!(required_capture_area_m2(NO_BODY_CLOSES_ABOVE_MACH + 0.02).is_some());
 }
 
-/// THE PROPOSED M 4 ROW IS NOT A CLOSE OF THE CURRENT AIRCRAFT.
+/// THE PROPOSED M 4 ROW IS NOT A CLOSE OF THE SNAPSHOT AIRCRAFT.
 ///
 /// Programme intent is cruise ≥ Mach 4 (`docs/design-point-m4.md`). The
 /// validated snapshot remains M 3.50. On the body M6b actually derived,
 /// required capture already exceeds the cross-section at M 4.00 — that bind
 /// is at [`CAPTURE_AREA_CLOSES_AT_MACH`], before the proposed cruise. A larger
 /// Sears-Haack could still exist (M 4.00 < [`NO_BODY_CLOSES_ABOVE_MACH`]); that
-/// is a different aeroplane.
+/// is a different aeroplane, and it is [`m4_candidate_geometry`].
 #[test]
 fn current_geometry_does_not_close_capture_at_the_proposed_m4() {
     let h = altitude_for_constant_q_m(PROPOSED_M4_CRUISE_MACH, DESIGN_DYNAMIC_PRESSURE_PA).unwrap();
@@ -519,14 +519,61 @@ fn current_geometry_does_not_close_capture_at_the_proposed_m4() {
     let ratio = capture_area_ratio(PROPOSED_M4_CRUISE_MACH).unwrap();
     assert!(
         ratio > 1.0,
-        "current geometry closed at the proposed M 4: ratio {ratio:.3}. \
-         If a new body landed, delete this assertion in the same change as the body, \
+        "snapshot geometry closed at the proposed M 4: ratio {ratio:.3}. \
+         If a new body landed as the snapshot, delete this assertion in the same change as the body, \
          do not retune the expect toward 1.0"
     );
     // A (different) body size still exists; that is the M 3.85 / M 4.54 split.
     assert!(self_consistent_capture_area_m2(PROPOSED_M4_CRUISE_MACH).is_some());
 
     std::println!(
-        "proposed M {PROPOSED_M4_CRUISE_MACH:.2} at {h:.0} m; capture/body = {ratio:.3} (does not close)"
+        "proposed M {PROPOSED_M4_CRUISE_MACH:.2} at {h:.0} m; snapshot capture/body = {ratio:.3} (does not close)"
+    );
+}
+
+/// THE M 4 CANDIDATE HOSTS THE INLET AT THE PROPOSED ROW. THE SNAPSHOT DOES NOT.
+///
+/// A fatter Sears-Haack (fineness 10, same length) pays more wave drag and
+/// still has `A_c / A_body < 1` at M 4.00, because the extra station more
+/// than covers the extra drag. That is the geometry path, not a close:
+/// operative φ is still below 0.50, there is no cowl lip, and this is not
+/// the M 3.50 yardstick.
+#[test]
+fn m4_candidate_geometry_hosts_capture_at_the_proposed_m4() {
+    let snapshot = snapshot_geometry();
+    let candidate = m4_candidate_geometry();
+    assert!(candidate.max_cross_section_m2 > snapshot.max_cross_section_m2);
+    assert!((candidate.length_m - snapshot.length_m).abs() < 1e-12);
+
+    let snapshot_ratio = capture_area_ratio(PROPOSED_M4_CRUISE_MACH).unwrap();
+    let candidate_ratio = m4_candidate_capture_area_ratio(PROPOSED_M4_CRUISE_MACH).unwrap();
+    assert!(
+        snapshot_ratio > 1.0,
+        "snapshot ratio at M 4 moved to {snapshot_ratio:.3}; the candidate test is not a replacement of that bind"
+    );
+    assert!(
+        candidate_ratio < 1.0,
+        "M 4 candidate still cannot host the inlet: ratio {candidate_ratio:.3}"
+    );
+    let a_c = required_capture_area_for(PROPOSED_M4_CRUISE_MACH, &candidate).unwrap();
+    assert!(ventus_inlet::body_can_host_capture(a_c, candidate.max_cross_section_m2).unwrap());
+
+    // Same chain, same Mach: the only change is the station. If this ever
+    // passed because the cycle invented thrust, the snapshot ratio would
+    // have fallen too.
+    assert!(candidate_ratio < snapshot_ratio);
+
+    // Pinned so a later "close" cannot hide inside "< 1". Fineness 10 on this
+    // length gives ~0.864; if it drifts to 0.99 the candidate is hanging by
+    // a rounding, and if it goes above 1 the geometry path has closed.
+    assert!(
+        (0.85..0.88).contains(&candidate_ratio),
+        "M 4 candidate capture/body moved to {candidate_ratio:.4}"
+    );
+
+    std::println!(
+        "M 4 candidate A_body = {:.4} m2 (snapshot {:.4}); A_c = {a_c:.4} m2; capture/body = {candidate_ratio:.4} (hosts)",
+        candidate.max_cross_section_m2,
+        snapshot.max_cross_section_m2
     );
 }
