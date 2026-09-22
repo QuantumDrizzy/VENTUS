@@ -1,6 +1,6 @@
 //! VENTUS-1 geometry, derived rather than assumed.
 //!
-//! `docs/design-point.md` §5.2 carried "no geometry" as a declared gap from the
+//! `docs/design-point.md` Â§5.2 carried "no geometry" as a declared gap from the
 //! first ADR, with the note that it becomes blocking the day M6 starts. This is
 //! that day, and this module closes it.
 //!
@@ -11,7 +11,7 @@
 //! ```text
 //!   q                18.463 kPa      from M1 at the cruise condition
 //!   C_L              0.154           back-calculated from the SR-71 at ITS
-//!                                    own cruise condition, design-point §5.2
+//!                                    own cruise condition, design-point Â§5.2
 //!   W/S = q C_L      2.84 kPa        = 290 kg/m^2
 //! ```
 //!
@@ -31,9 +31,9 @@
 //! `ventus_mass::SR71_EMPTY_FRACTION_OF_CRUISE_MASS`.
 //!
 //! Aspect ratio 1.7 is taken from the SR-71, because a slender
-//! supersonic delta has very little freedom there — span costs wave drag and
+//! supersonic delta has very little freedom there â span costs wave drag and
 //! buys induced-drag relief that supersonic flow largely refuses to give.
-//! Source: SR-71 span 55.6 ft (16.94 m) over wing area 1 800 ft² (167.2 m²)
+//! Source: SR-71 span 55.6 ft (16.94 m) over wing area 1 800 ftÂ² (167.2 mÂ²)
 //! gives AR = 1.72 (NASA SR-71 fact sheet; SR-71A Flight Manual); 1.7 is
 //! carried rounded.
 //!
@@ -55,8 +55,8 @@ use ventus_units::float::abs;
 pub const CRUISE_MASS_KG: f64 = 28_000.0;
 
 /// Cruise lift coefficient, from the SR-71 back-calculation in
-/// `docs/design-point.md` §5.2. The cited inputs it needs — SR-71 wing area
-/// 1 800 ft² (167.2 m²) and cruise mass — are now cited on
+/// `docs/design-point.md` Â§5.2. The cited inputs it needs â SR-71 wing area
+/// 1 800 ftÂ² (167.2 mÂ²) and cruise mass â are now cited on
 /// [`ASPECT_RATIO`] and in `ventus_mass`, which closes this derivation.
 ///
 /// That back-calculation uses the SR-71 at its START-of-cruise mass, matched
@@ -66,13 +66,13 @@ pub const CRUISE_MASS_KG: f64 = 28_000.0;
 pub const CRUISE_LIFT_COEFFICIENT: f64 = 0.154;
 
 /// Wing aspect ratio, SR-71 class. Derived from the cited SR-71 geometry:
-/// span 55.6 ft = 16.94 m, wing area 1 800 ft² = 167.2 m², so AR = b²/S = 1.72;
+/// span 55.6 ft = 16.94 m, wing area 1 800 ftÂ² = 167.2 mÂ², so AR = bÂ²/S = 1.72;
 /// 1.7 carried rounded (NASA SR-71 fact sheet; SR-71A Flight Manual).
 pub const ASPECT_RATIO: f64 = 1.7;
 
 /// Fuselage fineness ratio, length over maximum diameter. Slender bodies at
-/// M 3.5 sit near 12. The SR-71 length is cited � 107 ft 5 in = 32.74 m (NASA
-/// fact sheet) � but its maximum body diameter is not read from a primary
+/// M 3.5 sit near 12. The SR-71 length is cited - 107 ft 5 in = 32.74 m (NASA
+/// fact sheet)  but its maximum body diameter is not read from a primary
 /// source yet. **[TO VERIFY]**
 ///
 /// This is the **snapshot** body [`ventus1`] uses. The M 4 host-body candidate
@@ -83,7 +83,7 @@ pub const FINENESS_RATIO: f64 = 12.0;
 /// Fineness of the M 4 host-body candidate: same length as [`ventus1`], fatter
 /// fuselage.
 ///
-/// **[TO DETERMINE]** — not a cited airframe. Fineness 12 is the snapshot.
+/// **[TO DETERMINE]** â not a cited airframe. Fineness 12 is the snapshot.
 /// This is the round slender-body value below 12 that puts Sears-Haack `A_max`
 /// on the snapshot length above the M 4 self-consistent capture M12 already
 /// computes, so `A_c / A_body` can fall below 1 at the proposed row. It is a
@@ -93,7 +93,7 @@ pub const FINENESS_RATIO: f64 = 12.0;
 pub const M4_CANDIDATE_FINENESS_RATIO: f64 = 10.0;
 
 /// Ratio of wetted area to reference wing area. A blended delta runs near 3.
-/// **[TO CITE]** — it enters the friction drag linearly, so it matters.
+/// **[TO CITE]** â it enters the friction drag linearly, so it matters.
 pub const WETTED_AREA_RATIO: f64 = 3.0;
 
 /// The snapshot body is more slender than the M 4 candidate. If these ever
@@ -162,7 +162,7 @@ pub struct Geometry {
 /// (a linear dimension scales as the square root of an area). Fineness then
 /// sets the maximum diameter. Two specs that share mass, C_L and aspect ratio
 /// therefore share wing, span and length, and differ only in the Sears-Haack
-/// station — which is the capture-hosting lever, and the only one this
+/// station â which is the capture-hosting lever, and the only one this
 /// module is allowed to pull without inventing a new aircraft family.
 ///
 /// # Panics
@@ -177,7 +177,7 @@ pub fn derive(spec: GeometrySpec, dynamic_pressure_pa: f64) -> Geometry {
 
     // Length from the SR-71 scaled by the square root of the area ratio: a
     // linear dimension scales as the square root of an area. SR-71: 32.74 m
-    // (107 ft 5 in) at 167.2 m² — NASA SR-71 fact sheet; SR-71A Flight Manual.
+    // (107 ft 5 in) at 167.2 mÂ² â NASA SR-71 fact sheet; SR-71A Flight Manual.
     let length = 32.7 * libm::sqrt(wing_area / 167.2);
 
     let max_diameter = length / spec.fineness_ratio;
@@ -263,7 +263,7 @@ mod tests {
         );
     }
 
-    /// The wing loading has to be the figure `docs/design-point.md` §5.2
+    /// The wing loading has to be the figure `docs/design-point.md` Â§5.2
     /// computed independently from q and C_L, or the document and the code have
     /// drifted apart.
     #[test]
@@ -342,7 +342,7 @@ mod tests {
     /// THE M 4 CANDIDATE IS A DIFFERENT STATION, NOT A DIFFERENT AIRCRAFT FAMILY.
     ///
     /// Same mass, wing, span and length as the snapshot. Only the Sears-Haack
-    /// cross-section grows, as 1/f², because that is the lever that can host
+    /// cross-section grows, as 1/fÂ², because that is the lever that can host
     /// an inlet the snapshot body cannot. A uniformly larger aeroplane of the
     /// same shape would leave capture/body unchanged.
     #[test]
