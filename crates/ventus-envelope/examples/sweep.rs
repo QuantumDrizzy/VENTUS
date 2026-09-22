@@ -107,7 +107,7 @@ fn main() {
     println!("  M 3.50   design point, at 83.7 % of peak thrust");
     if let (Some(lo), Some(hi)) = (strict, permissive) {
         println!("  M {lo:.2} to M {hi:.2}   lean blowout literature band, phi {LEAN_BLOWOUT_PHI_MAX:.2} to {LEAN_BLOWOUT_PHI_MIN:.2}");
-        println!("           strict end [TO VERIFY] Mattingly Fig. 10-70 class; permissive end needs a holder");
+        println!("           strict end cited: Useller Fig. 8 φ=0.50 (6-ft V-gutter afterburner); permissive end needs a holder");
 
     }
     println!("  M {CAPTURE_AREA_CLOSES_AT_MACH:.2}   required capture area equals the whole body cross-section");
@@ -120,7 +120,8 @@ fn main() {
     println!();
     println!("THE TWO THAT ACTUALLY DECIDE IT:");
     println!("  No flame holder is declared. The operative blowout bound is therefore");
-    println!("  the strict end phi = {OPERATIVE_LEAN_BLOWOUT_PHI:.2} [TO VERIFY], not the permissive 0.30.");
+    println!("  the strict end phi = {OPERATIVE_LEAN_BLOWOUT_PHI:.2} (Useller Fig. 8, V-gutter afterburner floor), not the permissive 0.30.");
+    println!("  That digit is cited; a ramjet-no-holder chart has not been read.");
     println!("  The cycle runs at phi = {DESIGN_POINT_EQUIVALENCE_RATIO:.4} at the design point, INSIDE the");
     println!("  literature band and BELOW the operative bound. Under that bound M 3.50");
     println!("  does not hold a flame. Inventing a holder that saves it is refused.");

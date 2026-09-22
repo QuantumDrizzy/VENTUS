@@ -41,10 +41,11 @@
 //!
 //! NOT modelled: flame stability. Burner-entry *total* pressure at the design
 //! point is ram-compressed (~122 kPa with MIL recovery), not the ~1.6 kPa of
-//! omitted-ram static. That pressure is what a Lefebvre-family correlation
-//! would be fed; evaluating one still needs a combustor volume and a flame
-//! holder, which this cycle does not have. The operative fly/no-fly comparison
-//! lives in `ventus-envelope`.
+//! omitted-ram static. That pressure is afterburner-scale (King 36–86 kPa,
+//! Useller 77 kPa), not turbojet-main-burner-scale. A Lefebvre-family
+//! correlation would still need a combustor volume and a flame holder, which
+//! this cycle does not have. The operative fly/no-fly comparison lives in
+//! `ventus-envelope`, with the 0.50 digit cited from Useller Fig. 8.
 
 use ventus_gasdyn::{gamma_air, specific_heat_air_j_kg_k, GasDynError};
 use ventus_units::constants::G0_M_S2;

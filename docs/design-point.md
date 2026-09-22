@@ -328,7 +328,7 @@ disappears leaves no record that it was ever load-bearing.
 |---|---|
 | 5.1 No acceleration corridor | **OPEN.** The engine is not sized. |
 | 5.2 No geometry | **CLOSED** by M6b; M7 and M8 built on it. |
-| 5.3 Lean blowout | **TIGHTENED, not closed.** Operative bound is the strict end (no holder declared); design φ sits below it. Bound still `[TO VERIFY]`. |
+| 5.3 Lean blowout | **TIGHTENED, not closed.** Operative bound is Useller Fig. 8 φ = 0.50 (V-gutter afterburner floor, digit cited). Design φ sits below it. Ramjet-no-holder class still open. |
 | 5.4 Inlet capture / unstart | **TIGHTENED, not closed.** Capture-vs-body, Kantrowitz, and additive/spillage *force* from a declared lip are in; spike schedule, unstart dynamics, and lip suction remain refusals. Capture = body still at M 3.85. |
 
 ### 5.1 No acceleration corridor — blocking at M4 engine sizing
@@ -404,25 +404,42 @@ one, and pick it for a stated reason.
 > what is asserted here — so the text and the arithmetic disagreed, and the
 > arithmetic was right. See `ventus-mass`, `SR71_EMPTY_FRACTION_OF_CRUISE_MASS`.
 
-### 5.3 Lean blowout — **TIGHTENED.** The question is sharper; the citation is not closed
+### 5.3 Lean blowout — **TIGHTENED.** The digit is cited; the class is not closed
 
 The cycle at this snapshot runs at **φ = 0.4615**. The literature band remains
-φ = 0.30–0.50, `[TO VERIFY]` at both ends. What changed is which end applies to
-*this* aircraft.
+φ = 0.30–0.50. The 0.50 end is no longer a memory of a textbook.
+
+**Primary source, read:** NACA RM E54E06, Useller, Braithwaite and Rudey
+(1954), **Figure 8**. Lean blow-out equivalence ratio = **0.50** for a 6-foot
+afterburner at 1600 lb/sq ft abs (~76.6 kPa), and **0.63** for the 3-foot
+chamber at the same pressure. The afterburner has a two-ring V-gutter,
+34.7 % blockage. NACA RM E57C07, King (1957), **Figure 16** is the matching
+duct chart in fuel-air ratio: at 42 in, 500 ft/s, 1800 psf, f/a_LBO = 0.035
+at 1260 °R (φ = 0.518 on King's JP-4 stoichiometric 0.0676) and 0.027 at
+1860 °R (φ = 0.399). Mattingly, *Elements of Propulsion*, Fig. 10-70 was the
+intended textbook reprint of this class and **has not been read in this
+repository**.
 
 No flame holder is declared. The permissive end (0.30) is a holder-required
 class — ONERA-class dump combustors near 0.28–0.32 are that class, recited from
 secondary literature, not read here — and inventing a holder that “saves”
-M 3.50 is refused. The **operative** bound is therefore the strict end 0.50
-(`[TO VERIFY]` against a primary afterburner/ramjet stability chart; intended
-source Mattingly, *Elements of Propulsion*, Fig. 10-70, not a digit read in this
-repository). Design φ sits below it. Under that bound the snapshot does not
-hold a flame.
+M 3.50 is refused. The **operative** bound is therefore Useller's six-foot
+floor 0.50: even a 6-foot V-gutter afterburner blows out there, and this
+aircraft has no gutter. Design φ sits below it. Under that bound the snapshot
+does not hold a flame.
+
+Both NACA charts are **holder-equipped, vitiated afterburners**. They are not
+a no-holder ramjet at this burner-entry state. That mismatch is why
+`lean_blowout_verified` stays unemitted. King's hot/high-P point (φ = 0.399)
+would put design φ above the limit — and it is a holder reading at 1033 K,
+hotter than this ramjet's ~753 K entry. Using it as a no-holder ramjet save
+is refused.
 
 **Decision criterion**, pinned in `ventus_envelope::LEAN_BLOWOUT_DECISION_CRITERION`:
-a cited `φ_LBO` above 0.4615 means M 3.50 does not fly; a cited `φ_LBO` below it
-means margin on phi (capture may still bind). Wiring a verified fly/no-fly flag
-without that citation is a `known_limit` missing key.
+a cited *ramjet-no-holder* `φ_LBO` above 0.4615 means M 3.50 does not fly; a
+cited ramjet-no-holder `φ_LBO` below it means margin on phi (capture may still
+bind). Wiring a verified fly/no-fly flag from the afterburner floor alone is a
+`known_limit` missing key.
 
 **[CORRECTED] Burner-entry pressure is not ~1.6 kPa.** Freestream at 26 km is
 2.15 kPa. Writing `p∞ · π_d` omits ram and gives ~1.60 kPa, which would make a
@@ -431,10 +448,13 @@ pressure is **~122 kPa** with MIL recovery (~133 kPa on the four-ramp inviscid
 recovery M12 feeds the cycle) — sea-level-ish, two orders of magnitude above
 ambient. That is what makes combustion physically possible at 26 km. A figure
 near 1.6 kPa is either that omitted-ram trap or the M 4 constant-q *freestream*
-(1.65 kPa at 27.75 km). Lefebvre-family loading still has `φ_LBO` rising as
-pressure falls, so altitude is against us and ram is what buys the pressure
-back; evaluating the correlation still needs a combustor volume and a holder
-(tier 2, M4b). This snapshot does not declare either.
+(1.65 kPa at 27.75 km). Against the charts that were actually read: 122–133 kPa
+sits **above** King's 36–86 kPa afterburner band (Lefebvre-family: higher P
+lowers `φ_LBO`) and is still **afterburner-scale**, not turbojet-main-burner-
+scale (atmospheres). King also records that raising P from 1270 to 1800 psf at
+the hot condition had practically no further effect, so the extra 40–50 kPa is
+not a secret rescue. Evaluating a correlation still needs a combustor volume
+and a holder (tier 2, M4b). This snapshot does not declare either.
 
 ### 5.4 Inlet capture / unstart — **TIGHTENED.** Cowl lip declared; spike still refused
 
