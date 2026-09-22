@@ -531,13 +531,53 @@ fn current_geometry_does_not_close_capture_at_the_proposed_m4() {
     );
 }
 
+/// A DECLARED SNAPSHOT COWL UNLOCKS ADDITIVE DRAG, AND IT IS ZERO AT DESIGN.
+///
+/// The highlight is the required capture at M 3.50, so the snapshot is
+/// shock-on-lip. At M 4.00 that same highlight cannot swallow the streamtube:
+/// capture exceeds the cowl, which is a refusal, not a fake Cd.
+#[test]
+fn snapshot_design_cowl_has_zero_additive_drag_and_refuses_when_capture_exceeds() {
+    let at_design = additive_drag_on_snapshot_cowl(3.50).unwrap().unwrap();
+    assert!(
+        ventus_units::float::abs(at_design.force_n) < 1.0,
+        "snapshot shock-on-lip additive drag moved to {} N",
+        at_design.force_n
+    );
+    assert!(at_design.within_stated_range);
+    assert_eq!(
+        additive_drag_on_snapshot_cowl(PROPOSED_M4_CRUISE_MACH)
+            .unwrap()
+            .unwrap_err(),
+        ventus_inlet::CaptureError::CaptureExceedsCowl
+    );
+}
+
+/// THE M 4 CANDIDATE'S OWN COWL IS SHOCK-ON-LIP AT M 4.00, SO ADDITIVE DRAG
+/// IS ZERO THERE. THAT IS A NUMBER, NOT A CLOSE.
+#[test]
+fn m4_candidate_design_cowl_has_zero_additive_drag_at_the_proposed_row() {
+    let d = additive_drag_on_m4_candidate_cowl(PROPOSED_M4_CRUISE_MACH)
+        .unwrap()
+        .unwrap();
+    assert!(
+        ventus_units::float::abs(d.force_n) < 1.0,
+        "M 4 candidate shock-on-lip additive drag moved to {} N",
+        d.force_n
+    );
+    assert!(d.within_stated_range);
+    let lip = m4_candidate_design_cowl_lip().unwrap();
+    let body = m4_candidate_geometry();
+    assert!(lip.highlight_area_m2 < body.max_cross_section_m2);
+}
+
 /// THE M 4 CANDIDATE HOSTS THE INLET AT THE PROPOSED ROW. THE SNAPSHOT DOES NOT.
 ///
 /// A fatter Sears-Haack (fineness 10, same length) pays more wave drag and
 /// still has `A_c / A_body < 1` at M 4.00, because the extra station more
 /// than covers the extra drag. That is the geometry path, not a close:
-/// operative φ is still below 0.50, there is no cowl lip, and this is not
-/// the M 3.50 yardstick.
+/// operative φ is still below 0.50, and this is not the M 3.50 yardstick.
+/// Additive drag on the candidate's own cowl is a separate assertion.
 #[test]
 fn m4_candidate_geometry_hosts_capture_at_the_proposed_m4() {
     let snapshot = snapshot_geometry();

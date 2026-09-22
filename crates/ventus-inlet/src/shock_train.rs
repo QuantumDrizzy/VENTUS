@@ -23,13 +23,14 @@
 //! Modelled: the inviscid shock system and the total-pressure it recovers.
 //!
 //! NOT modelled here: boundary-layer bleed, shock/boundary-layer interaction,
-//! or subsonic diffuser losses. Capture area, spilled area, the additive-drag
-//! *definition*, and the Kantrowitz starting limit live in `capture.rs`. The
-//! moving spike *schedule* and time-accurate unstart are typed refusals there:
-//! this aircraft has no spike geometry. A real inlet loses several points of
-//! recovery to bleed and viscous interaction. This shock-train model is
-//! therefore an UPPER BOUND on what its shock system can achieve, and the gap
-//! to the MIL-E-5008B empirical curve is the honest measure of what it omits.
+//! or subsonic diffuser losses. Capture area, spilled area, cowl-lip geometry,
+//! additive-drag force from a declared lip, and the Kantrowitz starting limit
+//! live in `capture.rs`. The moving spike *schedule* and time-accurate unstart
+//! are typed refusals there: this aircraft has no spike geometry. A real inlet
+//! loses several points of recovery to bleed and viscous interaction. This
+//! shock-train model is therefore an UPPER BOUND on what its shock system can
+//! achieve, and the gap to the MIL-E-5008B empirical curve is the honest
+//! measure of what it omits.
 
 use ventus_gasdyn::{normal_shock, oblique_shock, GasDynError, ShockBranch};
 

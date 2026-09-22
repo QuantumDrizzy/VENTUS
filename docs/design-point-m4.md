@@ -1,6 +1,6 @@
 # VENTUS-1 — Mach 4 design-point sketch
 
-**Revision:** r6 sketch (2026-09-22)
+**Revision:** r7 sketch (2026-09-22)
 **Status:** **PROPOSED re-baseline. Not a closed aircraft.** This document does
 not replace [`docs/design-point.md`](design-point.md). The case-gated snapshot
 every module is held to remains **M 3.50 at 26 km geopotential**.
@@ -14,6 +14,10 @@ r6 adds a **named M 4 candidate geometry** in code (`GeometrySpec::M4_CANDIDATE`
 fineness 10 on the snapshot length). On that body, capture/body falls below 1
 at M 4.00. That is a geometry finding, not a flying aircraft and not a
 replacement of the M 3.50 snapshot.
+
+r7 declares a **cowl lip** so additive/spillage force is a newton (zero at
+shock-on-lip on each design highlight; the snapshot cowl refuses at M 4.00
+because capture exceeds it). Lip suction, spike, and unstart remain open.
 
 ---
 
@@ -30,7 +34,7 @@ It is not a claim that VENTUS-1 reaches Mach 4. On the **snapshot**
 configuration it does not. The capture-area bind is at M 3.85, *before* the
 proposed cruise. A named candidate body (fineness 10, same length) can host
 the inlet at M 4.00 (capture/body = 0.864) and still does not fly: lean
-blowout, cowl-lip force, unstart, and the 1 m thermal station remain open,
+blowout, unstart, lip suction, and the 1 m thermal station remain open,
 and the other geometry and combustor gaps listed below are already live at
 M 3.50.
 
@@ -292,14 +296,19 @@ Four external ramps still *clear* MIL-E-5008B at M 4.00 on the inviscid model
 (0.719 against 0.670). Adding a fifth ramp is not the first problem.
 
 **What M3 now models**, rather than TODOing: capture vs body (identity),
-mass-flow ratio and spilled *area*, additive drag from the streamtube
-definition when a cowl-lip state is supplied, and the Kantrowitz–Donaldson
+mass-flow ratio and spilled *area*, cowl-lip **geometry**, additive /
+spillage **force** from a declared lip (pitot-equivalent `D_add = (p₂ −
+p∞)(A_c − A₀)+`; zero at shock-on-lip), and the Kantrowitz–Donaldson
 self-start contraction (at M 4, as at M 3.5, isentropic `A/A*` far outruns
-what will self-start). **What it still refuses:** a translating-spike
-*schedule* and time-accurate unstart. Those need an internal contraction and
-a throat this aircraft has not declared. Losing an internal shock system is
-an unstart; this sketch still has no spike geometry and no unstart margin in
-newtons.
+what will self-start). The snapshot design cowl refuses at this row
+(capture exceeds the M 3.50 highlight). The candidate's own cowl is
+shock-on-lip at M 4.00, so that force is zero — a number, not a close.
+**What it still refuses:** a translating-spike *schedule*, time-accurate
+unstart, and lip suction. Those need an internal contraction, a throat,
+and a cited `C_s(r/R, M)` this aircraft has not declared. Losing an
+internal shock system is an unstart; this sketch still has no spike
+geometry and no unstart margin in newtons. Additive drag is not in M6b
+drag.
 
 A dual-mode / scram inlet (ADR-003) is a **different machine**: it keeps a
 supersonic core. It does not close this ramjet-path capture problem by being
@@ -319,8 +328,8 @@ C_L = 0.154, aspect ratio 1.7 remain `[TO CITE]`. Fineness 12 remains the
 snapshot `[TO CITE]`; fineness 10 is `[TO DETERMINE]`. Küchemann's bound
 4(M+3)/M is **7.00** at M 4.00 against 7.43 at M 3.50; the L/D target would
 have to be restated, not copied. Extra wave drag on the fatter station is
-already inside the 0.864. What is not inside it: a layout, a cowl, or a
-claim that this is now the aircraft.
+already inside the 0.864. What is not inside it: a layout, a cited
+fineness, or a claim that this is now the aircraft.
 
 ### 5.3 Combustor flame stability — not `ideal_ramjet` alone
 
@@ -392,8 +401,14 @@ snapshot cannot.
    re-baseline — which it is not, until items 2–6 close.
 2. **A cowl-lip state, so additive drag is a newton rather than a refusal**,
    and a declared internal contraction so Kantrowitz can be applied to *this*
-   inlet rather than to the gas in general. The spike *schedule* and unstart
-   *dynamics* remain refused until that geometry exists.
+   inlet rather than to the gas in general.
+   **This revision:** a declared lip unlocks pitot-equivalent additive force.
+   The snapshot cowl is shock-on-lip at M 3.50 (`D_add = 0`) and refuses at
+   M 4.00 (capture exceeds the highlight). The candidate cowl is shock-on-lip
+   at M 4.00 (`D_add = 0`). Remaining: lip suction `[TO CITE]`, the force
+   folded into M6b drag, and a declared internal contraction. The spike
+   *schedule* and unstart *dynamics* remain refused until that geometry
+   exists.
 3. **Flame stability that is not a comment.** A cited lean-blowout φ band at
    comparable burner-entry pressure (~122 kPa total, not 1.6 kPa), so the
    proposed row is either inside a closed question or dead. No holder may be
@@ -425,11 +440,11 @@ snapshot cannot.
 
 - **Not flyable.** The snapshot capture exceeds the body. The candidate
   hosts (0.864) and still does not fly: blowout is uncited at the
-  operative bound; the engine is unsized; the nose is uncomputed; there is
-  no cowl lip. A green test suite on the M 3.50 corpus does not move any of
-  that. Kantrowitz and spilled *area* being modelled is not a started
-  mixed-compression inlet. Capture/body < 1 on a fatter Sears-Haack is not
-  a started inlet either.
+  operative bound; the engine is unsized; the nose is uncomputed; lip
+  suction, spike, and unstart remain refusals. A green test suite on the
+  M 3.50 corpus does not move any of that. A declared cowl that reports
+  `D_add = 0` at shock-on-lip is not a started mixed-compression inlet.
+  Capture/body < 1 on a fatter Sears-Haack is not a started inlet either.
 - **Not Lockheed data.** No SR-72, no classified dual-mode deck, no copied
   trajectory. X-43 / X-51 remain regime anchors for the stretch, not a
   source of Isp, geometry, or this row's recovery.

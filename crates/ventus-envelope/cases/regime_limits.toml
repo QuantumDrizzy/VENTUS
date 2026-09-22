@@ -383,9 +383,10 @@ grows, but the station grows faster and the ratio falls below 1
 
 WHAT THIS DOES NOT CLAIM. It does not replace the M 3.50 snapshot. It does
 not close lean blowout (operative phi 0.50 [TO VERIFY], no holder). It does
-not supply a cowl lip, a spike schedule, or a nose heating result. Growing
-the aircraft at constant shape would not have moved the ratio; this is a
-volume-distribution change, and only that.
+not supply a spike schedule or a nose heating result. Additive drag on a
+declared candidate cowl is a separate case. Growing the aircraft at constant
+shape would not have moved the ratio; this is a volume-distribution change,
+and only that.
 
 DO NOT retune the snapshot case toward 1.0. DO NOT delete this case if the
 ratio later exceeds 1 — that means the candidate no longer hosts.
@@ -393,3 +394,45 @@ ratio later exceeds 1 — that means the candidate no longer hosts.
 inputs  = { mach = 4.0 }
 expect  = { m4_candidate_capture_area_ratio = 0.8639, m4_candidate_body_can_host_capture = true, m4_candidate_fineness_ratio = 10.0, m4_candidate_max_cross_section_m2 = 4.8507, capture_area_ratio = 1.1457 }
 rel_tol = 1e-3
+
+[[case]]
+name    = "snapshot_design_cowl_additive_drag_vanishes_at_m350"
+source  = "M3 additive_drag_from_lip: D_add = (p2 − p∞)(Ac − A0)+. Snapshot cowl highlight equals required capture at M 3.50, so spilled area is zero. THE SOURCE IS THE DEFINITION."
+reason  = """
+A DECLARED LIP UNLOCKS A NEWTON, AND AT THE SNAPSHOT THAT NEWTON IS ZERO.
+
+The design cowl is shock-on-lip at M 3.50. This is not a claim that spillage
+drag is closed for the aircraft: the force is not in M6b drag, lip suction
+is uncredited, and the pitot sketch is not a four-ramp external field.
+"""
+inputs  = { mach = 3.5 }
+expect  = { snapshot_cowl_additive_drag_n = 0.0, snapshot_cowl_additive_drag_coefficient = 0.0, snapshot_cowl_capture_exceeds = false }
+abs_tol = 1.0
+
+[[case]]
+name    = "snapshot_design_cowl_refuses_at_proposed_m4"
+source  = "The M 3.50-sized highlight cannot swallow the M 4.00 required streamtube. CaptureExceedsCowl. THE SOURCE IS THE OPERATING POINT."
+reason  = """
+The snapshot cowl is sized for M 3.50. At the proposed row the required
+capture already exceeds that highlight (and the snapshot body). A lip does
+not invent a spillage force for supercritical capture.
+"""
+inputs  = { mach = 4.0 }
+expect  = { snapshot_cowl_capture_exceeds = true }
+abs_tol = 0.0
+
+[[case]]
+name    = "m4_candidate_design_cowl_additive_drag_vanishes_at_proposed_m4"
+source  = "Same definition as the snapshot cowl case, on GeometrySpec::M4_CANDIDATE's required capture at M 4.00. Shock-on-lip on that highlight. THE SOURCE IS THE DEFINITION, not a flying aircraft."
+reason  = """
+A NUMBER ON THE CANDIDATE, NOT A CLOSE.
+
+The candidate body hosts the inlet (ratio 0.864). Its design cowl is that
+capture, so additive drag at M 4.00 is zero by construction. Still open:
+lean blowout, spike/unstart, lip suction, thermal nose. This is not a
+re-baseline of the M 3.50 snapshot.
+"""
+inputs  = { mach = 4.0 }
+expect  = { m4_candidate_cowl_additive_drag_n = 0.0, m4_candidate_cowl_additive_drag_coefficient = 0.0, m4_candidate_body_can_host_capture = true }
+abs_tol = 1.0
+

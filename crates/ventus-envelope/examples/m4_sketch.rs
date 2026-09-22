@@ -9,13 +9,13 @@
 
 use ventus_aero::boundary_layer::{EdgeState, Regime, PRANDTL_AIR};
 use ventus_envelope::{
-    altitude_for_constant_q_m, capture_area_ratio, evaluate, m4_candidate_capture_area_ratio,
-    m4_candidate_geometry, required_capture_area_for, required_capture_area_m2,
-    self_consistent_capture_area_m2, snapshot_geometry, CAPTURE_AREA_CLOSES_AT_MACH,
-    DESIGN_DYNAMIC_PRESSURE_PA, DESIGN_POINT_EQUIVALENCE_RATIO, DESIGN_RAMP_COUNT,
-    LEAN_BLOWOUT_PHI_MAX, LEAN_BLOWOUT_PHI_MIN, NO_BODY_CLOSES_ABOVE_MACH,
-    PEAK_SPECIFIC_THRUST_MACH, PEAK_SPECIFIC_THRUST_N_S_KG, PROPOSED_M4_CRUISE_MACH,
-    STOICHIOMETRIC_FUEL_AIR_RATIO,
+    additive_drag_on_m4_candidate_cowl, additive_drag_on_snapshot_cowl, altitude_for_constant_q_m,
+    capture_area_ratio, evaluate, m4_candidate_capture_area_ratio, m4_candidate_geometry,
+    required_capture_area_for, required_capture_area_m2, self_consistent_capture_area_m2,
+    snapshot_geometry, CAPTURE_AREA_CLOSES_AT_MACH, DESIGN_DYNAMIC_PRESSURE_PA,
+    DESIGN_POINT_EQUIVALENCE_RATIO, DESIGN_RAMP_COUNT, LEAN_BLOWOUT_PHI_MAX, LEAN_BLOWOUT_PHI_MIN,
+    NO_BODY_CLOSES_ABOVE_MACH, PEAK_SPECIFIC_THRUST_MACH, PEAK_SPECIFIC_THRUST_N_S_KG,
+    PROPOSED_M4_CRUISE_MACH, STOICHIOMETRIC_FUEL_AIR_RATIO,
 };
 use ventus_gasdyn::{normal_shock, stagnation_pressure_ratio, stagnation_temperature_ratio};
 use ventus_inlet::shock_train::mil_e_5008b_recovery;
@@ -165,6 +165,14 @@ fn dump_row(label: &str, mach: f64) {
         Some(a) => println!("  A_c self-consistent     {a:.4} m2  (a body size still exists)"),
         None => println!("  A_c self-consistent     none  (no body closes)"),
     }
+    match additive_drag_on_snapshot_cowl(mach) {
+        Some(Ok(d)) => println!(
+            "  D_add snapshot cowl     {:.1} N  (Cd,add = {:.4}; r/R = {:.3}; pitot-equivalent, no suction)",
+            d.force_n, d.coefficient, d.lip_radius_ratio
+        ),
+        Some(Err(e)) => println!("  D_add snapshot cowl     refused ({e:?})"),
+        None => println!("  D_add snapshot cowl     (no freestream)"),
+    }
     println!();
 }
 
@@ -201,8 +209,16 @@ fn dump_candidate() {
     println!(
         "  A_c / A_body            {ratio:.4}   (snapshot {snapshot_ratio:.4}; candidate hosts if < 1)"
     );
+    match additive_drag_on_m4_candidate_cowl(mach) {
+        Some(Ok(d)) => println!(
+            "  D_add candidate cowl    {:.1} N  (Cd,add = {:.4}; shock-on-lip at this row)",
+            d.force_n, d.coefficient
+        ),
+        Some(Err(e)) => println!("  D_add candidate cowl    refused ({e:?})"),
+        None => println!("  D_add candidate cowl    (no freestream)"),
+    }
     println!("  still open              lean blowout (operative phi 0.50 [TO VERIFY]);");
-    println!("                          cowl-lip additive drag; spike/unstart;");
+    println!("                          lip suction; spike/unstart;");
     println!("                          1 m Ti-6Al-4V skin; thermally perfect T0;");
     println!("                          transonic pinch. This is not a flying M 4 aircraft.");
 }
