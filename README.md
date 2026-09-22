@@ -78,7 +78,7 @@ VENTUS answers it structurally rather than by care:
 | M7 | Mass fractions, empty mass, Breguet range | SR-71 unrefuelled range - the end-to-end check | **done** |
 | M8 | 6-DOF rigid-body dynamics | energy drift < 1e-10 over 1e6 steps | **done** |
 | M9 | 2-D Euler solver | shock angle 0.006 deg vs exact theta-beta-M | **physics done**, GPU build blocked |
-| M10 | Flight software | shares M1 bit-for-bit with the twin | **done** |
+| M10 | Flight software | shares M1 bit-for-bit with the twin; safety kernel first cut | **done** ([ADR-005](docs/adr/ADR-005-safety-modes.md)) |
 | M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
 | M12 | Regime sweep: where the chain stops answering | each module's own declared validity bound | **done** |
 | Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
@@ -99,8 +99,9 @@ read if you want to understand high-speed flight rather than this codebase.
 Not every module belongs in that corpus, and the reason is declared per crate
 rather than left to inference. The corpus holds claims traceable to a **published
 external number**; M8's yardsticks are conservation laws and a convergence order,
-and M10's is bit-for-bit agreement with M1, which is a cross-check against this
-project's own code. Neither is a citation, so forcing them in would mean writing
+and M10's are bit-for-bit agreement with M1 plus the totality of the safety
+kernel's mode table (ADR-005), both cross-checks against this project's own
+code. Neither is a citation, so forcing them in would mean writing
 a `source` field that cites ourselves — the exact drift the mandatory source
 exists to stop. `xtask validate` prints those modules and the argument for each,
 and refuses a crate that declares no route at all (ADR-000 D12).
@@ -355,6 +356,11 @@ Decisions and their trade-offs live in [`docs/adr/`](docs/adr/). The load-bearin
 - **`-fmad=false` does not ship.** It costs real throughput, so it lives in a
   `validate` profile that has benchmarks compiled out, while `release` keeps FMA
   and is validated at the levels that survive it.
+- **Safety kernel beside the pitch loop, not inside it**
+  ([ADR-005](docs/adr/ADR-005-safety-modes.md)). Modes, guarded discretes and a
+  software watchdog gate whether `step` may write a new surface command. First
+  cut: not certification, not a cockpit, not the unpublished Desktop HIL
+  protocol (that work is ADR-004 on Desktop; this is 005 so they do not collide).
 
 ## Layout
 
