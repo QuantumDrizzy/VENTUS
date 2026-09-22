@@ -1,0 +1,25 @@
+[package]
+name = "ventus-fsw-nucleo-f411"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.85"
+license = "UNLICENSED"
+publish = false
+
+# M10 on real hardware: the Nucleo-F411RE (STM32F411RE, Cortex-M4F).
+# This crate is deliberately NOT a workspace member -- it builds for
+# thumbv7em-none-eabihf, not for the host, and the workspace profiles do not
+# apply to it. See ADR-004.
+
+[dependencies]
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+panic-halt = "1"
+stm32f4xx-hal = { version = "0.22", features = ["stm32f411"] }
+ventus-fsw = { path = "../../crates/ventus-fsw" }
+
+[profile.release]
+lto           = "thin"
+codegen-units = 1
+panic         = "abort"
+opt-level     = "s"

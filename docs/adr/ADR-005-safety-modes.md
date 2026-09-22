@@ -1,16 +1,13 @@
-# ADR-005 — Flight-software safety modes and critical discretes
+# ADR-005 -- Flight-software safety modes and critical discretes
 
 **Status:** accepted (first cut) · **Date:** 2026-09-22 · **Author:** A. Rodríguez (QuantumDrizzy)
-**Revision:** r1
+**Revision:** r2 (HIL wire bind; ADR-004 landed)
 **Amends:** none. M10's pitch loop (`ventus_fsw::step`) is unchanged in
 behaviour. This ADR adds a layer beside it.
-**Numbering:** ADR-003 is dual-mode/scram on origin. **This is ADR-005, not
-ADR-004.** Desktop is ahead of origin with unpublished HIL work
-(`ventus_fsw::hil` and a draft ADR-004 Nucleo wire protocol) that this change
-has not seen and must not collide with. If Desktop HIL lands and has already
-taken 004, this document stays 005. If this merge happens first and Desktop
-still holds a local ADR-004, Desktop should keep 004 for HIL and not renumber
-this file backward. Do not invent a second ADR-004.
+**Numbering:** ADR-003 is dual-mode/scram. ADR-004 is the Nucleo HIL wire
+protocol (`ventus_fsw::hil`). **This stays ADR-005.** Do not invent a
+second ADR-004. r2 binds the kernel to that wire rather than forking a
+mode table.
 
 ## Context
 
@@ -24,9 +21,9 @@ ground discretes.
 Thermal is one bottleneck. The other, named here, is that a critical
 discrete — abort, emergency, effector arm, BIT reset — can fail *silently*:
 a sample arrives, nothing in the types requires it to change the mode, and
-the pitch loop keeps commanding surfaces. A research twin that will later
-bind those lines to HIL (Desktop, unpublished) cannot discover that class of
-bug in the aero stack, because the aero stack does not own the buttons.
+the pitch loop keeps commanding surfaces. A research twin that binds those
+lines to HIL (ADR-004) cannot discover that class of bug in the aero stack,
+because the aero stack does not own the buttons.
 
 This is the first honest software cut of that layer. Not everything is
 flying. Aero and propulsion stay where they are.
@@ -93,8 +90,10 @@ label is on the class of aircraft this twin is studying; the type comment
 is the claim, not the identifier.
 
 Dual-channel is a **software hook**. It is not redundant voting hardware.
-When HIL binds two GPIO lines, they enter `DualSample { a, b }`. Until
-then the hook is testable without pretending a second computer exists.
+HIL `CMD_SAFETY_TICK` / `CMD_GATED_STEP` carry `DualSample { a, b }` as
+the discrete byte (`DiscreteFrame::to_wire`). GPIO lines are not bound
+yet; the host injects the bits. The hook is testable without pretending
+a second computer exists.
 
 `ResetBit` is explicitly single-channel `[TO DETERMINE]`. Declaring it
 dual today would be a redundancy claim this cut has not earned. Channel B
@@ -160,12 +159,13 @@ or three-channel voting. Those are non-claims, listed below.
 - **Not ejector-seat physics.** Abort is discrete logic. The seat, if any,
   is not in this repository.
 - **Not redundant voting hardware.** Dual-channel is a pair of `bool`s and
-  a disagreement policy. Binding to GPIO or to Desktop HIL is a later
-  translator, not this crate pretending the translator exists.
-- **Not the Nucleo wire protocol.** That work is on Desktop, unpublished,
-  and must not be reverse-engineered here. `DiscreteFrame::from_wire` is a
-  **test packing** of eight bits. If HIL frames look different, HIL owns
-  the layout; this packing stays a helper.
+  a disagreement policy. Binding those bools to GPIO is still later; HIL
+  currently injects them on the wire.
+- **HIL owns the discrete-byte layout**, and that layout is this packing:
+  `DiscreteFrame::{to_wire,from_wire}` is byte 0 of `CMD_SAFETY_TICK` and
+  byte 32 of `CMD_GATED_STEP` (ADR-004 D6). Mode/authority/latch tags on
+  the reply are `FlightMode::to_wire`, `SurfaceAuthority::to_wire`, and
+  the latch flags. Do not fork a second packing.
 - **Not propulsion cutoff, fuel isolation, or envelope refusals.** The
   gate is surface-command authority for the pitch loop only.
 
@@ -178,15 +178,17 @@ or three-channel voting. Those are non-claims, listed below.
   for a research-twin mode table. The table is the yardstick, asserted in
   the crate tests, including a case that fails if an abort assert is
   dropped on the floor.
-- Desktop HIL, when it lands, should call `SafetyKernel::tick` / 
-  `gated_step` rather than invent a second mode enum. The unpublished
-  ADR-004 should *bind*, not fork.
+- HIL (ADR-004 r2) calls `SafetyKernel::tick` / `gated_step` from
+  `ventus_fsw::hil::handle`. There is no second mode enum. Confirmed abort
+  on the wire leaves Nominal and freezes surfaces; host loopback tests
+  pin that without a board.
 
-## Open — next rungs
+## Open -- next rungs
 
-- **[TO BIND]** Wire kernel inputs to HIL commands when Desktop HIL
-  (draft ADR-004 on Desktop) is pushed to origin. Do not guess the frame
-  layout here.
+- **Bound:** kernel inputs and the gate travel on HIL commands
+  `CMD_SAFETY_TICK` (0x04), `CMD_SAFETY_STATE` (0x05), `CMD_GATED_STEP`
+  (0x06), protocol version 2. Layout in ADR-004 D6. GPIO is not part of
+  that bind.
 - **[TO BIND]** Dual-channel GPIO (or equivalent) for Abort / Emergency /
   MasterArm; decide whether `ResetBit` earns a second channel or stays
   `[TO DETERMINE]`.
@@ -208,5 +210,5 @@ or three-channel voting. Those are non-claims, listed below.
 
 Hardware BIT, windowed watchdog peripheral, three-channel majority,
 crew-alert logic, a cockpit, certification artefacts, weapons, guidance,
-re-writing M10's PI, or deleting/renaming anything about HIL that this
-author has not seen.
+or re-writing M10's PI. GPIO discrete sampling is a later bind, not a
+non-goal of the kernel -- the kernel already consumes DualSample.
