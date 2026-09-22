@@ -432,12 +432,13 @@ failure), M5 and M6, M7, M8, M9, M10.
 |---|---|---|
 | Acceleration corridor (transonic thrust pinch) | M6 + M4 produce T − D | engine sizing in M4 |
 | Vehicle geometry (length, wing area, mass class) | derived from physics | **start of M6** — area rule and Sears-Haack are unbuildable without it |
-| Mach 4 cruise on a self-consistent body | inlet capture vs body: a **named candidate** hosts at M 4.00 (fineness 10, ratio 0.864); flame stability, LE heating, cowl lip still open — `docs/design-point-m4.md` | any re-baseline that would replace the M 3.50 snapshot |
+| Mach 4 cruise on a self-consistent body | inlet capture vs body: a **named candidate** hosts at M 4.00 (fineness 10, ratio 0.864); a declared cowl lip reports additive force (zero at shock-on-lip); flame stability, LE heating, spike/unstart still open — `docs/design-point-m4.md` | any re-baseline that would replace the M 3.50 snapshot |
 
 Geometry (5.2) closed in M6b and is declared in `docs/design-point.md` §5.
 Lean blowout (5.3) and inlet capture/unstart (5.4) were tightened, not closed:
-operative φ bound and Kantrowitz/spillage identities are in code; a primary
-φ_LBO citation, a flame holder, a cowl lip, and a spike schedule are not.
+operative φ bound, Kantrowitz/spillage identities, and additive force from a
+declared cowl lip are in code; a primary φ_LBO citation, a flame holder, lip
+suction, and a spike schedule are not.
 The Mach 4 row is a sketch only; the case-gated snapshot remains M 3.50 / 26 km.
 A named candidate geometry now exists in M6b/M12 so capture/body can go below 1
 at the proposed row without that snapshot moving.

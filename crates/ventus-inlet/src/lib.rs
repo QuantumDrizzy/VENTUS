@@ -18,8 +18,9 @@
 //!
 //! Scope: shock train, capture area, spillage, unstart margin. Capture and
 //! Kantrowitz starting are identities plus one cited 1-D limit (`capture.rs`).
-//! The translating-spike schedule and time-accurate unstart remain typed
-//! refusals: this aircraft has no spike geometry to schedule.
+//! A declared cowl lip unlocks additive/spillage *force* (pitot-equivalent
+//! closure). The translating-spike schedule and time-accurate unstart remain
+//! typed refusals: this aircraft has no spike geometry to schedule.
 #![no_std]
 #![forbid(unsafe_code)]
 
@@ -30,10 +31,12 @@ pub mod capture;
 pub mod shock_train;
 
 pub use capture::{
-    additive_drag_n, additive_drag_without_lip, body_can_host_capture, capture_to_body_ratio,
-    isentropic_contraction_ratio, kantrowitz_contraction_ratio, mass_flow_ratio, self_starts,
-    spike_position_m, spillage, streamtube_area_m2, unstart_margin, CaptureError, CowlLip,
-    FreestreamStation, Spillage, StartError, KANTROWITZ_CONTRACTION_INFINITE_MACH_GAMMA_14,
+    additive_drag_from_lip, additive_drag_n, additive_drag_without_lip, body_can_host_capture,
+    capture_to_body_ratio, isentropic_contraction_ratio, kantrowitz_contraction_ratio,
+    mass_flow_ratio, self_starts, spike_position_m, spillage, streamtube_area_m2, unstart_margin,
+    AdditiveDrag, CaptureError, CowlLip, CowlLipGeometry, FreestreamStation, Spillage, StartError,
+    KANTROWITZ_CONTRACTION_INFINITE_MACH_GAMMA_14, SHARP_LIP_RADIUS_RATIO_LIMIT,
+    VENTUS_COWL_LIP_RADIUS_RATIO,
 };
 pub use shock_train::{
     mil_e_5008b_recovery, optimise_ramps, shock_train, InletError, ShockTrain, Station, MAX_RAMPS,
@@ -42,10 +45,12 @@ pub use shock_train::{
 // DONE: oblique shock train, optimal ramp angles, total-pressure recovery
 // (shock_train.rs).
 //
-// DONE: capture-vs-body identity, mass-flow ratio / spilled area, additive-drag
-// *definition* when a cowl-lip state is supplied, Kantrowitz self-start
+// DONE: capture-vs-body identity, mass-flow ratio / spilled area, cowl-lip
+// *geometry*, additive-drag force from a declared lip (pitot-equivalent
+// closure of the Seddon & Goldsmith definition), Kantrowitz self-start
 // contraction (capture.rs).
 //
 // REFUSED (typed, not a TODO that can be read as a plan): translating-spike
 // schedule and time-accurate unstart. Closing those needs internal contraction
-// and a throat this aircraft has not declared.
+// and a throat this aircraft has not declared. Lip suction is recorded as
+// geometry (`r/R`) and not credited as a force. φ_LBO is not this crate.

@@ -1,9 +1,12 @@
 # VENTUS-1 — Design point
 
-**Revision:** r5 (2026-08-27) · supersedes r4
+**Revision:** r6 (2026-09-22) · supersedes r5
 **Programme track:** a proposed M 4.00 constant-q row is sketched in
 [`docs/design-point-m4.md`](design-point-m4.md). It is not a close and it does
 not replace this snapshot. The case-gated design point remains M 3.50 / 26 km.
+**Change vs r5:** §5.4 — a declared cowl lip unlocks additive/spillage *force*
+(pitot-equivalent; zero at shock-on-lip). Spike schedule, unstart, and lip
+suction remain refusals. Lean blowout is unchanged (follow-up).
 **Change vs r4:** §3.2 and §3.3 are now COMPUTED by M5 rather than estimated. The
 r4 flat-panel estimate of 590-640 K was 40-90 K too high; the computed answer is
 532-580 K, and it resolves the material question in favour of conventional
@@ -326,7 +329,7 @@ disappears leaves no record that it was ever load-bearing.
 | 5.1 No acceleration corridor | **OPEN.** The engine is not sized. |
 | 5.2 No geometry | **CLOSED** by M6b; M7 and M8 built on it. |
 | 5.3 Lean blowout | **TIGHTENED, not closed.** Operative bound is the strict end (no holder declared); design φ sits below it. Bound still `[TO VERIFY]`. |
-| 5.4 Inlet capture / unstart | **TIGHTENED, not closed.** Capture-vs-body and Kantrowitz are identities; spike schedule and unstart dynamics remain refusals. Capture = body still at M 3.85. |
+| 5.4 Inlet capture / unstart | **TIGHTENED, not closed.** Capture-vs-body, Kantrowitz, and additive/spillage *force* from a declared lip are in; spike schedule, unstart dynamics, and lip suction remain refusals. Capture = body still at M 3.85. |
 
 ### 5.1 No acceleration corridor — blocking at M4 engine sizing
 
@@ -433,15 +436,22 @@ pressure falls, so altitude is against us and ram is what buys the pressure
 back; evaluating the correlation still needs a combustor volume and a holder
 (tier 2, M4b). This snapshot does not declare either.
 
-### 5.4 Inlet capture / unstart — **TIGHTENED.** Identities in; schedule still refused
+### 5.4 Inlet capture / unstart — **TIGHTENED.** Cowl lip declared; spike still refused
 
 M3 now computes, rather than TODOing:
 
 - capture vs body, as an identity on two areas (`capture_to_body_ratio`)
 - mass-flow ratio and spilled *area* (the hook)
-- additive drag from the Seddon & Goldsmith streamtube **definition**, when a
-  cowl-lip state is supplied; without a lip, the force is refused (no
-  incompressible `C_D(μ)` at M 3.5)
+- **cowl-lip geometry**: highlight area, lip radius, `r/R`, projected lip
+  area. `r/R = 0.02` is `[TO DETERMINE]`, a nearly-sharp structural minimum,
+  not a cited optimum
+- additive / spillage **force** from a declared lip: the pitot-equivalent
+  sketch `D_add = (p₂ − p∞)(A_c − A₀)+`, with `p₂` from M2's normal shock.
+  **[TO CITE]** Seddon & Goldsmith, *Intake Aerodynamics*, additive-drag
+  chapter, for the streamtube force. At this snapshot the design cowl is
+  shock-on-lip (highlight = required capture), so the force is **zero**.
+  Without a lip, the force is still refused (no incompressible `C_D(μ)` at
+  M 3.5). Lip suction is not credited
 - Kantrowitz–Donaldson self-start contraction, composed from M2: at M 3.5 the
   gas will start `A_e/A_t ≈ 1.45` and an efficient internal diffuser wants
   `A_e/A* ≈ 6.79`. That gap is why a mixed-compression inlet needs a
@@ -450,7 +460,8 @@ M3 now computes, rather than TODOing:
 
 Still refused, typed, matching `ventus-scram`: the translating-spike *schedule*
 and time-accurate unstart. Those need an internal contraction and a throat this
-aircraft has not declared.
+aircraft has not declared. Additive drag is **not** folded into the M6b drag
+that sizes capture.
 
 The vehicle statement is unchanged: required capture equals the Sears-Haack
 body at **M 3.85**, 74.5 % of it at this snapshot. The current body does not

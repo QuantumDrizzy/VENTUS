@@ -1,13 +1,14 @@
 //! Crate-level lock: the capture / starting cases load, and Normal refusals
-//! match the public API. The missing-key known_limit (`additive_drag_coefficient`)
+//! match the public API. The missing-key known_limit (`lip_suction_force_n`)
 //! is asserted by the harness.
 
 use std::path::Path;
 
 use ventus_inlet::{
-    additive_drag_without_lip, body_can_host_capture, capture_to_body_ratio,
-    isentropic_contraction_ratio, kantrowitz_contraction_ratio, spike_position_m, spillage,
-    unstart_margin, CaptureError, StartError,
+    additive_drag_from_lip, additive_drag_without_lip, body_can_host_capture,
+    capture_to_body_ratio, isentropic_contraction_ratio, kantrowitz_contraction_ratio,
+    spike_position_m, spillage, unstart_margin, CaptureError, CowlLipGeometry, FreestreamStation,
+    StartError,
 };
 use ventus_validate::case::{self, ExpectValue, Status};
 
@@ -21,6 +22,7 @@ fn capture_cases_match_the_public_api() {
     );
 
     let mut saw_capture = false;
+    let mut saw_declared_lip = false;
     for c in &cases {
         if c.inputs.contains_key("capture_area_m2") {
             saw_capture = true;
@@ -65,23 +67,63 @@ fn capture_cases_match_the_public_api() {
             if let Some(ExpectValue::Float(expected)) = c.expect.get("spilled_area_m2") {
                 assert!((s.spilled_area_m2 - expected).abs() < 1e-12, "{}", c.name);
             }
-            match c.status {
-                Status::Normal
-                    if c.expect.get("refused_cowl_lip_not_modelled")
-                        == Some(&ExpectValue::Bool(true)) =>
-                {
-                    assert_eq!(
-                        additive_drag_without_lip(a0, ac),
-                        Err(CaptureError::CowlLipNotModelled)
-                    );
+            let has_lip =
+                c.inputs.contains_key("lip_radius_ratio") || c.inputs.contains_key("lip_radius_m");
+            if has_lip {
+                saw_declared_lip = true;
+                let ratio = c
+                    .inputs
+                    .get("lip_radius_ratio")
+                    .and_then(|v| v.as_float())
+                    .unwrap();
+                let geom = CowlLipGeometry::from_highlight_and_radius_ratio(ac, ratio).unwrap();
+                if c.inputs.contains_key("static_pressure_pa") {
+                    let fs = FreestreamStation {
+                        streamtube_area_m2: a0,
+                        static_pressure_pa: f(c, "static_pressure_pa"),
+                        density_kg_m3: f(c, "density_kg_m3"),
+                        velocity_m_s: f(c, "velocity_m_s"),
+                    };
+                    let gamma = c
+                        .inputs
+                        .get("gamma")
+                        .and_then(|v| v.as_float())
+                        .unwrap_or(1.4);
+                    match additive_drag_from_lip(fs, geom, gamma) {
+                        Ok(d) => {
+                            if let Some(ExpectValue::Float(expected)) =
+                                c.expect.get("additive_drag_n")
+                            {
+                                if expected.abs() < 1e-6 {
+                                    assert!(d.force_n.abs() < 1e-6, "{}", c.name);
+                                } else {
+                                    assert!(
+                                        (d.force_n / expected - 1.0).abs() < 1e-3,
+                                        "case `{}`: D_add {} against {expected}",
+                                        c.name,
+                                        d.force_n
+                                    );
+                                }
+                            }
+                        }
+                        Err(CaptureError::CaptureExceedsCowl) => {
+                            assert_eq!(
+                                c.expect.get("refused_capture_exceeds_cowl"),
+                                Some(&ExpectValue::Bool(true)),
+                                "{}",
+                                c.name
+                            );
+                        }
+                        Err(e) => panic!("case `{}`: unexpected {e:?}", c.name),
+                    }
                 }
-                Status::KnownLimit => {
-                    assert_eq!(
-                        additive_drag_without_lip(a0, ac),
-                        Err(CaptureError::CowlLipNotModelled)
-                    );
-                }
-                Status::Normal => {}
+            } else if matches!(c.status, Status::Normal)
+                && c.expect.get("refused_cowl_lip_not_modelled") == Some(&ExpectValue::Bool(true))
+            {
+                assert_eq!(
+                    additive_drag_without_lip(a0, ac),
+                    Err(CaptureError::CowlLipNotModelled)
+                );
             }
         }
 
@@ -111,6 +153,10 @@ fn capture_cases_match_the_public_api() {
         }
     }
     assert!(saw_capture, "expected at least one capture-vs-body case");
+    assert!(
+        saw_declared_lip,
+        "expected at least one declared-lip additive-drag case"
+    );
 }
 
 fn f(c: &case::Case, key: &str) -> f64 {

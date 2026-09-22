@@ -12,7 +12,7 @@ carrying the git hash that produced it.
 
 **What that harness does not do, said here rather than left to a `grep`.** It
 gates *cases*. It does not gate *constants*: a modelling constant marked
-`[TO CITE]` in a doc comment compiles and validates fine, and there are **28** of
+`[TO CITE]` in a doc comment compiles and validates fine, and there are **31** of
 them right now. `cargo xtask validate` counts and prints that number with every
 verdict, so it cannot go stale in this file.
 
@@ -84,10 +84,9 @@ VENTUS answers it structurally rather than by care:
 | Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
 
 ```
-cargo test --workspace     219 tests
-cargo xtask validate       109 cases: 99 pass, 0 fail, 10 known limit, 0 stale
-                           28 modelling constants still [TO CITE]
-
+cargo test --workspace     226 tests
+cargo xtask validate       115 cases: 105 pass, 0 fail, 10 known limit, 0 stale
+                           31 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 native\build_validate.bat M9 levels A/B/D: 0 of 80000 cells differ, 0.0 ULP
 cargo xtask bench          gated on the corpus passing at the same commit
@@ -248,12 +247,14 @@ balance at all. That is **not a second usable limit** — past M 3.85 the inlet
 already exceeds the body carrying it, so M 4.54 sits inside a region M 3.85 has
 excluded. It says how the failure happens, not how far the aircraft gets.
 
-M3 now owns the capture-vs-body identity, spilled *area*, the additive-drag
-*definition* (force refused without a cowl lip), and Kantrowitz starting
+M3 now owns the capture-vs-body identity, spilled *area*, a declared cowl
+lip, additive/spillage *force* from that lip (pitot-equivalent; zero at
+shock-on-lip; refused without a lip), and Kantrowitz starting
 (`A_e/A_t ≈ 1.45` at M 3.5 against isentropic `A/A* ≈ 6.79` — why a spike
-exists). The translating-spike *schedule* and unstart *dynamics* remain typed
-refusals. Four of those five frontiers are statements about the **model**. Only
-the capture area is a statement about the **aircraft**.
+exists). The translating-spike *schedule*, unstart *dynamics*, and lip
+suction remain typed refusals. Four of those five frontiers are statements
+about the **model**. Only the capture area is a statement about the
+**aircraft**.
 
 The material never binds, and that is a mechanism rather than an assertion: the
 balance is `eps sigma T_w^4 = h (T_aw — T_w)`, so the fourth root crushes
