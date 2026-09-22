@@ -43,7 +43,10 @@
 //!
 //! A proposed M 4.00 row on that schedule is sketched in
 //! `docs/design-point-m4.md`. It is not a design point: [`capture_area_ratio`]
-//! already exceeds 1 at [`PROPOSED_M4_CRUISE_MACH`] on the current body.
+//! already exceeds 1 at [`PROPOSED_M4_CRUISE_MACH`] on the **snapshot** body.
+//! A named candidate ([`m4_candidate_geometry`]) is the geometry path that
+//! puts that ratio below 1; it does not replace the snapshot and it does not
+//! fly.
 
 #![no_std]
 #![forbid(unsafe_code)]
@@ -444,7 +447,6 @@ const _: () = assert!(
     DESIGN_POINT_EQUIVALENCE_RATIO < OPERATIVE_LEAN_BLOWOUT_PHI,
     "design phi no longer sits below the operative lean-blowout bound"
 );
-
 
 /// Why a module stopped answering.
 ///
@@ -903,12 +905,36 @@ pub const CAPTURE_AREA_CLOSES_AT_MACH: f64 = 3.847;
 /// Programme cruise Mach named in ADR-003 (â¥ Mach 4).
 ///
 /// **Not a design point and not a computed capability.** The validated snapshot
-/// remains M 3.50 at 26 km. On the *current* geometry [`capture_area_ratio`]
+/// remains M 3.50 at 26 km. On the *snapshot* geometry [`capture_area_ratio`]
 /// already exceeds 1 here, because [`CAPTURE_AREA_CLOSES_AT_MACH`] is 3.847.
+/// The named candidate [`m4_candidate_geometry`] is a different Sears-Haack
+/// station that can host the inlet at this Mach; see
+/// [`m4_candidate_capture_area_ratio`]. Neither is a close of the aircraft.
 /// See `docs/design-point-m4.md`. Same landmark as
 /// `ventus_scram::PROGRAMME_CRUISE_MACH`; this crate does not depend on that
 /// stub (ADR-003: wiring M12 to scram is a later, explicit change).
 pub const PROPOSED_M4_CRUISE_MACH: f64 = 4.0;
+
+/// Snapshot Sears-Haack body M6b derived for the M 3.50 yardstick.
+///
+/// [`capture_area_ratio`] is always this geometry. The M 4 candidate is
+/// [`m4_candidate_geometry`].
+#[must_use]
+pub fn snapshot_geometry() -> ventus_aero::geometry::Geometry {
+    ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA)
+}
+
+/// Named M 4 host-body candidate: same mass, wing and length as
+/// [`snapshot_geometry`], fineness 10 rather than 12.
+///
+/// A different volume distribution, not a heavier copy of the snapshot
+/// (that ratio is scale-invariant). Not a closed aircraft: blowout, cowl-lip
+/// force, unstart, and the 1 m thermal station remain open. Not a replacement
+/// of the M 3.50 yardstick.
+#[must_use]
+pub fn m4_candidate_geometry() -> ventus_aero::geometry::Geometry {
+    ventus_aero::geometry::ventus1_m4_candidate(DESIGN_DYNAMIC_PRESSURE_PA)
+}
 
 /// Air mass flow the engine must swallow for thrust to equal drag, divided by
 /// the mass flux available per unit area: **the capture area the aircraft would
@@ -922,9 +948,25 @@ pub const PROPOSED_M4_CRUISE_MACH: f64 = 4.0;
 /// needs nothing invented: thrust equals `Fs * rho * V * A_c`, drag comes out of
 /// M6b in newtons, so the area that balances them falls out.
 ///
+/// Uses the snapshot body. For another Sears-Haack station see
+/// [`required_capture_area_for`].
+///
 /// Returns `None` wherever M4 or M6b declines.
 #[must_use]
 pub fn required_capture_area_m2(mach: f64) -> Option<f64> {
+    required_capture_area_for(mach, &snapshot_geometry())
+}
+
+/// [`required_capture_area_m2`] against a declared body rather than the snapshot.
+///
+/// Wave drag goes as `A_max²`, so a fatter station raises the capture the
+/// engine must present. That is the honest cost of hosting the inlet; growing
+/// `A_max` without re-solving drag is how a sketch becomes a fake close.
+#[must_use]
+pub fn required_capture_area_for(
+    mach: f64,
+    geometry: &ventus_aero::geometry::Geometry,
+) -> Option<f64> {
     use ventus_aero::boundary_layer::EdgeState;
 
     let p = evaluate(mach);
@@ -935,7 +977,6 @@ pub fn required_capture_area_m2(mach: f64) -> Option<f64> {
         p.wall_temperature_k?,
     );
     let atmos = ventus_atmos::at_geopotential(altitude_m).ok()?;
-    let geometry = ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA);
     let edge = EdgeState {
         temperature_k: atmos.temperature_k,
         pressure_pa: atmos.pressure_pa,
@@ -944,7 +985,7 @@ pub fn required_capture_area_m2(mach: f64) -> Option<f64> {
         gamma: 1.4,
     };
     let drag = ventus_aero::drag::breakdown(
-        &geometry,
+        geometry,
         &edge,
         DESIGN_DYNAMIC_PRESSURE_PA,
         wall_temperature_k,
@@ -976,11 +1017,33 @@ pub fn required_capture_area_m2(mach: f64) -> Option<f64> {
 /// fit, where a solver has nothing left to say. This one says something about
 /// the vehicle - and it binds at M 3.847, below the lean blowout band's middle
 /// and nearly two Mach below the M 5.70 ceiling M4 reports.
+///
+/// Always the snapshot body. The M 4 candidate is [`capture_area_ratio_for`]
+/// on [`m4_candidate_geometry`].
 #[must_use]
 pub fn capture_area_ratio(mach: f64) -> Option<f64> {
-    let required = required_capture_area_m2(mach)?;
-    let geometry = ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA);
+    capture_area_ratio_for(mach, &snapshot_geometry())
+}
+
+/// [`capture_area_ratio`] against a declared body.
+#[must_use]
+pub fn capture_area_ratio_for(
+    mach: f64,
+    geometry: &ventus_aero::geometry::Geometry,
+) -> Option<f64> {
+    let required = required_capture_area_for(mach, geometry)?;
     ventus_inlet::capture_to_body_ratio(required, geometry.max_cross_section_m2).ok()
+}
+
+/// Capture / body on the named M 4 host-body candidate.
+///
+/// At [`PROPOSED_M4_CRUISE_MACH`] this is below 1 (the snapshot's
+/// [`capture_area_ratio`] is above 1). That is a geometry finding, not a
+/// claim the vehicle flies: lean blowout is still below the operative bound,
+/// there is no cowl lip, and there is no spike.
+#[must_use]
+pub fn m4_candidate_capture_area_ratio(mach: f64) -> Option<f64> {
+    capture_area_ratio_for(mach, &m4_candidate_geometry())
 }
 
 /// Above this Mach **no body size closes the thrust balance**: M 4.536.
@@ -1074,7 +1137,7 @@ pub fn self_consistent_capture_area_m2(mach: f64) -> Option<f64> {
         p.wall_temperature_k?,
     );
     let atmos = ventus_atmos::at_geopotential(altitude_m).ok()?;
-    let geometry = ventus_aero::geometry::ventus1(DESIGN_DYNAMIC_PRESSURE_PA);
+    let geometry = snapshot_geometry();
     let edge = EdgeState {
         temperature_k: atmos.temperature_k,
         pressure_pa: atmos.pressure_pa,

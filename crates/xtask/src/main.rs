@@ -659,6 +659,25 @@ fn evaluate_envelope(c: &Case) -> BTreeMap<String, ExpectValue> {
         if let Some(r) = ventus_envelope::capture_area_ratio(mach) {
             m.insert("capture_area_ratio".to_string(), ExpectValue::Float(r));
         }
+        if let Some(r) = ventus_envelope::m4_candidate_capture_area_ratio(mach) {
+            m.insert(
+                "m4_candidate_capture_area_ratio".to_string(),
+                ExpectValue::Float(r),
+            );
+            m.insert(
+                "m4_candidate_body_can_host_capture".to_string(),
+                ExpectValue::Bool(r <= 1.0),
+            );
+        }
+        let candidate = ventus_envelope::m4_candidate_geometry();
+        m.insert(
+            "m4_candidate_max_cross_section_m2".to_string(),
+            ExpectValue::Float(candidate.max_cross_section_m2),
+        );
+        m.insert(
+            "m4_candidate_fineness_ratio".to_string(),
+            ExpectValue::Float(candidate.fineness_ratio()),
+        );
         if let Some(a) = ventus_envelope::self_consistent_capture_area_m2(mach) {
             m.insert(
                 "self_consistent_capture_area_m2".to_string(),
