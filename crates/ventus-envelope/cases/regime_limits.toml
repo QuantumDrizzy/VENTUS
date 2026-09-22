@@ -192,21 +192,71 @@ reason  = """
 THE SINGLE NUMBER THAT DECIDES WHETHER THIS AIRCRAFT FLIES.
 
 The cycle runs at f/a = 0.03138 at M 3.50, an equivalence ratio of 0.4615. The
-lean blowout band this project carries is phi 0.3 to 0.5 [TO CITE]. So the design
-point sits INSIDE the band and ABOVE its midpoint.
+literature lean-blowout band is phi 0.3 to 0.5, still [TO VERIFY] at both ends
+(strict end: Mattingly Fig. 10-70 class, not a digit read here; permissive end:
+holder-required). So the design point sits INSIDE the band and ABOVE its
+midpoint.
 
-THE PROBABILITY MASS IS NOT EVENLY SPLIT, and saying "the design point is inside
-the uncertainty" understates it. phi 0.46 to 0.50 is an ordinary range for a
-ramjet combustor without a dedicated flame holder, and every value in it puts the
-design point out of reach - not marginal, unreachable.
+NO FLAME HOLDER IS DECLARED. The permissive end is therefore not available, and
+the operative bound is the strict end 0.50. Design phi is below that, so under
+the only bound that applies to this aircraft the snapshot does not hold a
+flame — provided that end survives a primary copy. The decision criterion is
+cited φ_LBO ≷ 0.4615.
+
+THE PROBABILITY MASS IS NOT EVENLY SPLIT. phi 0.46 to 0.50 is an ordinary range
+for a ramjet combustor without a dedicated flame holder, and every value in it
+puts the design point out of reach - not marginal, unreachable.
 
 CONSEQUENCE FOR THE CITATION QUEUE. This project carries [TO CITE] on L/D and on
 Isp, and those move a result by some per cent. This one decides between "the
 design point has margin" and "the design point does not fly". It goes first.
 """
 inputs  = { mach = 3.5 }
-expect  = { equivalence_ratio = 0.46149, fuel_air_ratio = 0.0313813 }
+expect  = { equivalence_ratio = 0.46149, fuel_air_ratio = 0.0313813, below_operative_lean_blowout_bound = true, inside_literature_blowout_band = true, flame_holder_declared = false, operative_phi_bound = 0.50 }
 rel_tol = 1e-4
+
+[[case]]
+name    = "burner_entry_total_pressure_is_ram_not_ambient"
+source  = "M4 ideal_ramjet burner-entry total pressure: p∞ · (p0/p)_isen · π_d. THE SOURCE IS THE CYCLE. Freestream at 26 km is docs/design-point.md §1."
+reason  = """
+[CORRECTED] A figure near 1.6 kPa is not burner entry.
+
+p∞ at 26 km is 2.15 kPa. Omitting ram and writing p∞ · π_d gives ~1.60 kPa,
+which would make a flame look impossible. The cycle does not omit ram:
+burner-entry TOTAL pressure at the snapshot, on the four-ramp recovery M12
+feeds it, is ~133 kPa — two orders of magnitude above ambient, sea-level-ish.
+That is what makes combustion physically possible at 26 km. Lefebvre-family
+loading still needs a volume and a holder (tier 2); this case only pins the
+station the correlation would be fed.
+
+WHAT THIS DOES NOT CLAIM. It does not evaluate φ_LBO(P). It does not save
+M 3.50. Design phi is still below the operative (no-holder) bound.
+"""
+inputs  = { mach = 3.5 }
+expect  = { burner_entry_total_pressure_pa = 1.33e5 }
+rel_tol = 5e-2
+
+[[case]]
+name    = "lean_blowout_is_not_a_verified_fly_no_fly"
+source  = "LEAN_BLOWOUT_DECISION_CRITERION in ventus-envelope: a cited φ_LBO on either side of 0.4615 closes the question. No primary chart has been read. Same missing-key mechanism as M11 programme_cost_usd_1986_verified."
+status  = "known_limit"
+reason  = """
+THE VERDICT THIS MODULE IS NOT ALLOWED TO PRINT AS VERIFIED.
+
+The arithmetic is pinned: design phi = 0.4615, no holder declared, operative
+bound = 0.50 [TO VERIFY], so under that bound the snapshot does not hold a
+flame. The bound itself has not been read from a primary afterburner/ramjet
+stability chart (Mattingly Fig. 10-70 is the intended source). The evaluator
+deliberately does not emit `lean_blowout_verified`. This case therefore fails
+with a missing key, which is the intended behaviour.
+
+WHAT RESOLVING IT WOULD LOOK LIKE. A cited φ_LBO at comparable burner-entry
+pressure and temperature, or a declared flame holder with a source. At that
+point the key gets wired, this annotation goes STALE, and the harness says so.
+"""
+inputs  = { mach = 3.5 }
+expect  = { lean_blowout_verified = true }
+abs_tol = 0.0
 
 [[case]]
 name    = "the_required_capture_area_outgrows_the_body"
@@ -218,10 +268,12 @@ The other four say where a correlation leaves its fit or a solver has nothing
 left to say. This one asks whether the aircraft can swallow enough air to
 overcome its own drag.
 
-M3 has no capture area - `ventus-inlet` carries an explicit TODO for it - so
-"is there excess thrust?" cannot be answered without inventing one. INVERTING THE
-QUESTION NEEDS NOTHING INVENTED: drag comes out of M6b in newtons, specific
-thrust out of M4 in N.s/kg, and the capture area that balances them falls out.
+M3 now owns the capture-vs-body identity and the spilled-area hook
+(`ventus-inlet` `capture.rs`); the translating-spike schedule and unstart
+*dynamics* remain typed refusals. INVERTING THE THRUST-DRAG QUESTION STILL
+NEEDS NOTHING INVENTED: drag comes out of M6b in newtons, specific thrust out
+of M4 in N.s/kg, and the capture area that balances them falls out. M12 feeds
+that area to the inlet identity.
 
     M 3.50   A_req / A_body = 0.745
     M 3.85   A_req / A_body = 1.000
@@ -305,8 +357,10 @@ self-inconsistency, not a closing number. A larger Sears-Haack still has a
 quadratic root here (any_body_closes = true) because M 4.00 is below M 4.536;
 that is a different aeroplane, recorded so the two frontiers are not collapsed.
 
-DO NOT RETUNE the expect toward 1.0 to look like a close. If a new body lands,
-the case is rewritten for that body in the same change.
+M3 now owns the capture-vs-body identity (`ventus_inlet::capture_to_body_ratio`);
+this case is the thrust-drag inversion feeding it. DO NOT RETUNE the expect
+toward 1.0 to look like a close. If a new body lands, the case is rewritten for
+that body in the same change.
 """
 inputs  = { mach = 4.0 }
 expect  = { capture_area_ratio = 1.1457, any_body_closes_the_thrust_balance = true }

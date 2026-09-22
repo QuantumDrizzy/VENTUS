@@ -16,15 +16,25 @@
 //! M3 + M4 together can, and the comparison is an extrapolation of 0.3 Mach,
 //! which must be stated whenever the number is reported.
 //!
-//! Scope: shock train, capture area, spillage, unstart margin.
+//! Scope: shock train, capture area, spillage, unstart margin. Capture and
+//! Kantrowitz starting are identities plus one cited 1-D limit (`capture.rs`).
+//! The translating-spike schedule and time-accurate unstart remain typed
+//! refusals: this aircraft has no spike geometry to schedule.
 #![no_std]
 #![forbid(unsafe_code)]
 
 #[cfg(test)]
 extern crate std;
 
+pub mod capture;
 pub mod shock_train;
 
+pub use capture::{
+    additive_drag_n, additive_drag_without_lip, body_can_host_capture, capture_to_body_ratio,
+    isentropic_contraction_ratio, kantrowitz_contraction_ratio, mass_flow_ratio, self_starts,
+    spike_position_m, spillage, streamtube_area_m2, unstart_margin, CaptureError, CowlLip,
+    FreestreamStation, Spillage, StartError, KANTROWITZ_CONTRACTION_INFINITE_MACH_GAMMA_14,
+};
 pub use shock_train::{
     mil_e_5008b_recovery, optimise_ramps, shock_train, InletError, ShockTrain, Station, MAX_RAMPS,
 };
@@ -32,5 +42,10 @@ pub use shock_train::{
 // DONE: oblique shock train, optimal ramp angles, total-pressure recovery
 // (shock_train.rs).
 //
-// TODO(M3): capture area and spillage drag, unstart criterion, the moving spike
-// schedule that holds the shock system across the flight envelope.
+// DONE: capture-vs-body identity, mass-flow ratio / spilled area, additive-drag
+// *definition* when a cowl-lip state is supplied, Kantrowitz self-start
+// contraction (capture.rs).
+//
+// REFUSED (typed, not a TODO that can be read as a plan): translating-spike
+// schedule and time-accurate unstart. Closing those needs internal contraction
+// and a throat this aircraft has not declared.
