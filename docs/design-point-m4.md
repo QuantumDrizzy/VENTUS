@@ -455,7 +455,8 @@ snapshot cannot.
 - **Not flyable.** The snapshot capture exceeds the body. The candidate
   hosts (0.864) and still does not fly: blowout sits below the cited
   Useller Fig. 8 afterburner floor and has no ramjet-no-holder chart; the
-  engine is unsized; the nose is uncomputed; lip suction, spike, and
+  engine is unsized; the M 4.00 nose is uncomputed (Fay-Riddell is closed
+  at the M 3.50 snapshot, not at this row); lip suction, spike, and
   unstart remain refusals. A green test suite on the M 3.50 corpus does
   not move any of that. A declared cowl that reports `D_add = 0` at
   shock-on-lip is not a started mixed-compression inlet.

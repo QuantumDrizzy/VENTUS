@@ -8,7 +8,9 @@ not replace this snapshot. The case-gated design point remains M 3.50 / 26 km.
 Fay-Riddell rather than left as `[TO COMPUTE, M5]`. Declared radii are
 `[TO DETERMINE]` (nose 25 mm sphere, LE 10 mm unswept cylinder), not fitted to
 save an alloy. Ti-6Al-4V dies at both stations; Ti-6242S is the lightest
-survivor. Thermal is not closed for M 4/5.
+survivor. Thermal is not closed for M 4/5. §5.3 from master (Useller Fig. 8
+φ_LBO = 0.50 as a cited V-gutter afterburner floor; ramjet-no-holder class
+still open) is kept.
 **Change vs r5:** §5.4 — a declared cowl lip unlocks additive/spillage *force*
 (pitot-equivalent; zero at shock-on-lip). Spike schedule, unstart, and lip
 suction remain refusals. Lean blowout is unchanged (follow-up).
