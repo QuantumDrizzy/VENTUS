@@ -260,13 +260,14 @@ fn the_design_point_equivalence_ratio_sits_high_in_the_blowout_band() {
 
 /// THE OPERATIVE FLY/NO-FLY STATEMENT, WITHOUT INVENTING A HOLDER.
 ///
-/// The permissive end is not available: [`FLAME_HOLDER_DECLARED`] is false.
-/// The operative bound is therefore 0.50, still [TO VERIFY]. Design phi is
-/// below it, so under the only bound that applies to this aircraft the
-/// snapshot does not hold a flame.
+/// The permissive end is not available: [`FLAME_HOLDER_DECLARED`] is locked
+/// false at compile time in `lib.rs`. The operative bound is therefore 0.50,
+/// still [TO VERIFY]. Design phi is below it, so under the only bound that
+/// applies to this aircraft the snapshot does not hold a flame.
 #[test]
 fn under_the_no_holder_bound_the_design_point_does_not_hold_a_flame() {
-    assert!(!FLAME_HOLDER_DECLARED);
+    // Holder lock is compile-time in lib.rs (`const _: () = assert!(!…)`).
+    // This test checks the physics that lock exists to protect.
     assert_eq!(OPERATIVE_LEAN_BLOWOUT_PHI, LEAN_BLOWOUT_PHI_STRICT);
 
     let phi = point_equivalence_ratio(&evaluate(3.50)).unwrap();
