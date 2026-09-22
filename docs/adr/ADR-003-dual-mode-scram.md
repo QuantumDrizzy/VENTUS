@@ -79,9 +79,9 @@ would make every existing yardstick a lie.
   host the inlet. That bind is about the airframe, not about M4's burner
   ceiling.
 - Lean blowout is a band that already contains the design point; it is not
-  modelled as a combustor in M4. The operative bound for this aircraft is the
-  strict end (no holder declared), still `[TO VERIFY]`. See
-  `docs/design-point.md` §5.3.
+  modelled as a combustor in M4. The operative bound for this aircraft is
+  Useller Fig. 8 φ = 0.50 (V-gutter afterburner floor, digit cited). A
+  ramjet-no-holder chart has not been read. See `docs/design-point.md` §5.3.
 
 **Established, as public *regime* facts, not as VENTUS numbers:**
 

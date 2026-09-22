@@ -129,12 +129,28 @@ pub const USEFUL_THRUST_FRACTION: f64 = 0.25;
 ///
 /// So the **operative** bound is the strict end, [`LEAN_BLOWOUT_PHI_STRICT`].
 /// Design phi is [`DESIGN_POINT_EQUIVALENCE_RATIO`] = 0.4615, which is below
-/// 0.50. Under that bound the snapshot does not hold a flame. The bound itself
-/// is still `[TO VERIFY]` against a primary afterburner/ramjet stability chart
-/// (Mattingly, *Elements of Propulsion*, Fig. 10-70 is the intended source, not
-/// a figure read in this repository). The decision criterion is
-/// [`LEAN_BLOWOUT_DECISION_CRITERION`]: a cited `φ_LBO` on either side of
-/// 0.4615 closes the question; a holder geometry closes which end applies.
+/// 0.50. Under that bound the snapshot does not hold a flame.
+///
+/// # Where the digit 0.50 is from, and what it is not
+///
+/// The 0.50 is **read**, not recited. NACA RM E54E06 (Useller, Braithwaite and
+/// Rudey, 1954) Figure 8 reports lean blow-out at an **equivalence ratio of
+/// 0.50** for a 6-foot afterburner at 1600 lb/sq ft abs (~76.6 kPa), and 0.63
+/// for the 3-foot chamber at the same pressure. That afterburner has a two-ring
+/// V-gutter, 34.7 % blockage. NACA RM E57C07 (King, 1957) Figure 16 is the
+/// matching duct-afterburner chart in fuel-air ratio: at the cold, high-pressure
+/// end (1260 °R, 1800 psf) lean blowout is f/a = 0.035 → φ = 0.518 on King's
+/// own JP-4 stoichiometric 0.0676; at the hot, high-pressure end, 0.027 → 0.399.
+/// Mattingly, *Elements of Propulsion*, Fig. 10-70 was the intended textbook
+/// reprint of this class and **has not been read in this repository**.
+///
+/// Both NACA charts are **holder-equipped, vitiated afterburners**. They are
+/// not a no-holder ramjet at VENTUS burner-entry pressure. The digit is
+/// therefore cited as an afterburner *floor* ([`PHI_LBO_DIGIT_CITED`]), not as
+/// a ramjet-no-holder close ([`PHI_LBO_RAMJET_NO_HOLDER_CITED`] is false). A
+/// no-holder ramjet is not expected to beat a 6-foot V-gutter; inventing a
+/// holder that "saves" M 3.50 is still refused. Wiring `lean_blowout_verified`
+/// would collapse that mismatch into a fly/no-fly and is refused.
 ///
 /// Pressure does not secretly rescue the permissive end. Burner-entry *total*
 /// pressure at the snapshot is ~122 kPa with MIL recovery (~133 kPa on the
@@ -142,13 +158,17 @@ pub const USEFUL_THRUST_FRACTION: f64 = 0.25;
 /// ambient. A figure near 1.6 kPa is either freestream static at the M 4
 /// constant-q altitude (1.65 kPa) or `p∞ · π_d` with ram omitted (1.60 kPa).
 /// Omitting ram would make combustion look impossible; the cycle does not omit
-/// it. Lefebvre-family loading still has `φ_LBO` rising as pressure falls, so
-/// altitude is against us and ram is what buys the pressure back. Evaluating a
-/// correlation still needs a combustor volume and a holder, which is tier 2.
+/// it. That 122–133 kPa sits **above** King's 36–86 kPa afterburner band
+/// (Lefebvre-family loading: higher P lowers `φ_LBO`) and is still
+/// **afterburner-scale**, not turbojet main-burner-scale (atmospheres). King
+/// also records that raising P from 1270 to 1800 psf at the hot condition had
+/// practically no further effect, so the extra 40–50 kPa is not a secret
+/// rescue. Evaluating a correlation still needs a combustor volume and a
+/// holder, which is tier 2.
 ///
 /// So the M4 refusal this module reports at M 5.70 is a **ceiling far above the
-/// real limit**, and closing this needs a cited blowout correlation, not a
-/// better sweep.
+/// real limit**, and closing the ramjet-no-holder question needs a chart of
+/// that class, not a better sweep.
 pub const FLAME_STABILITY_NOT_MODELLED: &str =
     "ideal_ramjet has no lean blowout limit; the M4 refusal is a ceiling, not the real end";
 
@@ -182,10 +202,11 @@ pub const FLAME_STABILITY_NOT_MODELLED: &str =
 ///
 /// # TIER 1 - a cited band. One case and two constants.
 ///
-/// A published equivalence-ratio range for lean blowout in ramjet combustors at
-/// comparable inlet conditions. It goes straight into [`LEAN_BLOWOUT_PHI_MIN`]
-/// and [`LEAN_BLOWOUT_PHI_MAX`] and the corridor tightens or opens by itself.
-/// This is what closes the QUESTION, and it is cheap.
+/// A published equivalence-ratio range. The **strict end is now a cited
+/// afterburner floor** ([`LEAN_BLOWOUT_PHI_MAX`] = Useller Fig. 8, φ = 0.50).
+/// The permissive end ([`LEAN_BLOWOUT_PHI_MIN`] = 0.30) is still a
+/// holder-required class and is still `[TO VERIFY]`. The corridor tightens or
+/// opens by itself. This cites the digit. It does not close a no-holder ramjet.
 ///
 /// # TIER 2 - a real correlation. A module, not a line.
 ///
@@ -204,20 +225,29 @@ pub const FLAME_STABILITY_NOT_MODELLED: &str =
 /// whole module, and the difference is that tier 1 tells you whether the design
 /// point flies while tier 2 tells you why.
 pub const LEAN_BLOWOUT_RESOLUTION: &str =
-    "tier 1: a cited phi band. tier 2: a correlation needing a combustor M4 does not have";
+    "tier 1: Useller Fig. 8 cites phi=0.50 as a V-gutter afterburner floor; ramjet no-holder still open. tier 2: a correlation needing a combustor M4 does not have";
 
 /// Fly / no-fly on phi, written as a criterion rather than a wish.
 ///
-/// A cited `φ_LBO` above [`DESIGN_POINT_EQUIVALENCE_RATIO`] means M 3.50 does
-/// not fly. A cited `φ_LBO` below it means the snapshot has margin on phi
-/// (capture may still bind). No flame holder is declared, so the 0.30
-/// literature end is not available. The operative bound is therefore the
-/// strict end 0.50, still `[TO VERIFY]` against a primary chart.
+/// A cited **ramjet, no-holder** `φ_LBO` above [`DESIGN_POINT_EQUIVALENCE_RATIO`]
+/// means M 3.50 does not fly. A cited ramjet-no-holder `φ_LBO` below it means
+/// the snapshot has margin on phi (capture may still bind). No flame holder is
+/// declared, so the 0.30 literature end is not available.
+///
+/// What is in hand today: Useller Fig. 8 φ = 0.50 is a **cited afterburner
+/// floor with a V-gutter**. Design phi sits below it. That is the operative
+/// bound. It is not a verified ramjet-no-holder close — vitiation, holder, and
+/// combustor class still differ — so `lean_blowout_verified` stays unemitted.
 pub const LEAN_BLOWOUT_DECISION_CRITERION: &str =
-    "cited phi_LBO > 0.4615 → M 3.50 does not fly; cited phi_LBO < 0.4615 → margin on phi; no holder declared, so the 0.30 end is not available";
+    "cited ramjet-no-holder phi_LBO > 0.4615 → M 3.50 does not fly; cited ramjet-no-holder phi_LBO < 0.4615 → margin on phi; Useller Fig. 8 phi=0.50 is a cited V-gutter afterburner floor, not that close; no holder declared, so the 0.30 end is not available";
 
 /// Stoichiometric fuel-air ratio for kerosene in air. **[TO CITE]**
 pub const STOICHIOMETRIC_FUEL_AIR_RATIO: f64 = 0.0680;
+
+/// JP-4 stoichiometric fuel-air ratio as printed in the King afterburner
+/// reports (NACA RM E57F26 / E57C07). Used only to convert *those* f/a
+/// readings to φ. Not a substitute for [`STOICHIOMETRIC_FUEL_AIR_RATIO`].
+pub const KING_JP4_STOICHIOMETRIC_FUEL_AIR_RATIO: f64 = 0.0676;
 
 /// Permissive literature end: easiest to hold a flame, **with a flame holder**.
 ///
@@ -226,18 +256,149 @@ pub const STOICHIOMETRIC_FUEL_AIR_RATIO: f64 = 0.0680;
 /// from secondary literature, not read here). Not available to this aircraft
 /// until a holder is declared with a source.
 pub const LEAN_BLOWOUT_PHI_MIN: f64 = 0.30;
-/// Strict literature end: poorly stabilized / no dedicated holder.
+/// Strict end, and the **operative** bound while no holder is declared.
 ///
-/// `[TO VERIFY]` against a primary afterburner/ramjet stability chart.
-/// Intended source: Mattingly, *Elements of Propulsion*, Fig. 10-70. Recited
-/// as the strict-end *class* (~φ = 0.5), not as a digit read from the figure
-/// in this repository.
+/// **Cited:** NACA RM E54E06, Useller, Braithwaite and Rudey (1954), Figure 8:
+/// lean blow-out equivalence ratio = **0.50** for a 6-foot afterburner at
+/// 1600 lb/sq ft abs, **with** a two-ring V-gutter (34.7 % blockage). The same
+/// figure's 3-foot point is 0.63 ([`USELLER_FIG_8_PHI_SHORT_CHAMBER`]).
+///
+/// This is an afterburner floor, not a no-holder ramjet reading. See
+/// [`PHI_LBO_DIGIT_CITED`] vs [`PHI_LBO_RAMJET_NO_HOLDER_CITED`].
 pub const LEAN_BLOWOUT_PHI_MAX: f64 = 0.50;
 
 /// Alias of [`LEAN_BLOWOUT_PHI_MIN`]: the holder-required end of the band.
 pub const LEAN_BLOWOUT_PHI_PERMISSIVE: f64 = LEAN_BLOWOUT_PHI_MIN;
 /// Alias of [`LEAN_BLOWOUT_PHI_MAX`]: the no-holder end of the band.
 pub const LEAN_BLOWOUT_PHI_STRICT: f64 = LEAN_BLOWOUT_PHI_MAX;
+
+/// NACA RM E54E06 (Useller, Braithwaite and Rudey, 1954), Figure 8.
+pub const USELLER_LBO_SOURCE: &str = "NACA RM E54E06, Useller, Braithwaite & Rudey (1954), Fig. 8";
+
+/// Figure 8, 6-foot chamber, 1600 psf: φ_LBO = 0.50. Same digit as
+/// [`LEAN_BLOWOUT_PHI_MAX`]. Two-ring V-gutter, 34.7 % blockage.
+pub const USELLER_FIG_8_PHI_SIX_FOOT: f64 = 0.50;
+/// Figure 8, 3-foot chamber, 1600 psf: φ_LBO = 0.63. Same afterburner, shorter
+/// residence time. No combustor length is declared here, so this end is not
+/// used as the operative bound — but it is the same figure, and it is worse.
+pub const USELLER_FIG_8_PHI_SHORT_CHAMBER: f64 = 0.63;
+/// Useller afterburner-inlet pressure for Figure 8, 1600 lb/sq ft abs.
+/// Converted with 1 lbf = 4.4482216152605 N, 1 ft² = 0.09290304 m² (exact).
+pub const USELLER_FIG_8_PRESSURE_PA: f64 = 76_608.4;
+/// Two-ring V-gutter blockage as printed: 34.7 %.
+pub const USELLER_FLAMEHOLDER_BLOCKAGE: f64 = 0.347;
+
+/// NACA RM E57C07 (King, 1957), Figure 16: duct afterburner lean-blowout f/a.
+pub const KING_LBO_SOURCE: &str = "NACA RM E57C07, King (1957), Fig. 16";
+
+/// Figure 16(b): 42-inch afterburner, 500 ft/s, 1800 psf, 1260 °R → f/a = 0.035.
+/// Closest printed King point to VENTUS burner-entry temperature (~753 K /
+/// 1355 °R sits nearer 1260 °R than 1860 °R).
+pub const KING_FIG16_FA_COLD_HIGH_P: f64 = 0.035;
+/// Same station, 1860 °R → f/a = 0.027.
+pub const KING_FIG16_FA_HOT_HIGH_P: f64 = 0.027;
+/// Figure 16(b): 42-inch, 500 ft/s, 750 psf, 1260 °R → f/a = 0.051.
+pub const KING_FIG16_FA_COLD_LOW_P: f64 = 0.051;
+/// Figure 16(a): 30-inch, 500 ft/s, 1860 °R, 750 psf → f/a = 0.033.
+pub const KING_FIG16_FA_HOT_LOW_P: f64 = 0.033;
+/// Figure 16(a): same, 1270 psf → f/a = 0.026. King: further rise to 1800 psf
+/// had practically no effect at these conditions.
+pub const KING_FIG16_FA_HOT_MID_P: f64 = 0.026;
+
+/// King afterburner-inlet total-pressure band, 750–1800 lb/sq ft abs.
+pub const KING_AFTERBURNER_PRESSURE_MIN_PA: f64 = 35_910.2;
+pub const KING_AFTERBURNER_PRESSURE_MAX_PA: f64 = 86_184.5;
+
+/// Mattingly, *Elements of Propulsion*, Fig. 10-70: intended textbook reprint
+/// of this afterburner-stability class. **Not read here.** The bound is taken
+/// from the NACA reports above, not from a digit on that figure.
+pub const MATTINGLY_FIG_10_70_STATUS: &str =
+    "not read in this repository; NACA RM E54E06 Fig. 8 and RM E57C07 Fig. 16 are the primary charts";
+
+/// The digit 0.50 has been read from a primary figure (Useller Fig. 8).
+pub const PHI_LBO_DIGIT_CITED: bool = true;
+/// A no-holder, non-vitiated ramjet φ_LBO at VENTUS p02/T02 has **not** been
+/// read. Holder, vitiation, and combustor class still differ. Locked false so
+/// a future close has to delete this in the same change as the chart.
+pub const PHI_LBO_RAMJET_NO_HOLDER_CITED: bool = false;
+
+const _: () = assert!(
+    PHI_LBO_DIGIT_CITED,
+    "the 0.50 digit is cited from Useller Fig. 8; do not silently uncite it"
+);
+const _: () = assert!(
+    !PHI_LBO_RAMJET_NO_HOLDER_CITED,
+    "a ramjet-no-holder φ_LBO was marked cited without a chart of that class"
+);
+
+/// Convert a King-report fuel-air ratio to φ using King's printed JP-4
+/// stoichiometric 0.0676.
+#[must_use]
+pub const fn king_jp4_equivalence_ratio(fuel_air: f64) -> f64 {
+    fuel_air / KING_JP4_STOICHIOMETRIC_FUEL_AIR_RATIO
+}
+
+/// King Fig. 16 cold / high-P φ: 0.035 / 0.0676 = 0.5178.
+pub const KING_FIG16_PHI_COLD_HIGH_P: f64 = king_jp4_equivalence_ratio(KING_FIG16_FA_COLD_HIGH_P);
+/// King Fig. 16 hot / high-P φ: 0.027 / 0.0676 = 0.3994.
+pub const KING_FIG16_PHI_HOT_HIGH_P: f64 = king_jp4_equivalence_ratio(KING_FIG16_FA_HOT_HIGH_P);
+/// King Fig. 16 cold / low-P φ: 0.051 / 0.0676 = 0.7544.
+pub const KING_FIG16_PHI_COLD_LOW_P: f64 = king_jp4_equivalence_ratio(KING_FIG16_FA_COLD_LOW_P);
+
+/// Whether `p_pa` lies inside King's 750–1800 psf afterburner-inlet band.
+#[must_use]
+pub fn king_afterburner_pressure_band_contains(p_pa: f64) -> Option<bool> {
+    if !p_pa.is_finite() || p_pa <= 0.0 {
+        return None;
+    }
+    Some((KING_AFTERBURNER_PRESSURE_MIN_PA..=KING_AFTERBURNER_PRESSURE_MAX_PA).contains(&p_pa))
+}
+
+/// Where burner-entry total pressure sits against the cited afterburner data
+/// and against turbojet-main-burner scale.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BurnerPressureScale {
+    /// Below King's 750 psf lower edge: worse than the cited afterburner data.
+    BelowKingBand,
+    /// Inside 750–1800 psf: afterburner-scale, and on the chart.
+    InsideKingBand,
+    /// Above King's 1800 psf and still well below 3 atm: afterburner-scale,
+    /// slightly better than the chart, not a turbojet main burner.
+    AboveKingBandAfterburnerScale,
+    /// 3 atm and up: turbojet-combustor territory the cited charts do not speak
+    /// for. VENTUS snapshot is not here.
+    TurbojetCombustorScale,
+}
+
+impl BurnerPressureScale {
+    #[must_use]
+    pub fn above_king_band_still_afterburner(self) -> bool {
+        match self {
+            BurnerPressureScale::AboveKingBandAfterburnerScale => true,
+            BurnerPressureScale::BelowKingBand
+            | BurnerPressureScale::InsideKingBand
+            | BurnerPressureScale::TurbojetCombustorScale => false,
+        }
+    }
+}
+
+/// Classify a burner-entry total pressure against King / Useller afterburner
+/// data and a 3 atm turbojet-combustor threshold.
+#[must_use]
+pub fn burner_pressure_scale(p_pa: f64) -> Option<BurnerPressureScale> {
+    if !p_pa.is_finite() || p_pa <= 0.0 {
+        return None;
+    }
+    if p_pa < KING_AFTERBURNER_PRESSURE_MIN_PA {
+        Some(BurnerPressureScale::BelowKingBand)
+    } else if p_pa <= KING_AFTERBURNER_PRESSURE_MAX_PA {
+        Some(BurnerPressureScale::InsideKingBand)
+    } else if p_pa < 3.0e5 {
+        Some(BurnerPressureScale::AboveKingBandAfterburnerScale)
+    } else {
+        Some(BurnerPressureScale::TurbojetCombustorScale)
+    }
+}
 
 /// No flame holder has been declared for this aircraft.
 ///
@@ -296,7 +457,8 @@ pub fn lean_blowout_mach(
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LeanBlowoutVerdict {
     /// φ is below [`OPERATIVE_LEAN_BLOWOUT_PHI`]. Under the no-holder bound
-    /// the flame is out. The bound is still `[TO VERIFY]`.
+    /// the flame is out. The digit is cited (Useller Fig. 8); ramjet-no-holder
+    /// applicability is not.
     BelowOperativeBound,
     /// φ is at or above the operative (strict) bound. Even a poorly
     /// stabilized burner would hold, *if* that end is right.
@@ -440,6 +602,31 @@ const _: () = assert!(
 const _: () = assert!(
     DESIGN_POINT_EQUIVALENCE_RATIO < OPERATIVE_LEAN_BLOWOUT_PHI,
     "design phi no longer sits below the operative lean-blowout bound"
+);
+
+const _: () = assert!(
+    USELLER_FIG_8_PHI_SIX_FOOT == LEAN_BLOWOUT_PHI_MAX,
+    "the operative 0.50 is no longer the Useller Fig. 8 six-foot reading"
+);
+
+const _: () = assert!(
+    USELLER_FIG_8_PHI_SHORT_CHAMBER > USELLER_FIG_8_PHI_SIX_FOOT,
+    "Useller Fig. 8 short-chamber point is no longer the worse end"
+);
+
+const _: () = assert!(
+    KING_FIG16_PHI_HOT_HIGH_P < DESIGN_POINT_EQUIVALENCE_RATIO,
+    "King hot/high-P φ is no longer below design phi; the holder-save reading moved"
+);
+
+const _: () = assert!(
+    KING_FIG16_PHI_COLD_LOW_P > USELLER_FIG_8_PHI_SHORT_CHAMBER,
+    "King cold/low-P φ is no longer worse than Useller's short chamber"
+);
+
+const _: () = assert!(
+    DESIGN_POINT_EQUIVALENCE_RATIO < KING_FIG16_PHI_COLD_HIGH_P,
+    "design phi no longer sits below King Fig. 16 cold/high-P"
 );
 
 /// Why a module stopped answering.
@@ -878,11 +1065,11 @@ pub fn envelope(from_mach: f64, to_mach: f64, resolution: f64) -> Envelope {
 /// equivalence ratio means the engine has already gone out before reaching
 /// M 3.50.
 ///
-/// The literature band is phi 0.3 to 0.50, still `[TO VERIFY]` at both ends.
-/// 0.4615 sits inside it and above the middle. No flame holder is declared, so
-/// the operative bound is the strict end 0.50, and 0.4615 is below that.
-/// Under that bound the snapshot does not hold a flame. See
-/// [`LEAN_BLOWOUT_DECISION_CRITERION`].
+/// The literature band is phi 0.3 to 0.50. The 0.50 end is **cited** (Useller
+/// Fig. 8, V-gutter afterburner floor). The 0.30 end is still `[TO VERIFY]`
+/// and holder-required. 0.4615 sits inside the band and above the middle, and
+/// below the operative 0.50. Under that bound the snapshot does not hold a
+/// flame. See [`LEAN_BLOWOUT_DECISION_CRITERION`].
 ///
 /// That keeps this ahead of the L/D and Isp citations in the queue. Those
 /// change a number by some per cent. This one decides between "the design

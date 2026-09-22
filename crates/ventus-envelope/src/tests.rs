@@ -262,8 +262,10 @@ fn the_design_point_equivalence_ratio_sits_high_in_the_blowout_band() {
 ///
 /// The permissive end is not available: [`FLAME_HOLDER_DECLARED`] is locked
 /// false at compile time in `lib.rs`. The operative bound is therefore 0.50,
-/// still [TO VERIFY]. Design phi is below it, so under the only bound that
-/// applies to this aircraft the snapshot does not hold a flame.
+/// now cited from Useller Fig. 8 as a V-gutter afterburner floor. Design phi
+/// is below it, so under the only bound that applies to this aircraft the
+/// snapshot does not hold a flame. A ramjet-no-holder chart has still not
+/// been read.
 #[test]
 fn under_the_no_holder_bound_the_design_point_does_not_hold_a_flame() {
     // Holder lock is compile-time in lib.rs (`const _: () = assert!(!…)`).
@@ -289,6 +291,62 @@ fn under_the_no_holder_bound_the_design_point_does_not_hold_a_flame() {
         operative_lean_blowout_verdict(0.51),
         Some(LeanBlowoutVerdict::AboveOperativeBound)
     );
+}
+
+/// THE DIGIT 0.50 IS READ FROM A PRIMARY FIGURE, AND IT IS THE WRONG CLASS.
+///
+/// Useller Fig. 8: φ = 0.50 (6-ft) and 0.63 (3-ft) WITH a V-gutter at 1600 psf.
+/// King Fig. 16: f/a = 0.035 at the cold, high-P end → φ = 0.518 on King's
+/// 0.0676. Both are holder-equipped afterburners. VENTUS has no holder, so
+/// the operative bound stays the Useller six-foot floor, and the ramjet-no-
+/// holder flag stays false.
+#[test]
+fn the_0_50_digit_is_useller_fig_8_and_is_not_a_ramjet_no_holder_close() {
+    let phi = point_equivalence_ratio(&evaluate(3.50)).unwrap();
+    assert!(
+        phi < USELLER_FIG_8_PHI_SIX_FOOT,
+        "design phi {phi:.4} is no longer below the Useller six-foot floor"
+    );
+    assert!(
+        phi < KING_FIG16_PHI_COLD_HIGH_P,
+        "design phi {phi:.4} is no longer below King cold/high-P"
+    );
+    assert!(
+        phi > KING_FIG16_PHI_HOT_HIGH_P,
+        "design phi {phi:.4} is no longer above King hot/high-P; that holder reading is the fake save"
+    );
+}
+
+/// Burner-entry total pressure is above the King afterburner band and still
+/// afterburner-scale, not a turbojet main-burner.
+#[test]
+fn burner_entry_pressure_is_above_king_and_below_turbojet_combustor_scale() {
+    let p02 = evaluate(3.50).burner_entry_total_pressure_pa.unwrap();
+    assert_eq!(
+        burner_pressure_scale(p02),
+        Some(BurnerPressureScale::AboveKingBandAfterburnerScale)
+    );
+    assert_eq!(king_afterburner_pressure_band_contains(p02), Some(false));
+    assert!(p02 > KING_AFTERBURNER_PRESSURE_MAX_PA);
+    assert!(p02 < 3.0e5);
+    assert_eq!(
+        burner_pressure_scale(USELLER_FIG_8_PRESSURE_PA),
+        Some(BurnerPressureScale::InsideKingBand)
+    );
+    assert_eq!(
+        burner_pressure_scale(KING_AFTERBURNER_PRESSURE_MIN_PA),
+        Some(BurnerPressureScale::InsideKingBand)
+    );
+    assert_eq!(
+        burner_pressure_scale(1.0e6),
+        Some(BurnerPressureScale::TurbojetCombustorScale)
+    );
+    assert_eq!(
+        burner_pressure_scale(20_000.0),
+        Some(BurnerPressureScale::BelowKingBand)
+    );
+    assert_eq!(burner_pressure_scale(0.0), None);
+    assert_eq!(burner_pressure_scale(f64::NAN), None);
 }
 
 /// [CORRECTED] Burner-entry pressure is ram total pressure, not 1.6 kPa.

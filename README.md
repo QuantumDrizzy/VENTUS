@@ -18,11 +18,12 @@ verdict, so it cannot go stale in this file.
 
 The most important one is the lean blowout equivalence ratio in M12. It decides
 whether the design point has margin or does not fly — see the corridor below.
-What resolving it takes is written as a specification rather than as a wish, in
-`ventus_envelope::LEAN_BLOWOUT_DECISION_CRITERION`: a cited `φ_LBO` on either
-side of 0.4615 closes the question. No flame holder is declared, so the
-permissive literature end is not available; the operative bound is the strict
-end 0.50, still `[TO VERIFY]`. Under that bound M 3.50 does not hold a flame.
+The digit 0.50 is now **cited**: NACA RM E54E06 Figure 8, a 6-foot V-gutter
+afterburner at 1600 psf. Design φ = 0.4615 sits below it. No flame holder is
+declared, so that afterburner floor is the operative bound, not the permissive
+0.30. It is **not** a verified ramjet-no-holder close (holder, vitiation, class
+still differ) — `LEAN_BLOWOUT_DECISION_CRITERION` keeps `lean_blowout_verified`
+unemitted. Under that bound M 3.50 does not hold a flame.
 
 ---
 
@@ -83,8 +84,8 @@ VENTUS answers it structurally rather than by care:
 | Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
 
 ```
-cargo test --workspace     226 tests
-cargo xtask validate       115 cases: 105 pass, 0 fail, 10 known limit, 0 stale
+cargo test --workspace     228 tests
+cargo xtask validate       118 cases: 108 pass, 0 fail, 10 known limit, 0 stale
                            31 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 cargo xtask bench          gated on the corpus passing at the same commit
@@ -221,7 +222,7 @@ records where each module **refuses**, never extrapolating past one.
 |---|---|
 | Specific thrust peaks | **M 2.30** |
 | Design point | **M 3.50**, at 83.7 % of peak thrust |
-| Lean blowout **[TO VERIFY]** | **M 3.23 — 4.42** (phi 0.5 to 0.3 literature). **Operative: phi 0.50** (no holder declared); design phi 0.4615 sits below it |
+| Lean blowout **digit cited, class open** | **M 3.23 — 4.42** (phi 0.5 to 0.3). **Operative: phi 0.50** from Useller Fig. 8 (V-gutter afterburner floor); design phi 0.4615 sits below it |
 | Required capture area = whole body cross-section | **M 3.85** |
 | No body size closes the balance *(inside the row above, not past it)* | M 4.54 |
 | Every module still answers to | **M 5.65** (four-ramp inlet) |
@@ -230,10 +231,13 @@ records where each module **refuses**, never extrapolating past one.
 **Two of those decide whether the aircraft flies, and neither is the ceiling.**
 The cycle runs at an equivalence ratio of **0.4615** at the design point — inside
 the literature band and above its midpoint. No flame holder is declared, so the
-operative bound is the strict end 0.50 `[TO VERIFY]`, not the permissive 0.30.
-Every value of that strict end in the ordinary no-holder range puts M 3.50 out
-of reach. Burner-entry *total* pressure is ~122–133 kPa (ram), not the 1.6 kPa
-omitted-ram trap. And the inlet already needs **74.5 %** of the entire body
+operative bound is the strict end 0.50, now **cited** from NACA RM E54E06
+Figure 8 (6-foot V-gutter afterburner at 1600 psf), not the permissive 0.30.
+King Figure 16 is the matching duct chart (f/a 0.026–0.051 with a holder). A
+ramjet-no-holder chart has not been read; inventing a holder that saves M 3.50
+is refused. Burner-entry *total* pressure is ~122–133 kPa (ram): above King's
+36–86 kPa afterburner band, still afterburner-scale, not a turbojet main
+burner, and not the 1.6 kPa omitted-ram trap. And the inlet already needs **74.5 %** of the entire body
 cross-section at the design point; past M 3.85 the configuration M6b assumed is
 self-inconsistent, because the Sears-Haack body that sets the wave drag cannot
 host an inlet larger than itself. Wave drag goes as the *square* of
@@ -299,7 +303,7 @@ burner limit, not aircraft capability. Decision and non-goals:
 | Proposed M 4 row | sketch: [`docs/design-point-m4.md`](docs/design-point-m4.md) — snapshot body **does not close**; candidate body **hosts** (0.864) and still does not fly |
 | Snapshot configuration bind | capture = body ~ M 3.85 (M12); ratio 1.15 at proposed M 4.00 |
 | M 4 candidate geometry | `GeometrySpec::M4_CANDIDATE`, fineness 10 `[TO DETERMINE]`; same mass/wing/length; **not** a re-baseline |
-| Lean blowout (operative) | no holder declared → strict end φ 0.50 `[TO VERIFY]`; design φ 0.4615 sits below it |
+| Lean blowout (operative) | no holder declared → Useller Fig. 8 φ 0.50 (V-gutter afterburner floor, digit cited); ramjet-no-holder class still open; design φ 0.4615 sits below it |
 | Ideal ramjet model refusal | ~ M 5.65–5.70 — **not aircraft capability** |
 | Dual-mode / scram cycle | `ventus-scram` stub — stations not modelled |
 

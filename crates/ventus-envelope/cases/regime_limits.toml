@@ -97,7 +97,8 @@ BAND RATHER THAN A POINT, so is the answer:
 A point estimate invites an argument about the point; the band does not, and the
 band says something the point hid: THE DESIGN POINT SITS INSIDE IT. At the
 permissive end the engine has 0.9 Mach of margin; at the strict end it has blown
-out before reaching M 3.50. Which is true is not knowable from anything here.
+out before reaching M 3.50. The 0.50 end is now a cited V-gutter afterburner
+floor (Useller Fig. 8); a no-holder ramjet chart has still not been read.
 """
 inputs  = { mach = 5.7 }
 expect  = { refused_ramjet_thermally_choked = true, refusal_count = 1.0 }
@@ -187,21 +188,22 @@ rel_tol = 1e-11
 
 [[case]]
 name    = "the_design_point_runs_high_in_the_blowout_band"
-source  = "M4 ideal_ramjet fuel-air ratio at the design point, over a stoichiometric kerosene-air f/a of 0.0680 [TO CITE]"
+source  = "M4 ideal_ramjet fuel-air ratio at the design point, over a stoichiometric kerosene-air f/a of 0.0680 [TO CITE]. Operative φ_LBO digit: NACA RM E54E06 Fig. 8 (Useller, Braithwaite & Rudey 1954), 6-ft V-gutter afterburner at 1600 psf, φ = 0.50."
 reason  = """
 THE SINGLE NUMBER THAT DECIDES WHETHER THIS AIRCRAFT FLIES.
 
 The cycle runs at f/a = 0.03138 at M 3.50, an equivalence ratio of 0.4615. The
-literature lean-blowout band is phi 0.3 to 0.5, still [TO VERIFY] at both ends
-(strict end: Mattingly Fig. 10-70 class, not a digit read here; permissive end:
-holder-required). So the design point sits INSIDE the band and ABOVE its
-midpoint.
+literature lean-blowout band is phi 0.3 to 0.5. The 0.50 end is now a cited
+afterburner floor (Useller Fig. 8); the 0.30 end is still [TO VERIFY] and
+holder-required. So the design point sits INSIDE the band, ABOVE its midpoint,
+and BELOW the operative bound.
 
 NO FLAME HOLDER IS DECLARED. The permissive end is therefore not available, and
-the operative bound is the strict end 0.50. Design phi is below that, so under
-the only bound that applies to this aircraft the snapshot does not hold a
-flame — provided that end survives a primary copy. The decision criterion is
-cited φ_LBO ≷ 0.4615.
+the operative bound is the Useller six-foot floor 0.50. Design phi is below
+that, so under the only bound that applies to this aircraft the snapshot does
+not hold a flame. That floor is a V-gutter afterburner, not a no-holder ramjet.
+The decision criterion for a verified fly/no-fly is still a cited ramjet-no-
+holder φ_LBO ≷ 0.4615.
 
 THE PROBABILITY MASS IS NOT EVENLY SPLIT. phi 0.46 to 0.50 is an ordinary range
 for a ramjet combustor without a dedicated flame holder, and every value in it
@@ -209,10 +211,11 @@ puts the design point out of reach - not marginal, unreachable.
 
 CONSEQUENCE FOR THE CITATION QUEUE. This project carries [TO CITE] on L/D and on
 Isp, and those move a result by some per cent. This one decides between "the
-design point has margin" and "the design point does not fly". It goes first.
+design point has margin" and "the design point does not fly". The digit is
+cited. The class is not.
 """
 inputs  = { mach = 3.5 }
-expect  = { equivalence_ratio = 0.46149, fuel_air_ratio = 0.0313813, below_operative_lean_blowout_bound = true, inside_literature_blowout_band = true, flame_holder_declared = false, operative_phi_bound = 0.50 }
+expect  = { equivalence_ratio = 0.46149, fuel_air_ratio = 0.0313813, below_operative_lean_blowout_bound = true, inside_literature_blowout_band = true, flame_holder_declared = false, operative_phi_bound = 0.50, phi_lbo_digit_cited = true, phi_lbo_ramjet_no_holder_cited = false, useller_fig_8_phi_six_foot = 0.50 }
 rel_tol = 1e-4
 
 [[case]]
@@ -230,33 +233,105 @@ loading still needs a volume and a holder (tier 2); this case only pins the
 station the correlation would be fed.
 
 WHAT THIS DOES NOT CLAIM. It does not evaluate φ_LBO(P). It does not save
-M 3.50. Design phi is still below the operative (no-holder) bound.
+M 3.50. Design phi is still below the operative (no-holder) bound. The
+station sits above King's 36-86 kPa afterburner band and still below 3 atm —
+afterburner-scale, not turbojet-main-burner-scale.
 """
 inputs  = { mach = 3.5 }
-expect  = { burner_entry_total_pressure_pa = 1.33e5 }
+expect  = { burner_entry_total_pressure_pa = 1.33e5, burner_entry_above_king_pressure_band = true, burner_entry_afterburner_scale_not_turbojet_combustor = true }
 rel_tol = 5e-2
 
 [[case]]
 name    = "lean_blowout_is_not_a_verified_fly_no_fly"
-source  = "LEAN_BLOWOUT_DECISION_CRITERION in ventus-envelope: a cited φ_LBO on either side of 0.4615 closes the question. No primary chart has been read. Same missing-key mechanism as M11 programme_cost_usd_1986_verified."
+source  = "LEAN_BLOWOUT_DECISION_CRITERION in ventus-envelope: a cited ramjet-no-holder φ_LBO on either side of 0.4615 closes the question. Useller Fig. 8 cites 0.50 as a V-gutter afterburner floor, not that close. Same missing-key mechanism as M11 programme_cost_usd_1986_verified."
 status  = "known_limit"
 reason  = """
 THE VERDICT THIS MODULE IS NOT ALLOWED TO PRINT AS VERIFIED.
 
-The arithmetic is pinned: design phi = 0.4615, no holder declared, operative
-bound = 0.50 [TO VERIFY], so under that bound the snapshot does not hold a
-flame. The bound itself has not been read from a primary afterburner/ramjet
-stability chart (Mattingly Fig. 10-70 is the intended source). The evaluator
-deliberately does not emit `lean_blowout_verified`. This case therefore fails
-with a missing key, which is the intended behaviour.
+What is now in hand: design phi = 0.4615, no holder declared, operative bound
+= 0.50, and that digit is READ from NACA RM E54E06 Figure 8 (6-ft V-gutter
+afterburner at 1600 psf). King Fig. 16 is the matching duct chart (f/a 0.026
+to 0.051 WITH a holder). Under that afterburner floor the snapshot does not
+hold a flame.
 
-WHAT RESOLVING IT WOULD LOOK LIKE. A cited φ_LBO at comparable burner-entry
-pressure and temperature, or a declared flame holder with a source. At that
-point the key gets wired, this annotation goes STALE, and the harness says so.
+What is still not in hand: a no-holder, non-vitiated ramjet φ_LBO at VENTUS
+burner-entry pressure and temperature. Useller and King both have flame
+holders and vitiated afterburner air. Wiring `lean_blowout_verified` would
+collapse that mismatch into a fly/no-fly. The evaluator therefore still does
+not emit the key. This case fails closed, which is the intended behaviour.
+
+Mattingly Fig. 10-70 was the intended textbook reprint of this class and has
+not been read here. The NACA reports are the primary charts.
+
+WHAT RESOLVING IT WOULD LOOK LIKE. A cited ramjet-no-holder φ_LBO at comparable
+burner-entry pressure and temperature, or a declared flame holder with a
+source. At that point the key gets wired, this annotation goes STALE, and the
+harness says so.
 """
 inputs  = { mach = 3.5 }
 expect  = { lean_blowout_verified = true }
 abs_tol = 0.0
+
+[[case]]
+name    = "useller_fig_8_cites_the_0_50_digit"
+source  = "NACA RM E54E06, Useller, Braithwaite and Rudey, Influence of Combustion-Chamber Length on Afterburner Performance, Lewis, 1954, Figure 8. Lean blow-out equivalence ratio = 0.50 at 6 ft / 1600 psf, 0.63 at 3 ft / 1600 psf. Two-ring V-gutter, 34.7 % blockage. THE SOURCE IS THE FIGURE."
+reason  = """
+THE DIGIT, PINNED TO THE FIGURE THAT CONTAINS IT.
+
+Figure 8 of RM E54E06 is a plot of lean-combustion blow-out equivalence ratio
+against afterburner length at two inlet pressures. The printed prose reads
+the 1600 psf curve as 0.63 at 3 feet and 0.50 at 6 feet. Both points have a
+flame holder. VENTUS has none, so 0.50 is used as the operative floor, not as
+a claim that a 6-foot V-gutter is installed.
+
+WHAT THIS DOES NOT CLAIM. It does not install that gutter. It does not read
+Mattingly Fig. 10-70. It does not close ramjet-no-holder applicability.
+"""
+inputs  = { mach = 3.5 }
+expect  = { useller_fig_8_phi_six_foot = 0.50, useller_fig_8_phi_short_chamber = 0.63, useller_fig_8_pressure_pa = 76608.4, useller_flameholder_blockage = 0.347, flame_holder_declared = false, operative_phi_bound = 0.50, phi_lbo_digit_cited = true }
+rel_tol = 1e-4
+
+[[case]]
+name    = "king_fig_16_cold_high_p_still_sits_above_design_phi"
+source  = "NACA RM E57C07, King, Experimental Investigation of Effects of Combustion-Chamber Length and Inlet Total Temperature, Total Pressure, and Velocity on Afterburner Performance, Lewis, 1957, Figure 16. Lean-blowout f/a = 0.035 at 42 in, 500 ft/s, 1800 psf, 1260 R; 0.027 at 1860 R; 0.051 at 750 psf / 1260 R. JP-4 stoichiometric f/a = 0.0676 as printed in RM E57F26 / E57C07. THE SOURCE IS THE FIGURE."
+reason  = """
+THE DUCT-AFTERBURNER CHART THAT SITS NEXT TO USELLER.
+
+King Fig. 16 is fuel-air ratio, not φ. Converted on King's own 0.0676:
+    0.035 / 0.0676 = 0.518   cold, 1800 psf — nearest T to VENTUS ~753 K
+    0.027 / 0.0676 = 0.399   hot, 1800 psf — WITH a V-gutter
+    0.051 / 0.0676 = 0.754   cold, 750 psf
+
+Design phi 0.4615 sits below the cold/high-P point and above the hot/high-P
+point. The hot point is a holder reading at 1033 K, hotter than this ramjet's
+burner entry. The cold point is the honest neighbour, and it is still above
+0.4615. King also writes that raising P from 1270 to 1800 psf at the hot
+condition had practically no effect, so the extra 40-50 kPa at VENTUS is not
+a secret rescue.
+
+WHAT THIS DOES NOT CLAIM. It does not apply King's 0.399 as a no-holder
+ramjet limit. That would be the fake save.
+"""
+inputs  = { mach = 3.5 }
+expect  = { king_fig16_fa_cold_high_p = 0.035, king_fig16_phi_cold_high_p = 0.51775, king_fig16_phi_hot_high_p = 0.39941, below_operative_lean_blowout_bound = true, flame_holder_declared = false }
+rel_tol = 1e-4
+
+[[case]]
+name    = "ventus_burner_pressure_is_afterburner_scale_not_turbojet_combustor"
+source  = "King RM E57C07: afterburner-inlet total pressure 750-1800 psf (35.9-86.2 kPa). Useller Fig. 8: 1600 psf (76.6 kPa). VENTUS burner-entry total: M4 cycle, ram × π_d. Turbojet main-burner scale is atmospheres, not this chart. THE SOURCE IS THE CITED PRESSURE BAND PLUS THE CYCLE."
+reason  = """
+PRESSURE HONESTLY, AGAINST THE CHARTS THAT WERE ACTUALLY READ.
+
+VENTUS burner-entry total pressure is ~122-133 kPa. That is above King's
+36-86 kPa band (Lefebvre-family: higher P helps), and it is still the same
+order as an afterburner, not a turbojet main combustor running at
+atmospheres. The omitted-ram 1.6 kPa trap would have put us *below* King.
+Ram is what buys the pressure back; it does not buy turbojet-combustor
+loading, and it does not buy a flame holder.
+"""
+inputs  = { mach = 3.5 }
+expect  = { burner_entry_above_king_pressure_band = true, burner_entry_afterburner_scale_not_turbojet_combustor = true, king_afterburner_pressure_min_pa = 35910.2, king_afterburner_pressure_max_pa = 86184.5, useller_fig_8_pressure_pa = 76608.4 }
+rel_tol = 1e-4
 
 [[case]]
 name    = "the_required_capture_area_outgrows_the_body"
@@ -382,7 +457,8 @@ grows, but the station grows faster and the ratio falls below 1
 (0.864 against the snapshot's 1.146).
 
 WHAT THIS DOES NOT CLAIM. It does not replace the M 3.50 snapshot. It does
-not close lean blowout (operative phi 0.50 [TO VERIFY], no holder). It does
+not close lean blowout (operative phi 0.50 cited as Useller Fig. 8 V-gutter
+floor; ramjet-no-holder class still open; no holder). It does
 not supply a spike schedule or a nose heating result. Additive drag on a
 declared candidate cowl is a separate case. Growing the aircraft at constant
 shape would not have moved the ratio; this is a volume-distribution change,
