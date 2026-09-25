@@ -54,3 +54,41 @@ factor of 3.48 quoted throughout this project.
 inputs  = { mach = 3.5, ramp_count = 1, zero_ramp = true }
 expect  = { total_recovery = 0.21295 }
 rel_tol = 2.3e-5
+
+# --- The proposed M 4.00 row (design-point-m4.md must-have 6) ---------------
+
+[[case]]
+name    = "mil_e_5008b_at_proposed_m4"
+source  = "MIL-E-5008B inlet total-pressure recovery envelope, pi_d = 1 - 0.075 (M-1)^1.35. The SOURCE IS THE FORMULA."
+reason  = """
+The empirical target at the proposed row. It falls from 0.7416 at M 3.5 to 0.6695
+at M 4.0: more shock loss is expected, so the bar is lower, and the question is
+whether the design inlet still clears it.
+"""
+inputs  = { mach = 4.0 }
+expect  = { mil_recovery = 0.6694973414649834 }
+rel_tol = 1e-12
+
+[[case]]
+name    = "four_ramps_bound_the_empirical_curve_from_above_at_m4"
+source  = "Inviscid shock-train optimum against the MIL-E-5008B envelope at M 4.0"
+reason  = """
+The design inlet (four ramps) at the proposed row: 0.7195 against an empirical
+0.6695. Still above, as an inviscid model must be, but the margin narrows from
+9.1 % at M 3.5 to 7.5 % here. A future re-baseline that keeps four ramps is
+spending that margin.
+"""
+inputs  = { mach = 4.0, ramp_count = 4 }
+expect  = { total_recovery = 0.7195 }
+rel_tol = 5e-3
+
+[[case]]
+name    = "three_ramps_fall_short_at_m4"
+source  = "Inviscid shock-train optimum at M 4.0 with three ramps"
+reason  = """
+Three ramps give 0.6223 against the 0.6695 target at M 4.0, short as at M 3.5.
+The ramp count the M 3.5 case established is still the minimum at the proposed row.
+"""
+inputs  = { mach = 4.0, ramp_count = 3 }
+expect  = { total_recovery = 0.6223 }
+rel_tol = 5e-3
