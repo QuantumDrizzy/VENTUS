@@ -76,8 +76,23 @@ Sweep of the candidate gas model, snapshot body unless noted:
 - **Specific impulse −6.5 % at M 3.50** (1840 s vs 1967 s). Breguet range is linear in Isp at
   fixed V, L/D and mass fractions, so the M 3.50 range moves from 4265–5714 km to about
   **3990–5345 km**. It is still reserve-limited.
-- **Cooling that is not modelled.** The liner and the nozzle both see 2100 K. Neither the
-  cooling flow nor its thrust penalty is in the cycle. `[TO DETERMINE]`
+- **Cooling that is not in the cycle, but is bounded.** The liner and the nozzle both see
+  2100 K, and the cooling flow's cited size is `[TO DETERMINE]`. What is pinned is how much
+  the close can pay for. If a fraction `x` of the air bypasses the flame and rejoins before
+  the nozzle, mixed by enthalpy on JANAF air, the flame-zone φ is unchanged (the core still
+  burns to 2100 K) while the nozzle runs cooler:
+
+  | cooling air x | M 3.50 capture/body | M 4.00 capture/body (snapshot body) |
+  |---:|---:|---:|
+  | 0 % | 0.549 | 0.793 |
+  | 20 % | 0.659 | **0.956** |
+  | 25 % | 0.695 | **1.009** — does not host |
+  | 30 % | **0.735** | 1.070 |
+
+  M 3.50 closes with 30 % cooling air, and M 4.00 on the snapshot body up to about 24 %.
+  Cooling-air pressure loss is not charged. Pinned as
+  `m350_closes_with_thirty_percent_cooling_air` and
+  `m400_on_the_snapshot_body_tolerates_between_twenty_and_twenty_five_percent_cooling_air`.
 - **Burner gas is still air.** The same approximation the snapshot makes, carried, not fixed.
 
 ## What it does not change

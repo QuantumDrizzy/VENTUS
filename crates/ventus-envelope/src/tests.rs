@@ -815,3 +815,46 @@ fn proposed_m4_row_thermally_perfect_stagnation_temperature() {
 /// temperature here and under-states the heating room: the candidate's phi at
 /// M 4.00 is conservative on this account.
 const MEASURED_M4_T0_K: f64 = 911.29;
+
+
+/// Capture/body on the snapshot body when a fraction `x` of the airflow bypasses
+/// the flame to cool the liner and rejoins it before the nozzle (ADR-006).
+///
+/// The core still burns to the candidate limit, so the flame-zone phi is the
+/// candidate's own; the nozzle sees the mixed stream, whose temperature comes from
+/// an enthalpy balance on JANAF air: `h_mix = (1 - x) h(T4) + x h(T02)`. Cooling-air
+/// pressure loss is not charged. No cited cooling fraction exists here, so this
+/// pins the BOUNDARY, not a design value.
+fn capture_ratio_with_cooling_air(mach: f64, x: f64) -> f64 {
+    use ventus_gasdyn::enthalpy_air_janaf_j_kg as h;
+    let t02 = evaluate_with_combustor(mach, &COOLED_LINER_CANDIDATE)
+        .burner_entry_total_temperature_k
+        .unwrap();
+    let target = (1.0 - x) * h(COOLED_LINER_CANDIDATE_EXIT_K).unwrap() + x * h(t02).unwrap();
+    let (mut lo, mut hi) = (t02, COOLED_LINER_CANDIDATE_EXIT_K);
+    for _ in 0..100 {
+        let mid = 0.5 * (lo + hi);
+        if h(mid).unwrap() < target {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    let mixed = Combustor { exit_limit_k: 0.5 * (lo + hi), gas: ventus_propulsion::ramjet::GasModel::Janaf };
+    let g = snapshot_geometry();
+    required_capture_area_with_combustor(mach, &g, &mixed).unwrap() / g.max_cross_section_m2
+}
+
+#[test]
+fn m350_closes_with_thirty_percent_cooling_air() {
+    let r = capture_ratio_with_cooling_air(3.50, 0.30);
+    assert!((r - 0.735).abs() < 2e-3 && r < 1.0, "capture/body {r}");
+}
+
+#[test]
+fn m400_on_the_snapshot_body_tolerates_between_twenty_and_twenty_five_percent_cooling_air() {
+    let at_20 = capture_ratio_with_cooling_air(PROPOSED_M4_CRUISE_MACH, 0.20);
+    let at_25 = capture_ratio_with_cooling_air(PROPOSED_M4_CRUISE_MACH, 0.25);
+    assert!((at_20 - 0.956).abs() < 2e-3 && at_20 < 1.0, "20 %: {at_20}");
+    assert!((at_25 - 1.009).abs() < 2e-3 && at_25 > 1.0, "25 %: {at_25}");
+}
