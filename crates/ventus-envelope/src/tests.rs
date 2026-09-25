@@ -746,3 +746,45 @@ fn cooled_liner_candidate_pays_in_specific_impulse() {
     let ratio = cand / snap;
     assert!((ratio - 0.9355).abs() < 2e-3, "Isp ratio {ratio} ({cand} / {snap})");
 }
+
+
+/// Thrust over drag along the constant-q climb, with the inlet sized for the
+/// cruise Mach: `T / D = A_c,design / A_c,required(M)`.
+///
+/// Open means T/D >= 1 at every Mach from M 1.6 to cruise, so a vehicle that
+/// reaches ramjet speed accelerates to cruise on its own. Scope, stated: the
+/// four-ramp inlet is re-optimised at every Mach (variable geometry), additive
+/// spillage drag is not in the balance, and below M 1.6 is not asked -- a
+/// ramjet needs a booster to get there.
+fn min_thrust_over_drag_on_climb(cruise: f64, c: &Combustor) -> (f64, f64) {
+    let g = snapshot_geometry();
+    let a_design = required_capture_area_with_combustor(cruise, &g, c).unwrap();
+    let mut worst = (f64::INFINITY, 0.0);
+    // Integer steps so float accumulation cannot drop the cruise point, which is
+    // then asked explicitly.
+    let steps = ((cruise - 1.6) / 0.2) as usize;
+    let machs = (0..=steps).map(|i| 1.6 + 0.2 * i as f64).filter(|m| *m < cruise).chain([cruise]);
+    for m in machs {
+        let a = required_capture_area_with_combustor(m, &g, c).unwrap();
+        let ratio = a_design / a;
+        if ratio < worst.0 {
+            worst = (ratio, m);
+        }
+    }
+    worst
+}
+
+#[test]
+fn candidate_climb_corridor_is_open_to_m400() {
+    let (ratio, at) = min_thrust_over_drag_on_climb(PROPOSED_M4_CRUISE_MACH, &COOLED_LINER_CANDIDATE);
+    // The pinch is the cruise point itself, where the inlet was sized.
+    assert!(ratio >= 1.0 - 1e-9, "T/D {ratio} at M {at}");
+    assert!((at - PROPOSED_M4_CRUISE_MACH).abs() < 0.11, "pinch moved below cruise: M {at}");
+}
+
+#[test]
+fn candidate_climb_corridor_is_open_to_m350() {
+    let (ratio, at) = min_thrust_over_drag_on_climb(3.50, &COOLED_LINER_CANDIDATE);
+    assert!(ratio >= 1.0 - 1e-9, "T/D {ratio} at M {at}");
+    assert!((at - 3.50).abs() < 0.11, "pinch moved below cruise: M {at}");
+}
