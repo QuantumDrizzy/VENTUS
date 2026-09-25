@@ -86,8 +86,8 @@ VENTUS answers it structurally rather than by care:
 | Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
 
 ```
-cargo test --workspace     292 tests
-cargo xtask validate       124 cases: 113 pass, 0 fail, 11 known limit, 0 stale
+cargo test --workspace     309 tests
+cargo xtask validate       132 cases: 121 pass, 0 fail, 11 known limit, 0 stale
                            18 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 native\build_validate.bat M9 levels A/B/D: 0 of 80000 cells differ, 0.0 ULP
@@ -196,6 +196,41 @@ Full record in `docs/adr/`, in the case files, and in the commit messages. Every
 correction is marked `[CORRECTED]` where it lives.
 
 ---
+
+## Where VENTUS-1 stands against its milestones (2026-09-25)
+
+The owner's ladder: **M 3.50 real and flying**, then **M 4.00 real and flying**; Mach 5
+belongs to a later VENTUS-2. "Real" here means closed in code and cases, with sources,
+never a flown aircraft. Everything below is on the ADR-006 **candidate combustor**. The
+snapshot is unchanged and still does not hold a flame.
+
+| | M 3.50 | M 4.00 |
+|---|---|---|
+| Flame holds (operative φ ≥ 0.50) | **yes**, φ 0.670 | **yes**, φ 0.586 |
+| Inlet fits the snapshot body | yes, 0.549 | **yes, 0.793** (was 1.146) |
+| Climb corridor open from M 1.6 (T/D ≥ 1) | yes | yes |
+| Inlet clears MIL-E-5008B (4 ramps) | yes, 0.8092 / 0.7416 | yes, 0.7195 / 0.6695 |
+| Nose / leading edge survive | Ti-6242S, 730–735 K | Inconel 718, 867–876 K, ~50 K margin |
+| Thermally perfect T₀ | 752.92 K (recited 752.8, verified) | 911.29 K |
+| Liner cooling air the close can pay for | ≥ 30 % | ≤ ~24 % |
+| Crewed, envelope-protected FSW | first cut: q ≤ 21.01 kPa, M ≤ 4.00 | same |
+| Range | ~3990–5345 km (−6.5 % Isp) | open (L/D at M 4 not closed) |
+
+**Open, stated so nobody reads the table as a flying aircraft:**
+- The ramjet-no-holder lean-blowout chart has still not been read; `lean_blowout_verified`
+  stays unemitted.
+- The cited liner is a gas-turbine class, and the cooling fraction is uncited (bounded above).
+- The climb corridor assumes a variable-geometry inlet with no spillage drag. Below M 1.6 a
+  booster is required and not modelled.
+- Crew, canopy and life-support mass and heating are `[TO DETERMINE]`.
+- The M 4 corpus still lacks US76, skin and M12 rows.
+- **Re-baselining the snapshot onto the candidate is the owner's decision**, not a side
+  effect of these results.
+
+**Mach 5 is not reached by this path.** At 2100 K a subsonic-combustion ramjet loses its
+heating room as ram temperature climbs: at M 4.50, φ is 0.487 and capture/body 1.169. M 4.25
+still closes with little room (φ 0.538, capture 0.96). The Mach 5 stretch is the dual-mode
+track (ADR-003): a separate vehicle, VENTUS-2, not a stretch of this one.
 
 ## Design point
 
