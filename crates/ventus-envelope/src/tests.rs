@@ -788,3 +788,30 @@ fn candidate_climb_corridor_is_open_to_m350() {
     assert!(ratio >= 1.0 - 1e-9, "T/D {ratio} at M {at}");
     assert!((at - 3.50).abs() < 0.11, "pinch moved below cruise: M {at}");
 }
+
+/// `design-point-m4.md` must-have 5: thermally perfect T0 at the proposed row,
+/// by the method of `design-point.md` 3.1 (h0 = h + V^2/2), from JANAF.
+#[test]
+fn proposed_m4_row_thermally_perfect_stagnation_temperature() {
+    let m = PROPOSED_M4_CRUISE_MACH;
+    let alt = altitude_for_constant_q_m(m, DESIGN_DYNAMIC_PRESSURE_PA).unwrap();
+    let a = ventus_atmos::at_geopotential(alt).unwrap();
+    let v = m * a.speed_of_sound_m_s;
+    let t0_perfect = a.temperature_k * ventus_gasdyn::stagnation_temperature_ratio(m, 1.4).unwrap();
+    let t0 = ventus_gasdyn::stagnation_temperature_thermally_perfect_k(a.temperature_k, v).unwrap();
+    std::println!(
+        "M 4.00 row: h={alt:.1} m T={:.2} K V={v:.2} m/s T0(gamma 1.4)={t0_perfect:.2} K T0(JANAF)={t0:.2} K delta={:.2} K",
+        a.temperature_k,
+        t0 - t0_perfect
+    );
+    assert!((t0_perfect - 942.5).abs() < 0.05, "gamma-1.4 T0 {t0_perfect} vs the doc's 942.5 K");
+    assert!((t0 - MEASURED_M4_T0_K).abs() < 0.05, "T0 {t0}");
+    // The correction lowers T0, and by more than at M 3.50 (-15.3 K).
+    assert!(t0 < t0_perfect - 15.3);
+}
+
+/// Measured from JANAF: 911.29 K, 31.2 K below the gamma = 1.4 answer. The cycle
+/// takes T02 from the gamma = 1.4 ratio, so it over-states burner entry
+/// temperature here and under-states the heating room: the candidate's phi at
+/// M 4.00 is conservative on this account.
+const MEASURED_M4_T0_K: f64 = 911.29;

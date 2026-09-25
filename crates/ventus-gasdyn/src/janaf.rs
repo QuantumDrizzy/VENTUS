@@ -94,6 +94,104 @@ pub fn gamma_air_janaf(temperature_k: f64) -> Result<f64, GasDynError> {
     Ok(gamma)
 }
 
+
+/// H - H(298.15 K) at 200 K [kJ/mol], below the uniform grid: freestream at 20-30 km is
+/// ~220-230 K. 250 K is not used because the CO2 table has no 250 K row.
+const H_LOW_T_K: f64 = 200.0;
+/// H - H(298.15 K) of N2 [kJ/mol]: at 200 K, then at every uniform node from 300 K.
+/// Source: NIST-JANAF (Chase 1998), same table as `CP_N2`, column H-H(Tr), digit for digit.
+const H200_N2: f64 = -2.857;
+const H_N2: [f64; 28] = [0.054, 2.971, 5.911, 8.894, 11.937, 15.046, 18.223, 21.463, 24.760, 28.109, 31.503, 34.936, 38.405, 41.904, 45.429, 48.978, 52.548, 56.137, 59.742, 63.361, 66.995, 70.640, 74.296, 77.963, 81.639, 85.323, 89.015, 92.715];
+/// H - H(298.15 K) of O2 [kJ/mol]: at 200 K, then at every uniform node from 300 K.
+/// Source: NIST-JANAF (Chase 1998), same table as `CP_O2`, column H-H(Tr), digit for digit.
+const H200_O2: f64 = -2.868;
+const H_O2: [f64; 28] = [0.054, 3.025, 6.084, 9.244, 12.499, 15.835, 19.241, 22.703, 26.212, 29.761, 33.344, 36.957, 40.599, 44.266, 47.958, 51.673, 55.413, 59.175, 62.961, 66.769, 70.600, 74.453, 78.328, 82.224, 86.141, 90.079, 94.036, 98.013];
+/// H - H(298.15 K) of AR [kJ/mol]: at 200 K, then at every uniform node from 300 K.
+/// Source: NIST-JANAF (Chase 1998), same table as `CP_AR`, column H-H(Tr), digit for digit.
+const H200_AR: f64 = -2.040;
+const H_AR: [f64; 28] = [0.038, 2.117, 4.196, 6.274, 8.353, 10.431, 12.510, 14.589, 16.667, 18.746, 20.824, 22.903, 24.982, 27.060, 29.139, 31.217, 33.296, 35.375, 37.453, 39.532, 41.610, 43.689, 45.768, 47.846, 49.925, 52.004, 54.082, 56.161];
+/// H - H(298.15 K) of CO2 [kJ/mol]: at 200 K, then at every uniform node from 300 K.
+/// Source: NIST-JANAF (Chase 1998), same table as `CP_CO2`, column H-H(Tr), digit for digit.
+const H200_CO2: f64 = -3.414;
+const H_CO2: [f64; 28] = [0.069, 4.003, 8.305, 12.907, 17.754, 22.806, 28.030, 33.397, 38.884, 44.473, 50.148, 55.896, 61.705, 67.569, 73.480, 79.431, 85.419, 91.439, 97.488, 103.562, 109.660, 115.779, 121.917, 128.073, 134.246, 140.433, 146.636, 152.852];
+
+/// Lowest temperature [`enthalpy_air_janaf_j_kg`] answers at [K].
+pub const JANAF_H_MIN_K: f64 = H_LOW_T_K;
+
+fn mix(n2: f64, o2: f64, ar: f64, co2: f64) -> f64 {
+    (X_N2 * n2 + X_O2 * o2 + X_AR * ar + X_CO2 * co2) / X_SUM
+}
+
+/// Sensible enthalpy of dry air relative to 298.15 K [J/kg].
+///
+/// Exact at every tabulated node. Between uniform nodes it integrates the same
+/// linear cp as [`molar_heat_capacity_air_janaf_j_mol_k`] and adds the small linear
+/// correction that lands the next node on its tabulated H, so h and cp come from
+/// one table rather than two. Between 200 K and 300 K, where cp is flat to 1 %,
+/// it is linear in the two tabulated H values.
+///
+/// # Errors
+/// [`GasDynError::NotANumber`] for NaN; [`GasDynError::OutsideCorrelationRange`]
+/// outside [`JANAF_H_MIN_K`]..=[`JANAF_T_MAX_K`].
+pub fn enthalpy_air_janaf_j_kg(temperature_k: f64) -> Result<f64, GasDynError> {
+    if temperature_k.is_nan() {
+        return Err(GasDynError::NotANumber);
+    }
+    if !(JANAF_H_MIN_K..=JANAF_T_MAX_K).contains(&temperature_k) {
+        return Err(GasDynError::OutsideCorrelationRange);
+    }
+    let h_node = |k: usize| mix(H_N2[k], H_O2[k], H_AR[k], H_CO2[k]) * 1000.0; // J/mol
+    let cp_node = |k: usize| mix(CP_N2[k], CP_O2[k], CP_AR[k], CP_CO2[k]);
+    let h_mol = if temperature_k < JANAF_T_MIN_K {
+        let h200 = mix(H200_N2, H200_O2, H200_AR, H200_CO2) * 1000.0;
+        let w = (temperature_k - H_LOW_T_K) / (JANAF_T_MIN_K - H_LOW_T_K);
+        h200 + w * (h_node(0) - h200)
+    } else {
+        let pos = (temperature_k - JANAF_T_MIN_K) / JANAF_STEP_K;
+        let i = (pos as usize).min(CP_N2.len() - 2);
+        let dt = temperature_k - (JANAF_T_MIN_K + i as f64 * JANAF_STEP_K);
+        let (c0, c1) = (cp_node(i), cp_node(i + 1));
+        let integral = |x: f64| c0 * x + (c1 - c0) * x * x / (2.0 * JANAF_STEP_K);
+        let residual = h_node(i + 1) - (h_node(i) + integral(JANAF_STEP_K));
+        h_node(i) + integral(dt) + residual * dt / JANAF_STEP_K
+    };
+    Ok(h_mol / ventus_units::constants::M_AIR_KG_MOL)
+}
+
+/// Stagnation temperature with real enthalpy, `h0 = h + V^2/2` [K].
+///
+/// The method `docs/design-point.md` 3.1 uses, answered from JANAF instead of
+/// recited tables. Solved by bisection on the monotonic h(T).
+///
+/// # Errors
+/// [`GasDynError::OutsideCorrelationRange`] if the static or stagnation
+/// temperature leaves the tables; [`GasDynError::NotANumber`] for NaN input.
+pub fn stagnation_temperature_thermally_perfect_k(
+    static_temperature_k: f64,
+    velocity_m_s: f64,
+) -> Result<f64, GasDynError> {
+    if velocity_m_s.is_nan() {
+        return Err(GasDynError::NotANumber);
+    }
+    let h0 = enthalpy_air_janaf_j_kg(static_temperature_k)? + 0.5 * velocity_m_s * velocity_m_s;
+    if h0 > enthalpy_air_janaf_j_kg(JANAF_T_MAX_K)? {
+        return Err(GasDynError::OutsideCorrelationRange);
+    }
+    let (mut lo, mut hi) = (static_temperature_k, JANAF_T_MAX_K);
+    for _ in 0..200 {
+        let mid = 0.5 * (lo + hi);
+        if enthalpy_air_janaf_j_kg(mid)? < h0 {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+        if hi - lo < 1e-9 {
+            break;
+        }
+    }
+    Ok(0.5 * (lo + hi))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,6 +269,48 @@ mod tests {
         std::println!("cubic vs JANAF, 300-1800 K: worst {:.4} % at {at} K", worst * 100.0);
         assert!(worst < MEASURED_CUBIC_VS_JANAF_WORST, "worst {worst} at {at} K");
     }
+
+
+    /// H and cp are two columns of one table. Integrating the linear cp across each
+    /// 100 K interval must land within a small fraction of the tabulated H rise, or
+    /// one column was mis-copied.
+    #[test]
+    fn cp_integrates_to_the_tabulated_enthalpy_rise() {
+        let mut worst = 0.0_f64;
+        for i in 0..CP_N2.len() - 1 {
+            let c0 = mix(CP_N2[i], CP_O2[i], CP_AR[i], CP_CO2[i]);
+            let c1 = mix(CP_N2[i + 1], CP_O2[i + 1], CP_AR[i + 1], CP_CO2[i + 1]);
+            let integral = 0.5 * (c0 + c1) * JANAF_STEP_K;
+            let dh = (mix(H_N2[i + 1], H_O2[i + 1], H_AR[i + 1], H_CO2[i + 1])
+                - mix(H_N2[i], H_O2[i], H_AR[i], H_CO2[i]))
+                * 1000.0;
+            worst = worst.max(((integral - dh) / dh).abs());
+        }
+        assert!(worst < 2e-3, "worst interval mismatch {worst}");
+    }
+
+    #[test]
+    fn enthalpy_is_the_table_at_nodes_and_zero_at_reference() {
+        let h2000 = enthalpy_air_janaf_j_kg(2000.0).unwrap() * ventus_units::constants::M_AIR_KG_MOL;
+        let expect = mix(56.137, 59.175, 35.375, 91.439) * 1000.0;
+        assert!((h2000 - expect).abs() < 1e-6, "{h2000} vs {expect}");
+        // 298.15 K is the reference; the 200-300 K leg is linear, so it is close, not exact.
+        assert!(enthalpy_air_janaf_j_kg(298.15).unwrap().abs() < 200.0);
+    }
+
+    /// `docs/design-point.md` 3.1 recites T0 = 752.8 K at the design point from
+    /// Cengel-lineage tables, marked [TO VERIFY]. This answers it from JANAF.
+    #[test]
+    fn design_point_stagnation_temperature_against_janaf() {
+        let t0 = stagnation_temperature_thermally_perfect_k(222.65, 1046.95).unwrap();
+        extern crate std;
+        std::println!("M 3.50 design point, JANAF thermally perfect T0 = {t0:.2} K (recited 752.8 K)");
+        assert!((t0 - MEASURED_DESIGN_POINT_T0_K).abs() < 0.05, "T0 {t0}");
+    }
+
+    /// Measured from JANAF. The recited 752.8 K of `design-point.md` 3.1 agrees to
+    /// 0.12 K, which verifies that [TO VERIFY] against a primary table.
+    const MEASURED_DESIGN_POINT_T0_K: f64 = 752.92;
 
     /// Set from the measurement above, rounded up; not a tolerance chosen in advance.
     const MEASURED_CUBIC_VS_JANAF_WORST: f64 = 0.0080; // measured 0.7684 % at 500 K

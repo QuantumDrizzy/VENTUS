@@ -127,7 +127,7 @@ validity caveats as `design-point.md` §3 and ADR-000 D10.
 | Re/L | **2.100 × 10⁶ m⁻¹** | ρV/μ — still fully turbulent |
 | Specific kinetic energy V²/2 | **721.44 kJ·kg⁻¹** | 548.05 at M 3.50; **+32 %** |
 | T₀ (γ = 1.4) | **942.5 K** / 669.3 °C | M2; the number the current chain uses |
-| T₀ (thermally perfect) | **[TO COMPUTE]** | same method as `design-point.md` §3.1, `h₀ = h + V²/2` |
+| T₀ (thermally perfect) | **911.3 K** / 638.1 °C (−31.2 K) | same method as `design-point.md` §3.1, `h₀ = h + V²/2`, from NIST-JANAF (ADR-006). Pinned as `proposed_m4_row_thermally_perfect_stagnation_temperature` |
 | T₄max/T₀ (γ = 1.4, 1700 K) | **1.80** | 2.21 at M 3.50 on the same T₀ convention |
 
 The calorically imperfect correction at M 3.50 was −15.3 K on T₀. At M 4 the
@@ -497,6 +497,10 @@ snapshot cannot.
    aircraft close. Radii are not retuned.
 5. **Thermally perfect T₀** at the proposed row, `h₀ = h + V²/2`, the same
    method as `design-point.md` §3.1, `[TO VERIFY]` tables included.
+   **r9 (ADR-006): closed.** 911.3 K from NIST-JANAF, 31.2 K below γ = 1.4. The same
+   method reproduces the M 3.50 row at 752.92 K against the recited 752.8 K, a 0.12 K
+   check of the snapshot number. The cycle still takes T₀₂ from γ = 1.4, which over-states
+   burner entry temperature, so the candidate φ at this row is conservative.
 6. **A new case corpus at the new snapshot** — US76 row, NACA 1135 at M 4
    where it is used, MIL recovery, skin, M12 brackets — *without* deleting
    the M 3.50 yardsticks until the re-baseline lands. The M 3.50 snapshot is
