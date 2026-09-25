@@ -161,7 +161,7 @@ fn both_evaluators_see_the_same_cases() {
     let cases = cases();
     assert_eq!(
         cases.len(),
-        25,
+        30,
         "case count changed; update the xtask evaluator and this number together"
     );
     // Every case must be answerable in at least one key, or the evaluator is

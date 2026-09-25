@@ -65,6 +65,14 @@ RECITED = {
         "stagnation_pressure_ratio": (0.21295, 5, None),
         "prandtl_meyer_deg": (58.530, 5, None),
     },
+    # The proposed M 4 row (design-point-m4.md must-have 6). Same table, same rule.
+    4.0: {
+        "pressure_ratio": (18.500, 5, "exactly 37/2, a rational"),
+        "temperature_ratio": (4.0469, 5, None),
+        "mach_downstream": (0.43496, 5, None),
+        "stagnation_pressure_ratio": (0.13876, 5, None),
+        "prandtl_meyer_deg": (65.785, 5, None),
+    },
 }
 
 

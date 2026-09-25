@@ -269,3 +269,65 @@ error is 8.54e-06. The implementation is 4.12e-06 away, using
 inputs  = { mach = 3.5, gamma = 1.4 }
 expect  = { prandtl_meyer_deg = 58.53 }
 rel_tol = 8.543e-06
+
+[[case]]
+name    = "naca1135_normal_m4p0_pressure_ratio"
+source  = "NACA Report 1135, normal shock table, M1 = 4.0, gamma = 1.4 [TO VERIFY against a primary copy]"
+reason  = """
+Recited to 5 significant figures, so the admissible relative
+error is 2.70e-05. The implementation is 0.00e+00 away, using
+0 % of that budget.
+
+exactly 37/2, a rational
+"""
+inputs  = { mach = 4.0, gamma = 1.4 }
+expect  = { pressure_ratio = 18.5 }
+rel_tol = 2.703e-05
+
+[[case]]
+name    = "naca1135_normal_m4p0_temperature_ratio"
+source  = "NACA Report 1135, normal shock table, M1 = 4.0, gamma = 1.4 [TO VERIFY against a primary copy]"
+reason  = """
+Recited to 5 significant figures, so the admissible relative
+error is 1.24e-05. The implementation is 6.18e-06 away, using
+50 % of that budget.
+"""
+inputs  = { mach = 4.0, gamma = 1.4 }
+expect  = { temperature_ratio = 4.0469 }
+rel_tol = 1.236e-05
+
+[[case]]
+name    = "naca1135_normal_m4p0_mach_downstream"
+source  = "NACA Report 1135, normal shock table, M1 = 4.0, gamma = 1.4 [TO VERIFY against a primary copy]"
+reason  = """
+Recited to 5 significant figures, so the admissible relative
+error is 1.15e-05. The implementation is 2.68e-06 away, using
+23 % of that budget.
+"""
+inputs  = { mach = 4.0, gamma = 1.4 }
+expect  = { mach_downstream = 0.43496 }
+rel_tol = 1.150e-05
+
+[[case]]
+name    = "naca1135_normal_m4p0_stagnation_pressure_ratio"
+source  = "NACA Report 1135, normal shock table, M1 = 4.0, gamma = 1.4 [TO VERIFY against a primary copy]"
+reason  = """
+Recited to 5 significant figures, so the admissible relative
+error is 3.60e-05. The implementation is 2.72e-05 away, using
+76 % of that budget.
+"""
+inputs  = { mach = 4.0, gamma = 1.4 }
+expect  = { stagnation_pressure_ratio = 0.13876 }
+rel_tol = 3.603e-05
+
+[[case]]
+name    = "naca1135_prandtl-meyer_m4p0_prandtl_meyer_deg"
+source  = "NACA Report 1135, Prandtl-Meyer table, M1 = 4.0, gamma = 1.4 [TO VERIFY against a primary copy]"
+reason  = """
+Recited to 5 significant figures, so the admissible relative
+error is 7.60e-06. The implementation is 2.74e-06 away, using
+36 % of that budget.
+"""
+inputs  = { mach = 4.0, gamma = 1.4 }
+expect  = { prandtl_meyer_deg = 65.785 }
+rel_tol = 7.601e-06
