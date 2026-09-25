@@ -105,7 +105,7 @@ pub const USEFUL_THRUST_FRACTION: f64 = 0.25;
 /// equivalence ratio of 0.4. Lean blowout in a ramjet combustor is not a point:
 /// it moves with flame holder geometry, pressure and inlet preheat, over roughly
 /// phi = 0.3 to 0.5.
-
+///
 ///
 /// Swept against a stoichiometric f/a of [`STOICHIOMETRIC_FUEL_AIR_RATIO`]:
 ///
@@ -152,7 +152,7 @@ pub const USEFUL_THRUST_FRACTION: f64 = 0.25;
 /// no-holder ramjet is not expected to beat a 6-foot V-gutter; inventing a
 /// holder that "saves" M 3.50 is still refused. Wiring `lean_blowout_verified`
 /// would collapse that mismatch into a fly/no-fly and is refused.
-
+///
 ///
 /// Pressure does not secretly rescue the permissive end. Burner-entry *total*
 /// pressure at the snapshot is ~122 kPa with MIL recovery (~133 kPa on the
@@ -167,7 +167,7 @@ pub const USEFUL_THRUST_FRACTION: f64 = 0.25;
 /// practically no further effect, so the extra 40–50 kPa is not a secret
 /// rescue. Evaluating a correlation still needs a combustor volume and a
 /// holder, which is tier 2.
-
+///
 ///
 /// So the M4 refusal this module reports at M 5.70 is a **ceiling far above the
 /// real limit**, and closing the ramjet-no-holder question needs a chart of
@@ -273,7 +273,6 @@ pub const LEAN_BLOWOUT_PHI_MIN: f64 = 0.30;
 ///
 /// This is an afterburner floor, not a no-holder ramjet reading. See
 /// [`PHI_LBO_DIGIT_CITED`] vs [`PHI_LBO_RAMJET_NO_HOLDER_CITED`].
-
 pub const LEAN_BLOWOUT_PHI_MAX: f64 = 0.50;
 
 /// Alias of [`LEAN_BLOWOUT_PHI_MIN`]: the holder-required end of the band.
@@ -331,14 +330,12 @@ pub const PHI_LBO_DIGIT_CITED: bool = true;
 /// a future close has to delete this in the same change as the chart.
 pub const PHI_LBO_RAMJET_NO_HOLDER_CITED: bool = false;
 
-const _: () = assert!(
-    PHI_LBO_DIGIT_CITED,
-    "the 0.50 digit is cited from Useller Fig. 8; do not silently uncite it"
-);
-const _: () = assert!(
-    !PHI_LBO_RAMJET_NO_HOLDER_CITED,
-    "a ramjet-no-holder φ_LBO was marked cited without a chart of that class"
-);
+const _: () = if !PHI_LBO_DIGIT_CITED {
+    panic!("the 0.50 digit is cited from Useller Fig. 8; do not silently uncite it")
+};
+const _: () = if PHI_LBO_RAMJET_NO_HOLDER_CITED {
+    panic!("a ramjet-no-holder φ_LBO was marked cited without a chart of that class")
+};
 
 /// Convert a King-report fuel-air ratio to φ using King's printed JP-4
 /// stoichiometric 0.0676.
@@ -416,10 +413,9 @@ pub fn burner_pressure_scale(p_pa: f64) -> Option<BurnerPressureScale> {
 /// same change as the holder.
 pub const FLAME_HOLDER_DECLARED: bool = false;
 
-const _: () = assert!(
-    !FLAME_HOLDER_DECLARED,
-    "a flame holder was declared without deleting this lock; that change must cite geometry"
-);
+const _: () = if FLAME_HOLDER_DECLARED {
+    panic!("a flame holder was declared without deleting this lock; that change must cite geometry")
+};
 
 /// Operative lean-blowout phi for *this* aircraft: the strict end, because
 /// [`FLAME_HOLDER_DECLARED`] is false.
@@ -1084,7 +1080,6 @@ pub fn envelope(from_mach: f64, to_mach: f64, resolution: f64) -> Envelope {
 /// That keeps this ahead of the L/D and Isp citations in the queue. Those
 /// change a number by some per cent. This one decides between "the design
 /// point has margin" and "the design point does not fly".
-
 pub const DESIGN_POINT_EQUIVALENCE_RATIO: f64 = 0.4615;
 
 /// Mach at which the required capture area equals the vehicle's own body
