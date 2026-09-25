@@ -141,6 +141,11 @@ lineage), **recited, [TO VERIFY]** against NIST-JANAF or NASA Glenn coefficients
 before M2 closes. Two values recited from these tables already turned out wrong in
 the M1 density cases, so this warning is not decorative.
 
+**[VERIFIED] (ADR-006, 2026-09-25):** the same `h₀ = h + V²/2` solved on NIST-JANAF
+enthalpy (Chase 1998; N2, O2, Ar, CO2 mixed by US76 mole fractions) gives **752.92 K**,
+0.12 K from the recited 752.8 K. Pinned as `design_point_stagnation_temperature_against_janaf`
+in `ventus-gasdyn`.
+
 ### 3.2 Skin temperature
 
 **[COMPUTED r5 — M5 has landed, and the r4 estimate was wrong.]**
