@@ -474,7 +474,13 @@ snapshot cannot.
    folded into M6b drag, and a declared internal contraction. The spike
    *schedule* and unstart *dynamics* remain refused until that geometry
    exists.
-3. **Flame stability that is not a comment.** Useller Fig. 8 now cites
+3. **Flame stability that is not a comment.** **r9 (ADR-006):** a cooled-liner
+   candidate combustor at 2100 K (declared; NASA TM-78874 demonstrates > 2200 K) puts
+   φ at **0.586** at this row, above the operative 0.50, pinned as
+   `cooled_liner_candidate_closes_flame_and_capture_at_m400_on_the_snapshot_body`. It also
+   brings the **snapshot** body's capture/body to **0.793**. Remaining: liner cooling is not
+   budgeted, and the ramjet-no-holder chart is still unread, so `lean_blowout_verified`
+   stays unemitted. Previous text follows. Useller Fig. 8 now cites
    φ = 0.50 as a V-gutter afterburner floor at 1600 psf; King Fig. 16 is
    the matching duct chart. Both M 3.50 and M 4.00 sit below that floor.
    Remaining: a ramjet-no-holder chart at comparable burner-entry pressure

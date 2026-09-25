@@ -12,7 +12,7 @@ carrying the git hash that produced it.
 
 **What that harness does not do, said here rather than left to a `grep`.** It
 gates *cases*. It does not gate *constants*: a modelling constant marked
-`[TO CITE]` in a doc comment compiles and validates fine, and there are **33** of
+`[TO CITE]` in a doc comment compiles and validates fine, and there are **18** of
 them right now. `cargo xtask validate` counts and prints that number with every
 verdict, so it cannot go stale in this file.
 
@@ -82,12 +82,13 @@ VENTUS answers it structurally rather than by care:
 | M10 | Flight software | shares M1 bit-for-bit with the twin; safety kernel; HIL wire (cablea) | **done** ([ADR-004](docs/adr/ADR-004-hil.md), [ADR-005](docs/adr/ADR-005-safety-modes.md)) |
 | M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
 | M12 | Regime sweep: where the chain stops answering | each module's own declared validity bound | **done** |
+| ADR-006 | Cooled-liner **candidate** combustor; air properties to 3000 K | NASA TM-78874 (liner > 2200 K, no problems); NIST-JANAF N2/O2/Ar/CO2 | **candidate**: at 2100 K the flame holds at M 3.50 (φ 0.670) and M 4.00 (φ 0.586), and the *snapshot* body hosts the inlet at M 4.00 (0.793). Snapshot unchanged ([ADR-006](docs/adr/ADR-006-cooled-liner-combustor.md)) |
 | Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
 
 ```
-cargo test --workspace     282 tests
+cargo test --workspace     292 tests
 cargo xtask validate       124 cases: 113 pass, 0 fail, 11 known limit, 0 stale
-                           33 modelling constants still [TO CITE]
+                           18 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 native\build_validate.bat M9 levels A/B/D: 0 of 80000 cells differ, 0.0 ULP
 cargo xtask bench          gated on the corpus passing at the same commit
@@ -295,6 +296,17 @@ from the D-21 and 0.3 from the SR-71, so both remain checks. The altitude was
 chosen to hold dynamic pressure constant against the earlier M 3.0 baseline, and
 holds it to 0.004 % — so the re-baseline hardens the thermal and propulsive
 problems without touching the structural loads case.
+
+**The lean-blowout bind has a cause, and the cause had no source (ADR-006).**
+φ is not chosen: the cycle burns what the heating room `T4 − T02` allows, and T4 was
+capped at 1700 K with **no citation anywhere** — a turbine-inlet-class number on an engine
+with no turbine. A candidate combustor at 2100 K, 100 K below a NASA-demonstrated cooled
+liner (TM-78874, > 2200 K), evaluated with NIST-JANAF air because the cubic stops at 1800 K,
+holds a flame at **M 3.50 (φ 0.670)** and at **M 4.00 (φ 0.586)**, and at M 4.00 the
+snapshot body hosts the inlet (capture/body **0.793**, was 1.146). The cost is 6.5 % of
+Isp, and so of range, plus liner cooling this model does not budget. It is a candidate, not
+a re-baseline: the snapshot and every pinned M 3.50 number are unchanged, and
+`lean_blowout_verified` stays unemitted until a ramjet-no-holder chart is read.
 
 **Programme track, and what is next.** Cruise ≥ Mach 4 with a Mach 5 stretch is
 the *intent*, not a second design point. The validated snapshot remains **M 3.50

@@ -675,3 +675,74 @@ fn m4_candidate_geometry_hosts_capture_at_the_proposed_m4() {
         snapshot.max_cross_section_m2
     );
 }
+
+
+// ---------------------------------------------------------------------------
+// ADR-006: cooled-liner candidate combustor. The snapshot is untouched; these
+// pin what the candidate buys and what it costs.
+// ---------------------------------------------------------------------------
+
+fn candidate_phi(mach: f64) -> f64 {
+    point_equivalence_ratio(&evaluate_with_combustor(mach, &COOLED_LINER_CANDIDATE)).unwrap()
+}
+
+#[test]
+fn the_two_gas_models_agree_on_the_snapshot_cycle() {
+    // Same 1700 K burner, cubic vs JANAF: the equivalence ratio moves 0.45 %.
+    let cubic = point_equivalence_ratio(&evaluate(3.50)).unwrap();
+    let janaf = point_equivalence_ratio(&evaluate_with_combustor(
+        3.50,
+        &Combustor { exit_limit_k: BURNER_EXIT_LIMIT_K, gas: ventus_propulsion::ramjet::GasModel::Janaf },
+    ))
+    .unwrap();
+    assert!(((janaf - cubic) / cubic).abs() < 0.006, "cubic {cubic} janaf {janaf}");
+}
+
+#[test]
+fn cooled_liner_candidate_holds_a_flame_at_m350() {
+    let phi = candidate_phi(3.50);
+    assert!((phi - 0.6698).abs() < 5e-4, "phi {phi}");
+    assert_eq!(operative_lean_blowout_verdict(phi), Some(LeanBlowoutVerdict::AboveOperativeBound));
+    // Above both Useller Fig. 8 points, the 6-foot 0.50 and the 3-foot 0.63.
+    assert!(phi > USELLER_FIG_8_PHI_SHORT_CHAMBER);
+    // The snapshot still does not, and must not be changed by this.
+    let snap = point_equivalence_ratio(&evaluate(3.50)).unwrap();
+    assert_eq!(operative_lean_blowout_verdict(snap), Some(LeanBlowoutVerdict::BelowOperativeBound));
+}
+
+#[test]
+fn cooled_liner_candidate_closes_flame_and_capture_at_m400_on_the_snapshot_body() {
+    let phi = candidate_phi(PROPOSED_M4_CRUISE_MACH);
+    assert!((phi - 0.5856).abs() < 5e-4, "phi {phi}");
+    assert_eq!(operative_lean_blowout_verdict(phi), Some(LeanBlowoutVerdict::AboveOperativeBound));
+    let g = snapshot_geometry();
+    let ratio = required_capture_area_with_combustor(PROPOSED_M4_CRUISE_MACH, &g, &COOLED_LINER_CANDIDATE)
+        .unwrap()
+        / g.max_cross_section_m2;
+    // 1.146 at 1700 K; the hotter burner needs less air for the same drag.
+    assert!((ratio - 0.793).abs() < 2e-3, "capture/body {ratio}");
+    assert!(ratio < 1.0);
+}
+
+#[test]
+fn cooled_liner_candidate_at_m425_is_inside_both_bounds_with_little_room() {
+    let phi = candidate_phi(4.25);
+    assert!((phi - 0.538).abs() < 1e-3, "phi {phi}");
+    assert_eq!(operative_lean_blowout_verdict(phi), Some(LeanBlowoutVerdict::AboveOperativeBound));
+    let g = snapshot_geometry();
+    let ratio = required_capture_area_with_combustor(4.25, &g, &COOLED_LINER_CANDIDATE).unwrap()
+        / g.max_cross_section_m2;
+    assert!((ratio - 0.96).abs() < 5e-3, "capture/body {ratio}");
+}
+
+#[test]
+fn cooled_liner_candidate_pays_in_specific_impulse() {
+    // Breguet range is linear in Isp at fixed V, L/D and mass fractions, so this
+    // ratio IS the range cost at M 3.50: about 6.5 %.
+    let snap = evaluate(3.50).ramjet_specific_impulse_s.unwrap();
+    let cand = evaluate_with_combustor(3.50, &COOLED_LINER_CANDIDATE)
+        .ramjet_specific_impulse_s
+        .unwrap();
+    let ratio = cand / snap;
+    assert!((ratio - 0.9355).abs() < 2e-3, "Isp ratio {ratio} ({cand} / {snap})");
+}

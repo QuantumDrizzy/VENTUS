@@ -36,11 +36,15 @@
 extern crate std;
 
 pub mod gas;
+pub mod janaf;
 pub mod isentropic;
 pub mod prandtl_meyer;
 pub mod shock;
 
 pub use gas::{gamma_air, molar_heat_capacity_air_j_mol_k, specific_heat_air_j_kg_k};
+pub use janaf::{
+    gamma_air_janaf, molar_heat_capacity_air_janaf_j_mol_k, specific_heat_air_janaf_j_kg_k,
+};
 pub use isentropic::{
     area_ratio, stagnation_density_ratio, stagnation_pressure_ratio, stagnation_temperature_ratio,
 };

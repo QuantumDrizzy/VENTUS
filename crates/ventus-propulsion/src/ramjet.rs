@@ -47,7 +47,10 @@
 //! this cycle does not have. The operative fly/no-fly comparison lives in
 //! `ventus-envelope`, with the 0.50 digit cited from Useller Fig. 8.
 
-use ventus_gasdyn::{gamma_air, specific_heat_air_j_kg_k, GasDynError};
+use ventus_gasdyn::{
+    gamma_air, gamma_air_janaf, specific_heat_air_j_kg_k, specific_heat_air_janaf_j_kg_k,
+    GasDynError,
+};
 use ventus_units::constants::G0_M_S2;
 
 /// Lower heating value of a kerosene-class fuel [J/kg]. The two candidate
@@ -116,6 +119,32 @@ pub struct Cycle {
     pub temperature_headroom_ratio: f64,
 }
 
+/// Which air-property model the cycle evaluates cp and gamma with (ADR-006).
+///
+/// `Cubic` is the 273-1800 K correlation every pinned M 3.50 number was computed
+/// with. `Janaf` is the NIST-JANAF mixture, 300-3000 K, used where the cubic
+/// refuses: a burner hotter than 1800 K. Over their overlap they disagree by at
+/// most 0.77 % in cp, measured in `ventus-gasdyn`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GasModel {
+    Cubic,
+    Janaf,
+}
+
+fn cp_of(gas: GasModel, temperature_k: f64) -> Result<f64, GasDynError> {
+    match gas {
+        GasModel::Cubic => specific_heat_air_j_kg_k(temperature_k),
+        GasModel::Janaf => specific_heat_air_janaf_j_kg_k(temperature_k),
+    }
+}
+
+fn gamma_of(gas: GasModel, temperature_k: f64) -> Result<f64, GasDynError> {
+    match gas {
+        GasModel::Cubic => gamma_air(temperature_k),
+        GasModel::Janaf => gamma_air_janaf(temperature_k),
+    }
+}
+
 /// Solve the ideal ramjet cycle.
 ///
 /// `inlet_recovery` is the total-pressure ratio the inlet delivers — the number
@@ -134,6 +163,33 @@ pub fn ideal_ramjet(
     burner_exit_total_temperature_k: f64,
     gamma_freestream: f64,
 ) -> Result<Cycle, CycleError> {
+    ideal_ramjet_with_gas(
+        mach_freestream,
+        freestream_static_temperature_k,
+        freestream_static_pressure_pa,
+        freestream_velocity_m_s,
+        inlet_recovery,
+        burner_exit_total_temperature_k,
+        gamma_freestream,
+        GasModel::Cubic,
+    )
+}
+
+/// [`ideal_ramjet`] with a declared air-property model (ADR-006).
+///
+/// # Errors
+/// As [`ideal_ramjet`]; the chosen model's temperature range applies.
+#[allow(clippy::too_many_arguments)]
+pub fn ideal_ramjet_with_gas(
+    mach_freestream: f64,
+    freestream_static_temperature_k: f64,
+    freestream_static_pressure_pa: f64,
+    freestream_velocity_m_s: f64,
+    inlet_recovery: f64,
+    burner_exit_total_temperature_k: f64,
+    gamma_freestream: f64,
+    gas: GasModel,
+) -> Result<Cycle, CycleError> {
     // Ram compression. A ramjet has no other compressor, so station 2 totals
     // come straight from the freestream totals times the inlet recovery.
     let t0_ratio = ventus_gasdyn::stagnation_temperature_ratio(mach_freestream, gamma_freestream)?;
@@ -148,9 +204,13 @@ pub fn ideal_ramjet(
     // ADR-000 D10: gamma at the burner temperature, not 1.4. At 1700 K that is
     // about 1.304, and using 1.4 here would falsify the nozzle expansion and
     // therefore the thrust.
-    let burner_gamma = gamma_air(burner_exit_total_temperature_k)?;
-    let cp_burner = specific_heat_air_j_kg_k(burner_exit_total_temperature_k)?;
-    let cp_entry = specific_heat_air_j_kg_k(t02.max(273.0))?;
+    let burner_gamma = gamma_of(gas, burner_exit_total_temperature_k)?;
+    let cp_burner = cp_of(gas, burner_exit_total_temperature_k)?;
+    let entry_floor_k = match gas {
+        GasModel::Cubic => 273.0,
+        GasModel::Janaf => 300.0,
+    };
+    let cp_entry = cp_of(gas, t02.max(entry_floor_k))?;
 
     let p04 = p02 * BURNER_PRESSURE_RATIO;
 

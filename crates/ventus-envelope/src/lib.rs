@@ -870,6 +870,67 @@ pub fn altitude_for_constant_q_m(mach: f64, dynamic_pressure_pa: f64) -> Option<
 /// to stop at the first.
 #[must_use]
 pub fn evaluate(mach: f64) -> Point {
+    evaluate_with_combustor(mach, &SNAPSHOT_COMBUSTOR)
+}
+
+/// A burner as the cycle sees it: the exit temperature it is allowed to reach,
+/// and the air-property model that can answer at that temperature (ADR-006).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Combustor {
+    pub exit_limit_k: f64,
+    pub gas: ventus_propulsion::ramjet::GasModel,
+}
+
+/// The snapshot burner. Every pinned M 3.50 number is computed with this.
+pub const SNAPSHOT_COMBUSTOR: Combustor = Combustor {
+    exit_limit_k: BURNER_EXIT_LIMIT_K,
+    gas: ventus_propulsion::ramjet::GasModel::Cubic,
+};
+
+/// The highest combustor exit temperature this repository has a primary source
+/// for, with no cooling or durability problem reported [K].
+///
+/// NASA TM-78874 (Wear, Trout, Smith & Jones, 1978), a semitranspiration-cooled
+/// (Lamilloy) liner: "Tests conducted at combustor exit temperatures in excess
+/// of 2200 K have not indicated any cooling or durability problems."
+///
+/// **Class mismatch, stated as for Useller:** that is a gas-turbine combustor
+/// tested at up to 8 atm, not a ramjet at ~1.2 atm burner-entry total pressure.
+/// Lower pressure means lower convective heat load on the liner, which is the
+/// favourable direction, but the liner still needs cooling air or fuel that
+/// this model does not budget. See ADR-006.
+pub const COOLED_LINER_DEMONSTRATED_EXIT_K: f64 = 2200.0;
+/// Source of [`COOLED_LINER_DEMONSTRATED_EXIT_K`].
+pub const COOLED_LINER_SOURCE: &str =
+    "NASA TM-78874, Wear, Trout, Smith & Jones (1978), abstract";
+
+/// **[DECLARED]** Candidate burner exit limit, 100 K below the demonstrated
+/// figure. Not the snapshot: every pinned M 3.50 number stays at
+/// [`BURNER_EXIT_LIMIT_K`] = 1700 K, which has no citation of its own.
+///
+/// Why it matters: the cycle is lean because the burner cap leaves only
+/// `T4 - T02` of heating room. At 1700 K that room buys φ = 0.4615 at M 3.50,
+/// below the cited lean-blowout floor. At 2100 K it buys φ ≈ 0.67.
+pub const COOLED_LINER_CANDIDATE_EXIT_K: f64 = 2100.0;
+
+/// The candidate combustor: cooled liner at [`COOLED_LINER_CANDIDATE_EXIT_K`],
+/// evaluated with the NIST-JANAF air properties because the cubic refuses above
+/// 1800 K.
+pub const COOLED_LINER_CANDIDATE: Combustor = Combustor {
+    exit_limit_k: COOLED_LINER_CANDIDATE_EXIT_K,
+    gas: ventus_propulsion::ramjet::GasModel::Janaf,
+};
+
+const _: () = assert!(COOLED_LINER_CANDIDATE_EXIT_K < COOLED_LINER_DEMONSTRATED_EXIT_K);
+const _: () = assert!(COOLED_LINER_CANDIDATE_EXIT_K <= ventus_gasdyn::janaf::JANAF_T_MAX_K);
+const _: () = assert!(COOLED_LINER_CANDIDATE_EXIT_K > BURNER_EXIT_LIMIT_K);
+
+/// [`evaluate`] with a declared combustor instead of the snapshot's.
+///
+/// Exists so a candidate combustor (ADR-006) can be asked the same questions
+/// without rewriting the snapshot.
+#[must_use]
+pub fn evaluate_with_combustor(mach: f64, combustor: &Combustor) -> Point {
     let mut p = Point {
         mach,
         altitude_m: None,
@@ -936,14 +997,15 @@ pub fn evaluate(mach: f64) -> Point {
 
     // M4. Needs a recovery to run at all, so it inherits M3's refusal.
     if let Some(recovery) = best_recovery {
-        match ventus_propulsion::ramjet::ideal_ramjet(
+        match ventus_propulsion::ramjet::ideal_ramjet_with_gas(
             mach,
             atmos.temperature_k,
             atmos.pressure_pa,
             velocity_m_s,
             recovery,
-            BURNER_EXIT_LIMIT_K,
+            combustor.exit_limit_k,
             gamma,
+            combustor.gas,
         ) {
             Ok(cycle) => {
                 p.ramjet_specific_impulse_s = Some(cycle.specific_impulse_s);
@@ -1155,9 +1217,20 @@ pub fn required_capture_area_for(
     mach: f64,
     geometry: &ventus_aero::geometry::Geometry,
 ) -> Option<f64> {
+    required_capture_area_with_combustor(mach, geometry, &SNAPSHOT_COMBUSTOR)
+}
+
+/// [`required_capture_area_for`] with a declared combustor (ADR-006).
+/// A hotter burner raises specific thrust, so the same drag needs less air.
+#[must_use]
+pub fn required_capture_area_with_combustor(
+    mach: f64,
+    geometry: &ventus_aero::geometry::Geometry,
+    combustor: &Combustor,
+) -> Option<f64> {
     use ventus_aero::boundary_layer::EdgeState;
 
-    let p = evaluate(mach);
+    let p = evaluate_with_combustor(mach, combustor);
     let (altitude_m, specific_thrust, velocity_m_s, wall_temperature_k) = (
         p.altitude_m?,
         p.ramjet_specific_thrust_n_s_kg?,
