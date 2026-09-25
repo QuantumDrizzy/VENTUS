@@ -79,7 +79,7 @@ VENTUS answers it structurally rather than by care:
 | M7 | Mass fractions, empty mass, Breguet range | SR-71 unrefuelled range - the end-to-end check | **done** |
 | M8 | 6-DOF rigid-body dynamics | energy drift < 1e-10 over 1e6 steps | **done** |
 | M9 | 2-D Euler solver | shock angle 0.006 deg vs exact theta-beta-M; CPU/GPU bit-exact | **done** -- levels A, B and D all PASS |
-| M10 | Flight software | shares M1 bit-for-bit with the twin; safety kernel; HIL wire (cablea) | **done** ([ADR-004](docs/adr/ADR-004-hil.md), [ADR-005](docs/adr/ADR-005-safety-modes.md)) |
+| M10 | Flight software | shares M1 bit-for-bit with the twin; safety kernel; HIL wire (cablea); envelope protection | **done** ([ADR-004](docs/adr/ADR-004-hil.md), [ADR-005](docs/adr/ADR-005-safety-modes.md)); crewed, envelope-protected first cut ([ADR-007](docs/adr/ADR-007-crewed-research-aircraft.md)) |
 | M11 | DAPCA IV acquisition cost | SR-71 programme — as a measure of the extrapolation, not a check | **done**, absolute dollars unanchored |
 | M12 | Regime sweep: where the chain stops answering | each module's own declared validity bound | **done** |
 | ADR-006 | Cooled-liner **candidate** combustor; air properties to 3000 K | NASA TM-78874 (liner > 2200 K, no problems); NIST-JANAF N2/O2/Ar/CO2 | **candidate**: at 2100 K the flame holds at M 3.50 (φ 0.670) and M 4.00 (φ 0.586), and the *snapshot* body hosts the inlet at M 4.00 (0.793). Snapshot unchanged ([ADR-006](docs/adr/ADR-006-cooled-liner-combustor.md)) |

@@ -37,7 +37,7 @@ describe this vehicle, and the repository does not use it.
 
 | Consequence | Module | State |
 |---|---|---|
-| Envelope protection: q, Mach and temperature limits the pilot cannot command through | M10 / ADR-005 safety kernel | **open**, next FSW work |
+| Envelope protection: q and Mach limits the pilot cannot command through | M10 `envelope` | **first cut landed**: nose-up floor over q 21.01 kPa or M 4.00 (both declared), transparent bit for bit inside, off on bad air data; `protected_gated_step` composes it with the gate. Temperature, thrust and g limits: open |
 | Pilot-in-the-loop timing: the loop runs faster than a human, so a stick input is a *demand*, not a surface position | M10 | the existing PI already takes a demand; to be stated in its API |
 | Cockpit, pressure suit and life support mass | M7 | `[TO DETERMINE]`; inside the SR-71-anchored zero-fuel fraction today, not budgeted separately |
 | Cockpit thermal: canopy and cabin at M 3.5–4 recovery temperature | M5 | `[TO DETERMINE]`; M5 evaluates a skin panel and the nose / leading edges, not a canopy |

@@ -46,6 +46,7 @@
 #[cfg(test)]
 extern crate std;
 
+pub mod envelope;
 pub mod hil;
 pub mod safety;
 
@@ -273,6 +274,34 @@ pub fn gated_step(
     };
 
     GatedStep { loop_state, gate }
+}
+
+/// Result of [`protected_gated_step`]: the gated step, plus what envelope
+/// protection did to the pilot's demand before the loop saw it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ProtectedStep {
+    pub step: GatedStep,
+    pub protection: envelope::Protection,
+}
+
+/// [`gated_step`] with envelope protection on the pilot's pitch demand (ADR-007).
+///
+/// Composition again: protection rewrites `commanded_pitch_rad` only while a
+/// limit is exceeded, then [`gated_step`] runs unchanged. Inside the envelope
+/// the result is bit-for-bit [`gated_step`]'s, so the HIL wire (ADR-004), which
+/// calls [`gated_step`], is not moved by this layer.
+#[must_use]
+pub fn protected_gated_step(
+    kernel: &mut SafetyKernel,
+    controller: &Controller,
+    state: LoopState,
+    frame: ControlFrame,
+) -> ProtectedStep {
+    let protection =
+        envelope::protect_raw(frame.altitude_m, frame.true_airspeed_m_s, frame.commanded_pitch_rad);
+    let mut protected_frame = frame;
+    protected_frame.commanded_pitch_rad = protection.demand_rad(frame.commanded_pitch_rad);
+    ProtectedStep { step: gated_step(kernel, controller, state, protected_frame), protection }
 }
 
 /// One control step.
@@ -667,6 +696,53 @@ mod tests {
         let g3 = gated_step(&mut kernel, &c, g2.loop_state, abort_reverse);
         assert_eq!(g3.gate.mode, FlightMode::Safe);
         assert_eq!(g3.loop_state.last_command_rad.to_bits(), held.to_bits());
+    }
+
+    /// ADR-007: inside the envelope, protection changes nothing, bit for bit.
+    #[test]
+    fn protected_step_is_gated_step_inside_the_envelope() {
+        let c = Controller::ventus1_pitch();
+        let mut k1 = SafetyKernel::new();
+        let mut k2 = SafetyKernel::new();
+        let mut s1 = drive_gated_to_nominal(&mut k1, &c, LoopState::default());
+        let mut s2 = drive_gated_to_nominal(&mut k2, &c, LoopState::default());
+        for i in 0..200 {
+            let commanded = 0.02 * libm::sin(f64::from(i) * 0.01);
+            let f = arm_frame(commanded, s1.last_command_rad * 0.1);
+            let p = protected_gated_step(&mut k1, &c, s1, f);
+            let g = gated_step(&mut k2, &c, s2, f);
+            assert_eq!(p.protection, envelope::Protection::Inside);
+            assert_eq!(p.step.loop_state.last_command_rad.to_bits(), g.loop_state.last_command_rad.to_bits());
+            assert_eq!(p.step.loop_state.integral.to_bits(), g.loop_state.integral.to_bits());
+            assert_eq!(p.step.gate, g.gate);
+            s1 = p.step.loop_state;
+            s2 = g.loop_state;
+        }
+    }
+
+    /// ADR-007: over the q limit, the loop is driven by the nose-up floor, not by
+    /// the pilot's nose-down stick.
+    #[test]
+    fn over_q_the_loop_sees_the_floor_not_the_stick() {
+        let c = Controller::ventus1_pitch();
+        let mut k1 = SafetyKernel::new();
+        let mut k2 = SafetyKernel::new();
+        let s1 = drive_gated_to_nominal(&mut k1, &c, LoopState::default());
+        let s2 = drive_gated_to_nominal(&mut k2, &c, LoopState::default());
+        // Cruise airspeed 6 km low: well over the q limit.
+        let mut f = arm_frame(-0.2, 0.0);
+        f.altitude_m = 20_000.0;
+        let p = protected_gated_step(&mut k1, &c, s1, f);
+        let envelope::Protection::Limiting { over_q, floor_rad, demand_rad, .. } = p.protection else {
+            panic!("expected limiting, got {:?}", p.protection);
+        };
+        assert!(over_q);
+        assert!(floor_rad > 0.0 && demand_rad == floor_rad);
+        let mut floor_frame = f;
+        floor_frame.commanded_pitch_rad = floor_rad;
+        let g = gated_step(&mut k2, &c, s2, floor_frame);
+        assert_eq!(p.step.loop_state.last_command_rad.to_bits(), g.loop_state.last_command_rad.to_bits());
+        assert!(p.step.loop_state.last_command_rad > 0.0, "surface should be driving nose-up");
     }
 
     #[test]
