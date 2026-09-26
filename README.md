@@ -486,3 +486,8 @@ alongside VS 18, because nvcc 13.0 rejects the VS 18 headers: the script pins
 - Open items are tagged in place and never quoted as results:
   `[TO VERIFY]` · `[TO CITE]` · `[TO COMPUTE]` · `[TO PROVE]` · `[TO QUANTIFY]` ·
   `[KNOWN_LIMIT]` · `[CORRECTED]`
+
+## License
+
+Proprietary. All rights reserved. See [LICENSE](LICENSE). Visibility for review or
+evaluation grants no right of use beyond reading.
