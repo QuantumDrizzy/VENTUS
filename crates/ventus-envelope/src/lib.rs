@@ -1228,12 +1228,51 @@ pub fn required_capture_area_with_combustor(
     geometry: &ventus_aero::geometry::Geometry,
     combustor: &Combustor,
 ) -> Option<f64> {
+    let c = cruise_at_row(mach, geometry, combustor)?;
+    let drag_n = c.drag.total * DESIGN_DYNAMIC_PRESSURE_PA * geometry.wing_area_m2;
+    Some(drag_n / (c.specific_thrust_n_s_kg * c.density_kg_m3 * c.velocity_m_s))
+}
+
+/// Steady cruise on the constant-q row at `mach`: where the aircraft flies, what its drag is
+/// made of, and what the engine gives per kilogram of fuel.
+///
+/// The drag is M6b's [`ventus_aero::drag::breakdown`] at the row, the same call the capture
+/// sizing uses (it now goes through here, so the two cannot drift). At cruise the inlet is sized
+/// for thrust equal to drag, so `lift_to_drag` and `specific_impulse_s` are exactly the two
+/// aircraft terms Breguet needs; the mass terms belong to `ventus-mass`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CruiseAtRow {
+    pub mach: f64,
+    pub altitude_m: f64,
+    pub velocity_m_s: f64,
+    pub density_kg_m3: f64,
+    pub drag: ventus_aero::drag::DragBreakdown,
+    pub specific_thrust_n_s_kg: f64,
+    pub specific_impulse_s: f64,
+}
+
+impl CruiseAtRow {
+    /// Lift over drag at the row, from the breakdown.
+    #[must_use]
+    pub fn lift_to_drag(&self) -> f64 {
+        self.drag.lift_to_drag
+    }
+}
+
+/// [`CruiseAtRow`] for a declared body and combustor. `None` wherever M4 or M6b declines.
+#[must_use]
+pub fn cruise_at_row(
+    mach: f64,
+    geometry: &ventus_aero::geometry::Geometry,
+    combustor: &Combustor,
+) -> Option<CruiseAtRow> {
     use ventus_aero::boundary_layer::EdgeState;
 
     let p = evaluate_with_combustor(mach, combustor);
-    let (altitude_m, specific_thrust, velocity_m_s, wall_temperature_k) = (
+    let (altitude_m, specific_thrust, specific_impulse_s, velocity_m_s, wall_temperature_k) = (
         p.altitude_m?,
         p.ramjet_specific_thrust_n_s_kg?,
+        p.ramjet_specific_impulse_s?,
         p.velocity_m_s?,
         p.wall_temperature_k?,
     );
@@ -1252,9 +1291,15 @@ pub fn required_capture_area_with_combustor(
         wall_temperature_k,
     )
     .ok()?;
-    let drag_n = drag.total * DESIGN_DYNAMIC_PRESSURE_PA * geometry.wing_area_m2;
-    let mass_flux_kg_m2_s = atmos.density_kg_m3 * velocity_m_s;
-    Some(drag_n / (specific_thrust * mass_flux_kg_m2_s))
+    Some(CruiseAtRow {
+        mach,
+        altitude_m,
+        velocity_m_s,
+        density_kg_m3: atmos.density_kg_m3,
+        drag,
+        specific_thrust_n_s_kg: specific_thrust,
+        specific_impulse_s,
+    })
 }
 
 /// [`required_capture_area_m2`] over the vehicle's own maximum body

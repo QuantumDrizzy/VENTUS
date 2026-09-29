@@ -326,6 +326,7 @@ dependencies = [
  "ventus-atmos",
  "ventus-gasdyn",
  "ventus-inlet",
+ "ventus-mass",
  "ventus-propulsion",
  "ventus-thermal",
  "ventus-units",

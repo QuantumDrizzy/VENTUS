@@ -858,3 +858,86 @@ fn m400_on_the_snapshot_body_tolerates_between_twenty_and_twenty_five_percent_co
     assert!((at_20 - 0.956).abs() < 2e-3 && at_20 < 1.0, "20 %: {at_20}");
     assert!((at_25 - 1.009).abs() < 2e-3 && at_25 > 1.0, "25 %: {at_25}");
 }
+
+/// Sustained M 4.00 on the constant-q row: snapshot body (which hosts the capture once the
+/// ADR-006 candidate burns), candidate combustor. The drag is M6b's breakdown at the row, the same
+/// call that sizes the inlet, so thrust equals this drag at cruise by construction.
+///
+/// L/D falls from 5.122 at M 3.50 to 4.578: lift gets dearer with `sqrt(M^2 - 1)` at the same
+/// C_L. It stays under Kuchemann's 7.00 and above M6b's 3.5 bug floor. It is **below** the 5.0-6.0
+/// target M 3.50 was held to, and below that band scaled by the Kuchemann ratio (4.71-5.65);
+/// `design-point-m4.md` said the target would have to be restated, and this is the number it has
+/// to be restated against, not a pass.
+#[test]
+fn m400_cruise_lift_to_drag_on_the_row() {
+    let g = snapshot_geometry();
+    let c35 = cruise_at_row(3.50, &g, &COOLED_LINER_CANDIDATE).unwrap();
+    let c40 = cruise_at_row(PROPOSED_M4_CRUISE_MACH, &g, &COOLED_LINER_CANDIDATE).unwrap();
+    assert!((c35.lift_to_drag() - 5.1220).abs() < 5e-4, "M 3.50 L/D {}", c35.lift_to_drag());
+    assert!((c40.lift_to_drag() - 4.5783).abs() < 5e-4, "M 4.00 L/D {}", c40.lift_to_drag());
+    assert!(c40.lift_to_drag() < ventus_aero::drag::kuchemann_bound(PROPOSED_M4_CRUISE_MACH));
+    assert!(c40.lift_to_drag() > 3.5, "below M6b's bug floor");
+    assert!(c40.drag.lift_induced > c40.drag.wave + c40.drag.friction, "drag due to lift still dominates");
+    assert!((c40.altitude_m - 27_747.0).abs() < 1.0 && (c40.velocity_m_s - 1201.20).abs() < 0.01);
+}
+
+/// Two Isp figures live in this repository and they disagree. `ventus-mass` carries 1450 s
+/// ("M4, ramjet at the design point"), and the published M 3.50 range (4265-5714 km snapshot,
+/// 3990-5345 km candidate) was computed with it and with L/D 5.5, the M6b target. The chain's own
+/// cycle gives 1966.8 s (snapshot) and 1839.9 s (candidate) at M 3.50, meaningful by
+/// `ramjet_isp_is_meaningful`, and M6b's breakdown gives L/D 5.122. Which Isp is right is not
+/// decided here: 1450 has no source beyond a comment, and the cycle is an efficiency-factor model
+/// whose two factors are themselves [TO CITE]. **[KNOWN_LIMIT]**, pinned so a reconciliation has to
+/// change this test and say so.
+#[test]
+fn the_two_isp_figures_in_the_chain_disagree() {
+    let model = evaluate(3.50).ramjet_specific_impulse_s.unwrap();
+    assert!((model - 1966.8).abs() < 0.5, "snapshot cycle Isp {model}");
+    assert!(model / 1450.0 > 1.3, "the disagreement closed; reconcile the range and this test");
+}
+
+/// Range at M 4.00, both ways, with the two reserves M 3.50 was published with (500 kg, and the
+/// SR-71's own 11.3 % scaled). Zero-fuel mass and cruise mass are M7's, unchanged.
+///
+/// * **Published basis**: the M 3.50 constants carried to M 4.00 by the chain's own ratios --
+///   L/D x (4.5783 / 5.1220), Isp x (candidate M 4.00 / snapshot M 3.50) -- at the M 4.00 speed.
+///   Comparable with the published 3990-5345 km.
+/// * **Model basis**: the chain's L/D and Isp at the row, M 3.50 and M 4.00 alike.
+///
+/// On either basis M 4.00 flies about 4 % further than M 3.50 on the candidate: +14.7 % speed and
+/// +1.6 % Isp against -10.6 % L/D. Still reserve-limited; no reserve policy chosen.
+#[test]
+fn m400_range_both_bases() {
+    use ventus_mass::{close_cruise, sr71_reserve_fraction_of_cruise_mass, VENTUS1_CRUISE_MASS_KG, VENTUS1_ZERO_FUEL_MASS_KG};
+    let g = snapshot_geometry();
+    let c35 = cruise_at_row(3.50, &g, &COOLED_LINER_CANDIDATE).unwrap();
+    let c40 = cruise_at_row(PROPOSED_M4_CRUISE_MACH, &g, &COOLED_LINER_CANDIDATE).unwrap();
+    let snap_isp35 = evaluate(3.50).ramjet_specific_impulse_s.unwrap();
+    let reserves = [500.0, sr71_reserve_fraction_of_cruise_mass() * VENTUS1_CRUISE_MASS_KG];
+    let km = |v: f64, ld: f64, isp: f64, r: f64| {
+        close_cruise(VENTUS1_CRUISE_MASS_KG, VENTUS1_ZERO_FUEL_MASS_KG, r, v, ld, isp).unwrap().range_m / 1000.0
+    };
+    let published: [f64; 2] = reserves
+        .map(|r| km(c40.velocity_m_s, 5.5 * c40.lift_to_drag() / c35.lift_to_drag(), 1450.0 * c40.specific_impulse_s / snap_isp35, r));
+    let model35: [f64; 2] = reserves.map(|r| km(c35.velocity_m_s, c35.lift_to_drag(), c35.specific_impulse_s, r));
+    let model40: [f64; 2] = reserves.map(|r| km(c40.velocity_m_s, c40.lift_to_drag(), c40.specific_impulse_s, r));
+    std::println!("M 4.00 range, published basis: {:.0} / {:.0} km (reserve 500 kg / 11.3 %)", published[0], published[1]);
+    std::println!("model basis: M 3.50 {:.0} / {:.0} km, M 4.00 {:.0} / {:.0} km", model35[0], model35[1], model40[0], model40[1]);
+    // The basis is the published one only if it reproduces the published M 3.50 candidate band.
+    let back: [f64; 2] = reserves.map(|r| km(c35.velocity_m_s, 5.5, 1450.0 * c35.specific_impulse_s / snap_isp35, r));
+    assert!((back[0] - 5345.0).abs() < 5.0 && (back[1] - 3990.0).abs() < 5.0, "published basis at M 3.50: {back:?}");
+    for (got, want) in published.iter().zip([PUBLISHED_BASIS_M4_KM.0, PUBLISHED_BASIS_M4_KM.1]) {
+        assert!((got - want).abs() < 2.0, "published basis {got} vs {want}");
+    }
+    for (got, want) in model40.iter().zip([MODEL_BASIS_M4_KM.0, MODEL_BASIS_M4_KM.1]) {
+        assert!((got - want).abs() < 2.0, "model basis {got} vs {want}");
+    }
+    for i in 0..2 {
+        let gain = model40[i] / model35[i];
+        assert!((1.03..1.06).contains(&gain), "M 4 / M 3.5 range {gain}");
+    }
+}
+
+/// Pinned after the first run of `m400_range_both_bases` (km, reserve 500 kg then 11.3 %).
+const PUBLISHED_BASIS_M4_KM: (f64, f64) = (5569.1, 4157.0);
+const MODEL_BASIS_M4_KM: (f64, f64) = (7035.0, 5251.5);

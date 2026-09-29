@@ -86,7 +86,7 @@ VENTUS answers it structurally rather than by care:
 | Track | Dual-mode ram/scram (Mach 5 stretch) | X-43/X-51 class as *regime* anchors, not copy-paste numbers | **stub** ([ADR-003](docs/adr/ADR-003-dual-mode-scram.md)) |
 
 ```
-cargo test --workspace     309 tests
+cargo test --workspace     312 tests
 cargo xtask validate       132 cases: 121 pass, 0 fail, 11 known limit, 0 stale
                            18 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
@@ -214,7 +214,8 @@ snapshot is unchanged and still does not hold a flame.
 | Thermally perfect T₀ | 752.92 K (recited 752.8, verified) | 911.29 K |
 | Liner cooling air the close can pay for | ≥ 30 % | ≤ ~24 % |
 | Crewed, envelope-protected FSW | first cut: q ≤ 21.01 kPa, M ≤ 4.00 | same |
-| Range | ~3990–5345 km (−6.5 % Isp) | open (L/D at M 4 not closed) |
+| Cruise L/D on the row (M6b breakdown) | 5.122 | **4.578** (Küchemann 7.00; below the 5.0–6.0 target, which M 4 must restate) |
+| Range, published basis (reserve 500 kg / 11.3 %) | ~3990–5345 km (−6.5 % Isp) | **~4157–5569 km** (+4.2 %) |
 
 **Open, stated so nobody reads the table as a flying aircraft:**
 - The ramjet-no-holder lean-blowout chart has still not been read; `lean_blowout_verified`
@@ -224,6 +225,10 @@ snapshot is unchanged and still does not hold a flame.
   booster is required and not modelled.
 - Crew, canopy and life-support mass and heating are `[TO DETERMINE]`.
 - The M 4 corpus still lacks US76, skin and M12 rows.
+- **Two Isp figures disagree.** The published ranges use 1450 s and L/D 5.5 (constants in
+  `ventus-mass`); the chain's own cycle gives 1967 s at M 3.50 (snapshot) and M6b gives L/D 5.122.
+  On the chain's numbers the ranges are ~5040–6752 km (M 3.50) and ~5251–7035 km (M 4.00). Which
+  Isp is right is open; `the_two_isp_figures_in_the_chain_disagree` pins it until it is settled.
 - **Re-baselining the snapshot onto the candidate is the owner's decision**, not a side
   effect of these results.
 
