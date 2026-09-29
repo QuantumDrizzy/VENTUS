@@ -197,7 +197,19 @@ correction is marked `[CORRECTED]` where it lives.
 
 ---
 
-## Where VENTUS-1 stands against its milestones (2026-09-25)
+## Where VENTUS-1 stands against its milestones (2026-09-29)
+
+**Mach 4.00: closed in code and cases** ([ADR-008](docs/adr/ADR-008-m4-baseline.md)), on the
+ADR-006 candidate combustor, the conservative reading of every open decision taken and stated:
+
+> VENTUS-1 closes sustained Mach 4.00 in code and cases at 27.7 km on the design-q row: the flame
+> holds (φ 0.586), the inlet fits the body (0.793), the climb is open from M 1.6, the four-ramp
+> inlet clears MIL-E-5008B, nose and leading edges survive (Inconel 718, ~50 K margin), T₀ is
+> thermally perfect, cruise L/D is 4.58 (Küchemann 7.00), and the range is ~4160–5570 km,
+> reserve-limited.
+
+Not claimed: that it flies, a lean-blowout chart, or the 7000 km the uncited cycle Isp would give.
+The open list below still stands beside the sentence.
 
 The owner's ladder: **M 3.50 real and flying**, then **M 4.00 real and flying**; Mach 5
 belongs to a later VENTUS-2. "Real" here means closed in code and cases, with sources,
