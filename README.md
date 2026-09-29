@@ -87,7 +87,7 @@ VENTUS answers it structurally rather than by care:
 
 ```
 cargo test --workspace     312 tests
-cargo xtask validate       132 cases: 121 pass, 0 fail, 11 known limit, 0 stale
+cargo xtask validate       134 cases: 123 pass, 0 fail, 11 known limit, 0 stale
                            18 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 native\build_validate.bat M9 levels A/B/D: 0 of 80000 cells differ, 0.0 ULP
@@ -236,7 +236,9 @@ snapshot is unchanged and still does not hold a flame.
 - The climb corridor assumes a variable-geometry inlet with no spillage drag. Below M 1.6 a
   booster is required and not modelled.
 - Crew, canopy and life-support mass and heating are `[TO DETERMINE]`.
-- The M 4 corpus still lacks US76, skin and M12 rows.
+- The M 4 corpus has its US76 rows (cross-implementation, like 26 km); it still lacks skin and
+  M12 rows. The M 3.50 skin case cites an independent implementation in `analysis/` that is not in
+  the repository, so a skin row needs that implementation written first.
 - **Two Isp figures disagree, and neither is sourced.** The published ranges use 1450 s -- the
   midpoint of a hydrocarbon-ramjet band recited from memory ("900-2000 s [TO CITE]", the corpus's
   own weakest anchor), not an M4 output -- and L/D 5.5; the chain's own cycle gives 1967 s at

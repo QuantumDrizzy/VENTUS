@@ -61,7 +61,9 @@ range is 7000 km.
   uncited efficiencies); pinned by `the_two_isp_figures_in_the_chain_disagree`, not settled.
 - The L/D target for M 4.00 is not restated; 4.58 sits below the M 3.50 band of 5.0-6.0.
 - Below M 1.6 a booster is required and not modelled; crew, canopy and life-support mass and
-  heating are `[TO DETERMINE]`; the M 4 corpus lacks its US76, skin and M12 rows.
+  heating are `[TO DETERMINE]`; the M 4 corpus has its US76 rows (added with this ADR) and lacks
+  its skin and M12 rows -- the M 3.50 skin case cites an `analysis/` implementation that is not in
+  the repository, and a row pinned to the module's own output would validate nothing.
 
 ## Consequences
 

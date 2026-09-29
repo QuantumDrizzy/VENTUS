@@ -204,3 +204,27 @@ the layer-base cases above.
 inputs  = { geopotential_altitude_m = 24000.0 }
 expect  = { temperature_k = 220.65, pressure_pa = 2930.492169305817, density_kg_m3 = 0.046267329624187684, speed_of_sound_m_s = 297.78106804506353, dynamic_viscosity_pa_s = 1.4435101083953802e-5 }
 rel_tol = 1e-12
+
+# --- The M 4.00 row (ADR-008) -----------------------------------------------
+
+[[case]]
+name    = "design_point_m4_row_h27747"
+source  = "NASA-TM-X-74335 defining equations evaluated at the M 4.00 constant-q altitude by an INDEPENDENT implementation (Python, platform libm): base pressure at 20 km chained from sea level, then p = q / (0.7 M^2) inverted analytically in the 20-32 km layer"
+reason  = """
+The M 4.00 row of ADR-008: design q = 18 463 Pa held at M 4.00 puts the aircraft
+at 27 747.256 m geopotential. The Python side inverts the layer analytically; the
+Rust side bisects. Same method as `design_point_h26km`: a cross-implementation
+check of the defining equations, not a published-table check. The Python chain
+reaches the 20 km base pressure one ULP from the Rust literal.
+"""
+inputs  = { geopotential_altitude_m = 27747.25646305947 }
+expect  = { temperature_k = 224.39725646305948, pressure_pa = 1648.482142857143, density_kg_m3 = 0.02559201638573428, speed_of_sound_m_s = 300.2990019252744, dynamic_viscosity_pa_s = 1.4638681028159518e-5 }
+rel_tol = 1e-12
+
+[[case]]
+name    = "geopotential_vs_geometric_at_the_m4_row"
+source  = "NASA-TM-X-74335, eq. (18): Z = r*H/(r - H), r = 6356766 m, at the M 4.00 row"
+reason  = "121.65 m of offset at the M 4.00 row, against 106.78 m at 26 km."
+inputs  = { geopotential_altitude_m = 27747.25646305947 }
+expect  = { geometric_altitude_m = 27868.904110574025 }
+rel_tol = 1e-12
