@@ -881,8 +881,9 @@ fn m400_cruise_lift_to_drag_on_the_row() {
     assert!((c40.altitude_m - 27_747.0).abs() < 1.0 && (c40.velocity_m_s - 1201.20).abs() < 0.01);
 }
 
-/// Two Isp figures live in this repository and they disagree. `ventus-mass` carries 1450 s
-/// ("M4, ramjet at the design point"), and the published M 3.50 range (4265-5714 km snapshot,
+/// Two Isp figures live in this repository and they disagree. `ventus-mass` carries 1450 s,
+/// commented "M4, ramjet at the design point" but in fact the midpoint of a recited 900-2000 s
+/// band (`c04da1d`, case `specific_impulse_in_the_published_ramjet_band`, a known limit), and the published M 3.50 range (4265-5714 km snapshot,
 /// 3990-5345 km candidate) was computed with it and with L/D 5.5, the M6b target. The chain's own
 /// cycle gives 1966.8 s (snapshot) and 1839.9 s (candidate) at M 3.50, meaningful by
 /// `ramjet_isp_is_meaningful`, and M6b's breakdown gives L/D 5.122. Which Isp is right is not

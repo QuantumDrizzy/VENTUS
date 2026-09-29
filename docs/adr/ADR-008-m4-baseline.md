@@ -28,7 +28,17 @@ ADR takes the **conservative** reading of each, and says so.
 2. **Range is claimed on the published basis: ~4157-5569 km.** That is the basis the M 3.50 range
    was published on (Isp 1450 s, L/D 5.5), carried to M 4.00 by the chain's own ratios, and it is
    the lower of the two. The chain's own Isp gives ~5251-7035 km; that is recorded as upside that
-   has not earned a claim, until the Isp disagreement is settled against a source.
+   has not earned a claim.
+
+   **Provenance, found while closing this ADR, and it is weaker than the text above implied.**
+   1450 s is not an M4 output. It entered in `c04da1d` as the *midpoint* of a hydrocarbon-ramjet
+   band recited from memory, "roughly 900-2000 s [TO CITE]", in the case
+   `specific_impulse_in_the_published_ramjet_band`, which the corpus itself calls "the weakest
+   anchor in the project" and carries as a known limit. The M7 range tests then reused that
+   midpoint with the comment "M4, ramjet at the design point". So **neither Isp is sourced**: 1450
+   is a recited midpoint, 1967 is the cycle with two efficiency factors that are `[TO CITE]`. The
+   range is claimed on the lower one because it is lower, not because it is better founded, and a
+   cited engine deck or primary text is what settles it.
 3. **No reserve policy is chosen.** A reserve is a mission requirement, not physics. The range is
    published as the band between the two reserves M 3.50 used (500 kg; the SR-71's own 11.3 %).
 
@@ -47,7 +57,8 @@ range is 7000 km.
 
 - The ramjet-no-holder lean-blowout chart is not read; `lean_blowout_verified` stays unemitted.
 - The liner cooling-air fraction is bounded (<= ~24 % at M 4.00), not cited.
-- The Isp disagreement (1450 s vs the cycle's 1967 s) is pinned, not settled.
+- The Isp is unsourced both ways (1450 s is a recited band midpoint, 1967 s the cycle with
+  uncited efficiencies); pinned by `the_two_isp_figures_in_the_chain_disagree`, not settled.
 - The L/D target for M 4.00 is not restated; 4.58 sits below the M 3.50 band of 5.0-6.0.
 - Below M 1.6 a booster is required and not modelled; crew, canopy and life-support mass and
   heating are `[TO DETERMINE]`; the M 4 corpus lacks its US76, skin and M12 rows.

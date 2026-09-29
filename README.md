@@ -237,8 +237,10 @@ snapshot is unchanged and still does not hold a flame.
   booster is required and not modelled.
 - Crew, canopy and life-support mass and heating are `[TO DETERMINE]`.
 - The M 4 corpus still lacks US76, skin and M12 rows.
-- **Two Isp figures disagree.** The published ranges use 1450 s and L/D 5.5 (constants in
-  `ventus-mass`); the chain's own cycle gives 1967 s at M 3.50 (snapshot) and M6b gives L/D 5.122.
+- **Two Isp figures disagree, and neither is sourced.** The published ranges use 1450 s -- the
+  midpoint of a hydrocarbon-ramjet band recited from memory ("900-2000 s [TO CITE]", the corpus's
+  own weakest anchor), not an M4 output -- and L/D 5.5; the chain's own cycle gives 1967 s at
+  M 3.50 (snapshot, uncited efficiency factors) and M6b gives L/D 5.122.
   On the chain's numbers the ranges are ~5040–6752 km (M 3.50) and ~5251–7035 km (M 4.00). Which
   Isp is right is open; `the_two_isp_figures_in_the_chain_disagree` pins it until it is settled.
 - **Re-baselining the snapshot onto the candidate is the owner's decision**, not a side
