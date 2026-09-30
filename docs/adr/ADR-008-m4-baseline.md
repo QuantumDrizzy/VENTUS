@@ -117,3 +117,9 @@ What it says:
   on the corpus's list, at almost no mass -- but the airframe is no longer a single alloy.
 * Scope, unchanged from M 3.50: a flat plate, no chines, nacelles or shock impingement, local
   radiative equilibrium with no conduction, sink at 0 K (the optimistic bound for a lower surface).
+
+## Amended by ADR-009 (2026-10-01)
+
+The owner re-baselined onto the candidate (M 4.00 is the baseline) and had the Isp settled against
+NACA RM E51H02: 1770 s, range ~4970-6660 km. Decision 2 above (the published basis) is history from
+here; the claim is ADR-009's.

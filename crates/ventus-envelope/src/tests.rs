@@ -881,21 +881,32 @@ fn m400_cruise_lift_to_drag_on_the_row() {
     assert!((c40.altitude_m - 27_747.0).abs() < 1.0 && (c40.velocity_m_s - 1201.20).abs() < 0.01);
 }
 
-/// Two Isp figures live in this repository and they disagree. `ventus-mass` carries 1450 s,
-/// commented "M4, ramjet at the design point" but in fact the midpoint of a recited 900-2000 s
-/// band (`c04da1d`, case `specific_impulse_in_the_published_ramjet_band`, a known limit), and the published M 3.50 range (4265-5714 km snapshot,
-/// 3990-5345 km candidate) was computed with it and with L/D 5.5, the M6b target. The chain's own
-/// cycle gives 1966.8 s (snapshot) and 1839.9 s (candidate) at M 3.50, meaningful by
-/// `ramjet_isp_is_meaningful`, and M6b's breakdown gives L/D 5.122. Which Isp is right is not
-/// decided here: 1450 has no source beyond a comment, and the cycle is an efficiency-factor model
-/// whose two factors are themselves [TO CITE]. **[KNOWN_LIMIT]**, pinned so a reconciliation has to
-/// change this test and say so.
+/// **Settled (ADR-009).** Two Isp figures lived here: 1450 s, the midpoint of a recited 900-2000 s
+/// band (`c04da1d`), and the cycle's own, 1966.8 s at the M 3.50 snapshot. Neither had a source.
+///
+/// NACA RM E51H02 (Evans 1951) gives the overall efficiency of a hydrocarbon ramjet against flight
+/// Mach number. Run at Evans's own diffuser recovery at Mach 4 with the candidate combustor, the
+/// cycle comes out a few per cent above Evans's maximum -- it is an internal-thrust, ideal-nozzle
+/// model and his is a propulsive efficiency -- so the cycle is not refuted, and that factor is what
+/// the M 4.00 Isp is brought down by. The result sits between the two old figures: 1450 s was below
+/// what the source supports, and 1966.8 s was the M 3.50 snapshot, not an M 4.00 number at all.
 #[test]
-fn the_two_isp_figures_in_the_chain_disagree() {
-    let model = evaluate(3.50).ramjet_specific_impulse_s.unwrap();
-    assert!((model - 1966.8).abs() < 0.5, "snapshot cycle Isp {model}");
-    assert!(model / 1450.0 > 1.3, "the disagreement closed; reconcile the range and this test");
+fn the_isp_is_settled_against_naca_rm_e51h02() {
+    let snapshot = evaluate(3.50).ramjet_specific_impulse_s.unwrap();
+    assert!((snapshot - 1966.8).abs() < 0.5, "snapshot cycle Isp {snapshot}");
+    let k = naca_e51h02_calibration(&COOLED_LINER_CANDIDATE).unwrap();
+    let raw = cruise_at_row(PROPOSED_M4_CRUISE_MACH, &snapshot_geometry(), &COOLED_LINER_CANDIDATE).unwrap().specific_impulse_s;
+    let isp = calibrated_m4_specific_impulse_s(&snapshot_geometry(), &COOLED_LINER_CANDIDATE).unwrap();
+    std::println!("NACA E51H02 calibration {k:.5}; M 4.00 cycle {raw:.2} s -> calibrated {isp:.2} s");
+    assert!(k < 1.0 && k > 0.90, "the cycle is optimistic against Evans, by less than 10 %: {k}");
+    assert!((k - CALIBRATION).abs() < 5e-5, "calibration {k}");
+    assert!((isp - CALIBRATED_M4_ISP_S).abs() < 0.05, "calibrated Isp {isp}");
+    assert!(1450.0 < isp && isp < snapshot, "between the two old figures");
 }
+
+/// Pinned after the first run of `the_isp_is_settled_against_naca_rm_e51h02`.
+const CALIBRATION: f64 = 0.946_946_4;
+const CALIBRATED_M4_ISP_S: f64 = 1770.17;
 
 /// Range at M 4.00, both ways, with the two reserves M 3.50 was published with (500 kg, and the
 /// SR-71's own 11.3 % scaled). Zero-fuel mass and cruise mass are M7's, unchanged.
@@ -933,6 +944,14 @@ fn m400_range_both_bases() {
     for (got, want) in model40.iter().zip([MODEL_BASIS_M4_KM.0, MODEL_BASIS_M4_KM.1]) {
         assert!((got - want).abs() < 2.0, "model basis {got} vs {want}");
     }
+    // ADR-009: the basis the range is claimed on -- the chain's L/D with the Isp settled against
+    // NACA RM E51H02.
+    let isp = calibrated_m4_specific_impulse_s(&g, &COOLED_LINER_CANDIDATE).unwrap();
+    let settled: [f64; 2] = reserves.map(|r| km(c40.velocity_m_s, c40.lift_to_drag(), isp, r));
+    std::println!("settled basis (ADR-009): {:.1} / {:.1} km", settled[0], settled[1]);
+    for (got, want) in settled.iter().zip([SETTLED_BASIS_M4_KM.0, SETTLED_BASIS_M4_KM.1]) {
+        assert!((got - want).abs() < 2.0, "settled basis {got} vs {want}");
+    }
     for i in 0..2 {
         let gain = model40[i] / model35[i];
         assert!((1.03..1.06).contains(&gain), "M 4 / M 3.5 range {gain}");
@@ -942,3 +961,5 @@ fn m400_range_both_bases() {
 /// Pinned after the first run of `m400_range_both_bases` (km, reserve 500 kg then 11.3 %).
 const PUBLISHED_BASIS_M4_KM: (f64, f64) = (5569.1, 4157.0);
 const MODEL_BASIS_M4_KM: (f64, f64) = (7035.0, 5251.5);
+/// ADR-009, the claimed range: chain L/D, Isp settled against NACA RM E51H02 (km, 500 kg / 11.3 %).
+const SETTLED_BASIS_M4_KM: (f64, f64) = (6661.7, 4972.9);

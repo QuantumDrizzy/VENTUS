@@ -197,56 +197,51 @@ correction is marked `[CORRECTED]` where it lives.
 
 ---
 
-## Where VENTUS-1 stands against its milestones (2026-09-29)
+## Where VENTUS-1 stands against its milestones (2026-10-01)
 
-**Mach 4.00: closed in code and cases** ([ADR-008](docs/adr/ADR-008-m4-baseline.md)), on the
-ADR-006 candidate combustor, the conservative reading of every open decision taken and stated:
+**Mach 4.00 is the baseline** ([ADR-009](docs/adr/ADR-009-m4-is-the-baseline.md), on
+[ADR-008](docs/adr/ADR-008-m4-baseline.md)): closed in code and cases on the ADR-006 cooled-liner
+combustor, with the Isp settled against a primary source:
 
-> VENTUS-1 closes sustained Mach 4.00 in code and cases at 27.7 km on the design-q row: the flame
-> holds (φ 0.586), the inlet fits the body (0.793), the climb is open from M 1.6, the four-ramp
-> inlet clears MIL-E-5008B, nose and leading edges survive (Inconel 718, ~50 K margin), T₀ is
-> thermally perfect, cruise L/D is 4.58 (Küchemann 7.00), and the range is ~4160–5570 km,
-> reserve-limited.
+> **VENTUS-1's baseline is sustained Mach 4.00**, closed in code and cases on its cooled-liner
+> combustor at 27.7 km on the design-q row: the flame holds (φ 0.586, above the cited 0.50 V-gutter
+> floor), the inlet fits the body (0.793), the constant-q climb is open from M 1.6, the four-ramp
+> inlet clears MIL-E-5008B, the nose and leading edges survive in Inconel 718 (~876 K), the forward
+> flat panels in Ti-6242S and the rest in Ti-6Al-4V, cruise L/D is 4.58, the ramjet Isp is 1770 s
+> against NACA RM E51H02, and the cruise range is ~4970-6660 km, reserve-limited.
 
-Not claimed: that it flies, a lean-blowout chart, or the 7000 km the uncited cycle Isp would give.
-The open list below still stands beside the sentence.
+Not claimed: that it flies; flame stability for a ramjet without a declared flame holder; the
+booster below M 1.6; crew, canopy and life support.
 
-The owner's ladder: **M 3.50 real and flying**, then **M 4.00 real and flying**; Mach 5
-belongs to a later VENTUS-2. "Real" here means closed in code and cases, with sources,
-never a flown aircraft. Everything below is on the ADR-006 **candidate combustor**. The
-snapshot is unchanged and still does not hold a flame.
+The owner's ladder: **M 3.50 real**, then **M 4.00 real**; Mach 5 belongs to a later VENTUS-2.
+"Real" here means closed in code and cases, with sources, never a flown aircraft. The M 3.50
+snapshot is kept unchanged as the yardstick; it still does not hold a flame on its own burner.
 
-| | M 3.50 | M 4.00 |
+| | M 3.50 (snapshot yardstick) | **M 4.00 (baseline)** |
 |---|---|---|
-| Flame holds (operative φ ≥ 0.50) | **yes**, φ 0.670 | **yes**, φ 0.586 |
+| Flame holds (operative φ ≥ 0.50) | **yes** on the candidate, φ 0.670 | **yes**, φ 0.586 |
 | Inlet fits the snapshot body | yes, 0.549 | **yes, 0.793** (was 1.146) |
 | Climb corridor open from M 1.6 (T/D ≥ 1) | yes | yes |
 | Inlet clears MIL-E-5008B (4 ramps) | yes, 0.8092 / 0.7416 | yes, 0.7195 / 0.6695 |
 | Nose / leading edge survive | Ti-6242S, 730–735 K | Inconel 718, 867–876 K, ~50 K margin |
+| Flat panels (radiative equilibrium) | Ti-6Al-4V throughout, 532–580 K | **Ti-6242S forward of ~2.4 m** (638.8 K at 1 m), Ti-6Al-4V aft (597 K at 10 m) |
 | Thermally perfect T₀ | 752.92 K (recited 752.8, verified) | 911.29 K |
 | Liner cooling air the close can pay for | ≥ 30 % | ≤ ~24 % |
 | Crewed, envelope-protected FSW | first cut: q ≤ 21.01 kPa, M ≤ 4.00 | same |
-| Cruise L/D on the row (M6b breakdown) | 5.122 | **4.578** (Küchemann 7.00; below the 5.0–6.0 target, which M 4 must restate) |
-| Range, published basis (reserve 500 kg / 11.3 %) | ~3990–5345 km (−6.5 % Isp) | **~4157–5569 km** (+4.2 %) |
+| Cruise L/D on the row (M6b breakdown) | 5.122 | **4.578** (Küchemann 7.00; no target claimed) |
+| Ramjet Isp | cycle 1966.8 s (snapshot, uncalibrated) | **1770 s**, cycle × 0.947 against NACA RM E51H02 |
+| Range (reserve 500 kg / 11.3 %) | — | **~4970–6660 km** |
 
 **Open, stated so nobody reads the table as a flying aircraft:**
-- The ramjet-no-holder lean-blowout chart has still not been read; `lean_blowout_verified`
-  stays unemitted.
+- Lean blowout for a ramjet without a flame holder: φ 0.586 clears Useller's cited V-gutter floor;
+  declaring a holder, which would make that chart the applicable one, is the owner's decision.
 - The cited liner is a gas-turbine class, and the cooling fraction is uncited (bounded above).
 - The climb corridor assumes a variable-geometry inlet with no spillage drag. Below M 1.6 a
   booster is required and not modelled.
 - Crew, canopy and life-support mass and heating are `[TO DETERMINE]`.
-- The M 4 corpus has its US76 rows (cross-implementation, like 26 km); it still lacks skin and
-  M12 rows. The M 3.50 skin case cites an independent implementation in `analysis/` that is not in
-  the repository, so a skin row needs that implementation written first.
-- **Two Isp figures disagree, and neither is sourced.** The published ranges use 1450 s -- the
-  midpoint of a hydrocarbon-ramjet band recited from memory ("900-2000 s [TO CITE]", the corpus's
-  own weakest anchor), not an M4 output -- and L/D 5.5; the chain's own cycle gives 1967 s at
-  M 3.50 (snapshot, uncited efficiency factors) and M6b gives L/D 5.122.
-  On the chain's numbers the ranges are ~5040–6752 km (M 3.50) and ~5251–7035 km (M 4.00). Which
-  Isp is right is open; `the_two_isp_figures_in_the_chain_disagree` pins it until it is settled.
-- **Re-baselining the snapshot onto the candidate is the owner's decision**, not a side
-  effect of these results.
+- The M 4 corpus has its US76 and skin rows (the skin cross-check is `analysis/skin_crosscheck.py`);
+  it still lacks M12 rows.
+- The Isp source is a 1951 analysis with ideal combustion; a flight engine deck would supersede it.
 
 **Mach 5 is not reached by this path.** At 2100 K a subsonic-combustion ramjet loses its
 heating room as ram temperature climbs: at M 4.50, φ is 0.487 and capture/body 1.169. M 4.25

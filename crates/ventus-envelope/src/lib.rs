@@ -1302,6 +1302,50 @@ pub fn cruise_at_row(
     })
 }
 
+/// Overall efficiency over combustion efficiency of a hydrocarbon ramjet at flight Mach 4, the
+/// high-efficiency engine at its maximum: NACA RM E51H02 (Evans, 1951), Fig. 11, **read off the
+/// chart** as 0.455 (+-0.005 by the chart's grid). ADR-009.
+pub const NACA_E51H02_M4_ETA_OVER_ETAC: f64 = 0.455;
+/// The diffuser that figure assumes: kinetic-energy efficiency 0.92, a total-pressure ratio of 0.45 at
+/// Mach 4 (same report, Fig. 2, read off the chart).
+pub const NACA_E51H02_M4_RECOVERY: f64 = 0.45;
+
+/// What the cycle over-predicts against NACA RM E51H02 at the report's own conditions (ADR-009).
+///
+/// The chain's cycle is run at the M 4.00 row with Evans's diffuser recovery and the given
+/// combustor, and its overall efficiency (per unit of combustion efficiency, as Evans reports it) is
+/// divided into Evans's. The cycle is an internal-thrust, ideal-nozzle model and Evans's is a
+/// propulsive efficiency, so the cycle is expected high; this is the factor that brings it to the
+/// cited figure. `None` where the row or the cycle declines.
+#[must_use]
+pub fn naca_e51h02_calibration(combustor: &Combustor) -> Option<f64> {
+    use ventus_propulsion::ramjet::{ideal_ramjet_with_gas, BURNER_EFFICIENCY};
+    let p = evaluate_with_combustor(PROPOSED_M4_CRUISE_MACH, combustor);
+    let (altitude_m, velocity_m_s) = (p.altitude_m?, p.velocity_m_s?);
+    let a = ventus_atmos::at_geopotential(altitude_m).ok()?;
+    let c = ideal_ramjet_with_gas(
+        PROPOSED_M4_CRUISE_MACH,
+        a.temperature_k,
+        a.pressure_pa,
+        velocity_m_s,
+        NACA_E51H02_M4_RECOVERY,
+        combustor.exit_limit_k,
+        1.4,
+        combustor.gas,
+    )
+    .ok()?;
+    let eta_over_etac = c.specific_impulse_s * ventus_units::constants::G0_M_S2 * velocity_m_s
+        / (ventus_propulsion::KEROSENE_LHV_J_KG * BURNER_EFFICIENCY);
+    Some(NACA_E51H02_M4_ETA_OVER_ETAC / eta_over_etac)
+}
+
+/// The M 4.00 specific impulse the range is claimed on (ADR-009): the cycle at the row, brought to
+/// NACA RM E51H02 by [`naca_e51h02_calibration`] [s].
+#[must_use]
+pub fn calibrated_m4_specific_impulse_s(geometry: &ventus_aero::geometry::Geometry, combustor: &Combustor) -> Option<f64> {
+    Some(cruise_at_row(PROPOSED_M4_CRUISE_MACH, geometry, combustor)?.specific_impulse_s * naca_e51h02_calibration(combustor)?)
+}
+
 /// [`required_capture_area_m2`] over the vehicle's own maximum body
 /// cross-section.
 ///
