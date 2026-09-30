@@ -62,8 +62,8 @@ range is 7000 km.
 - The L/D target for M 4.00 is not restated; 4.58 sits below the M 3.50 band of 5.0-6.0.
 - Below M 1.6 a booster is required and not modelled; crew, canopy and life-support mass and
   heating are `[TO DETERMINE]`; the M 4 corpus has its US76 rows (added with this ADR) and lacks
-  its skin and M12 rows -- the M 3.50 skin case cites an `analysis/` implementation that is not in
-  the repository, and a row pinned to the module's own output would validate nothing.
+  its skin and M12 rows -- the M 3.50 skin case cited an `analysis/` implementation that was not in
+  the repository (written in amendment 1, which also adds the skin rows; M12 rows still missing).
 
 ## Consequences
 
@@ -90,3 +90,30 @@ T_edge ~224 K, T_aw ~865 K, h ~30 W/m^2/K at 10 m.
   limit the corpus uses; the 1 m panel is **above** it. Radiation relief is **~240 K** at 10 m.
   If so, M 4.00's forward flat panels are no longer conventional titanium, and the milestone
   sentence must name what they are.
+
+### Amendment 1 -- results (2026-10-01; the predictions above are unedited)
+
+`analysis/skin_crosscheck.py` exists now and shares no code with the crates. Two M 4.00 cases pin
+the module to it at 1e-4; changing Eckert's 0.22 to 0.25 in `ventus-aero` fails six cases, the two
+new ones among them. Validation: 125 pass, 0 fail, 11 known limit.
+
+| | predicted | computed | verdict |
+|---|---|---|---|
+| **P-A1** | reproduces 548.3 K, 543.4 K, 709.3 K to 1e-3 | **548.305 K**, **543.378 K**, **709.290 K** | PASS |
+| **P-A2**, 1 m | above 623 K | **638.8 K** (T_aw 865.0 K) | PASS |
+| **P-A2**, 10 m | within +-20 K of 623 K | **597.1 K**, 26 K under | **FAIL** |
+| **P-A2**, relief at 10 m | ~240 K | **267.9 K** | off by 12 % |
+
+What it says:
+
+* **The first 2.41 m behind every leading edge is above the Ti-6Al-4V limit at M 4.00**; aft of that
+  the panel radiates down to titanium-capable temperatures (597 K at 10 m, 577 K at 30 m). At M 3.50
+  the whole flat panel was Ti-6Al-4V; at M 4.00 it is not.
+* **By the module's own candidate list the forward panels become Ti-6242S** (limit 813 K, density
+  4540 against 4430 kg/m^3, +2.5 %), with ~174 K of margin at 1 m. Both limits are `[TO CITE]`, as the
+  list already says.
+* The milestone sentence therefore gains a clause: *the flat panels are Ti-6Al-4V aft of ~2.4 m from
+  each leading edge and Ti-6242S forward of it*. The M 4.00 column stays closed -- the material exists
+  on the corpus's list, at almost no mass -- but the airframe is no longer a single alloy.
+* Scope, unchanged from M 3.50: a flat plate, no chines, nacelles or shock impingement, local
+  radiative equilibrium with no conduction, sink at 0 K (the optimistic bound for a lower surface).
