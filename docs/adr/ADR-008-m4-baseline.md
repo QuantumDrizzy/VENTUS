@@ -69,3 +69,24 @@ range is 7000 km.
 
 The README's milestone table carries the M 4.00 column as closed on this basis. Any of the open
 items that later fails reopens the column, and this ADR is what gets amended -- not the table.
+
+## Amendment 1 -- the flat panels at M 4.00, stated before they are computed (2026-10-01)
+
+The sentence above says the nose and leading edges survive at M 4.00. It says nothing about the flat
+radiating panels, and M 3.50's material conclusion -- "radiation is what keeps the flat panels in
+conventional titanium" (ventus-thermal) -- was never re-run at M 4.00. The M 3.50 skin case also cites
+an independent implementation in `analysis/` that is not in the repository. This amendment writes
+that implementation (`analysis/skin_crosscheck.py`, sharing no code with the crates: its own US76,
+recovery, Eckert reference temperature, Prandtl-Schlichting friction, Chilton-Colburn analogy and
+radiation balance; the cp fit and Sutherland constants are the model's stated inputs) and adds the
+M 4.00 skin rows against it.
+
+Hand estimate at the design-q row (27 747 m geopotential, M 4.00, eps 0.85, sink 0 K, turbulent):
+T_edge ~224 K, T_aw ~865 K, h ~30 W/m^2/K at 10 m.
+
+* **P-A1 (the cross-check exists).** The new implementation reproduces the three M 3.50 figures the
+  corpus pins (548.3 K at 10 m and 543.4 K at the SR-71 condition, 709.3 K adiabatic) to 1e-3.
+* **P-A2 (the panels at M 4.00).** The 10 m panel settles **within +-20 K of 623 K**, the Ti-6Al-4V
+  limit the corpus uses; the 1 m panel is **above** it. Radiation relief is **~240 K** at 10 m.
+  If so, M 4.00's forward flat panels are no longer conventional titanium, and the milestone
+  sentence must name what they are.
