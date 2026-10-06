@@ -93,7 +93,7 @@ VENTUS answers it structurally rather than by care:
 
 ```
 cargo test --workspace     312 tests
-cargo xtask validate       134 cases: 123 pass, 0 fail, 11 known limit, 0 stale
+cargo xtask validate       136 cases: 125 pass, 0 fail, 11 known limit, 0 stale
                            18 modelling constants still [TO CITE]
 native\build_cpu.bat      M9 level D: shock angle 0.006 deg against exact
 native\build_validate.bat M9 levels A/B/D: 0 of 80000 cells differ, 0.0 ULP
