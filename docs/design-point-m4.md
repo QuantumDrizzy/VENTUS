@@ -1,5 +1,9 @@
 # VENTUS-1 — Mach 4 design-point sketch
 
+> **Status (2026-10-01): closed.** This sketch became the baseline -- ADR-008 closed sustained
+> Mach 4.00 in code and cases on the ADR-006 combustor, and ADR-009 made it the official
+> configuration. The text below is the sketch as it stood (r8, 2026-09-22), kept as history.
+
 **Revision:** r8 sketch (2026-09-22)
 **Status:** **PROPOSED re-baseline. Not a closed aircraft.** This document does
 not replace [`docs/design-point.md`](design-point.md). The case-gated snapshot

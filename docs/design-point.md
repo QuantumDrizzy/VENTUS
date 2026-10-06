@@ -1,5 +1,8 @@
 # VENTUS-1 — Design point
 
+> **Status (2026-10-01):** this is the **M 3.50 snapshot**, kept unchanged as the yardstick. The
+> baseline is **M 4.00** -- see [ADR-009](adr/ADR-009-m4-is-the-baseline.md).
+
 **Revision:** r8 (2026-09-22) · supersedes r7
 **Programme track:** a proposed M 4.00 constant-q row is sketched in
 [`docs/design-point-m4.md`](design-point-m4.md). It is not a close and it does

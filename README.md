@@ -4,8 +4,8 @@
 published source, and the modelling constants that do not yet are counted by the
 build rather than left to be discovered.**
 
-The forcing problem is a Mach 3.5 cruise demonstrator. That is the *input*, not
-the point. The deliverable is the modelling system: twelve modules, each declaring
+The forcing problem is VENTUS-1, a sustained Mach 4 cruise aircraft. That is the
+*input*, not the point. The deliverable is the modelling system: twelve modules, each declaring
 whether it is held to an external yardstick or to an identity; a harness that
 **refuses to load a test case without a `source` field**; and a validation report
 carrying the git hash that produced it.
@@ -16,14 +16,20 @@ gates *cases*. It does not gate *constants*: a modelling constant marked
 them right now. `cargo xtask validate` counts and prints that number with every
 verdict, so it cannot go stale in this file.
 
-The most important one is the lean blowout equivalence ratio in M12. It decides
-whether the design point has margin or does not fly — see the corridor below.
-The digit 0.50 is now **cited**: NACA RM E54E06 Figure 8, a 6-foot V-gutter
-afterburner at 1600 psf. Design φ = 0.4615 sits below it. No flame holder is
-declared, so that afterburner floor is the operative bound, not the permissive
-0.30. It is **not** a verified ramjet-no-holder close (holder, vitiation, class
-still differ) — `LEAN_BLOWOUT_DECISION_CRITERION` keeps `lean_blowout_verified`
-unemitted. Under that bound M 3.50 does not hold a flame.
+**Where it stands: Mach 4.00 is the baseline** ([ADR-009](docs/adr/ADR-009-m4-is-the-baseline.md)),
+closed in code and cases on the ADR-006 cooled-liner combustor at 27.7 km: the flame holds
+(φ 0.586), the inlet fits the body (0.793), the ramjet Isp is 1770 s against NACA RM E51H02, and the
+cruise range is ~4970-6660 km. The M 3.50 snapshot it grew from is kept unchanged as the yardstick.
+Not claimed: that it flies. The full table is under
+[milestones](#where-ventus-1-stands-against-its-milestones-2026-10-01).
+
+The most important open item is the lean blowout equivalence ratio. The operative floor φ 0.50 is
+**cited** -- NACA RM E54E06 Figure 8, a 6-foot V-gutter afterburner at 1600 psf -- and the baseline's
+φ 0.586 clears it. That chart is for a burner *with* a flame holder, and VENTUS declares none, so it is
+**not** a verified ramjet-no-holder close (holder, vitiation, class still differ):
+`LEAN_BLOWOUT_DECISION_CRITERION` keeps `lean_blowout_verified` unemitted. Declaring a holder is the
+owner's decision. On its original 1700 K burner the M 3.50 snapshot (φ 0.4615) sits below the floor
+and does not hold a flame -- which is why the baseline moved (ADR-006).
 
 
 ---
@@ -248,12 +254,16 @@ heating room as ram temperature climbs: at M 4.50, φ is 0.487 and capture/body 
 still closes with little room (φ 0.538, capture 0.96). The Mach 5 stretch is the dual-mode
 track (ADR-003): a separate vehicle, VENTUS-2, not a stretch of this one.
 
-## Design point
+## The M 3.50 snapshot -- the yardstick
+
+**The baseline is M 4.00** (ADR-008/009, the milestone table above). This section is the M 3.50
+snapshot it was derived from, kept unchanged as the yardstick: every number pinned here is an
+M 3.50 number, on the original 1700 K burner unless it says otherwise.
 
 M 3.50 at 26 km geopotential, US Standard Atmosphere 1976.
 Full derivation and provenance in [`docs/design-point.md`](docs/design-point.md).
-A proposed Mach 4 constant-q row — not a close, not a replacement of this
-snapshot — is sketched in [`docs/design-point-m4.md`](docs/design-point-m4.md).
+The Mach 4 row it grew into was sketched in [`docs/design-point-m4.md`](docs/design-point-m4.md)
+and closed as the baseline by ADR-008 and ADR-009.
 The M 3.50 Sears-Haack (`ventus1`, fineness 12) is the yardstick.
 `GeometrySpec::M4_CANDIDATE` (fineness 10, same length) is a named host body
 beside that yardstick: capture/body **0.864** at M 4.00, while the snapshot
@@ -359,11 +369,11 @@ Isp, and so of range, plus liner cooling this model does not budget. It is a can
 a re-baseline: the snapshot and every pinned M 3.50 number are unchanged, and
 `lean_blowout_verified` stays unemitted until a ramjet-no-holder chart is read.
 
-**Programme track, and what is next.** Cruise ≥ Mach 4 with a Mach 5 stretch is
-the *intent*, not a second design point. The validated snapshot remains **M 3.50
-at 26 km** until a future re-baseline lands in code. The Mach 4 path is a sketch
-— [`docs/design-point-m4.md`](docs/design-point-m4.md) — and on the snapshot
-geometry capture already exceeds the body (M 3.85 bind; ratio 1.15 at M 4.00).
+**Programme track, and what is next.** The re-baseline has landed: **M 4.00 is the
+baseline** (ADR-008/009), on the ADR-006 combustor, where the snapshot body hosts the inlet
+(capture/body 0.793). On the original 1700 K burner, capture already exceeds the body
+(M 3.85 bind; ratio 1.15 at M 4.00), which is why the M 3.50 snapshot stays a yardstick and
+not the configuration.
 A named candidate body (fineness 10) hosts at that row (ratio 0.864) and is
 not the snapshot. Fay-Riddell at that proposed row, same declared radii, is
 in the sketch: nose 867 K / LE 876 K, Ti-6242S dead, Inconel lightest
@@ -376,12 +386,13 @@ capability. Decision and non-goals:
 
 | | |
 |---|---|
-| Validated design point | M 3.50 @ 26 km — case-gated snapshot |
-| Proposed M 4 row | sketch: [`docs/design-point-m4.md`](docs/design-point-m4.md) -- snapshot body **does not close**; candidate body **hosts** (0.864) and still does not fly |
+| **Baseline** | **M 4.00 @ 27.7 km**, ADR-006 combustor -- closed in code and cases ([ADR-009](docs/adr/ADR-009-m4-is-the-baseline.md)) |
+| Yardstick | M 3.50 @ 26 km — case-gated snapshot, unchanged |
+| M 4 row on the 1700 K burner | [`docs/design-point-m4.md`](docs/design-point-m4.md) -- snapshot body **does not close** (1.15); candidate body hosts (0.864). Superseded by the ADR-006 combustor (0.793) |
 | Proposed M 4 nose / LE | Fay-Riddell 867 K / 876 K at declared R; Ti-6242S **dead**; Inconel lightest survivor (~50 K). Correlation run, not a fly claim |
 | Snapshot configuration bind | capture = body ~ M 3.85 (M12); ratio 1.15 at proposed M 4.00 |
 | M 4 candidate geometry | `GeometrySpec::M4_CANDIDATE`, fineness 10 `[TO DETERMINE]`; same mass/wing/length; **not** a re-baseline |
-| Lean blowout (operative) | no holder declared → Useller Fig. 8 φ 0.50 (V-gutter afterburner floor, digit cited); ramjet-no-holder class still open; design φ 0.4615 sits below it |
+| Lean blowout (operative) | no holder declared → Useller Fig. 8 φ 0.50 (V-gutter afterburner floor, digit cited); ramjet-no-holder class still open; baseline φ 0.586 clears it, the M 3.50 snapshot's φ 0.4615 does not |
 | Ideal ramjet model refusal | ~ M 5.65–5.70 — **not aircraft capability** |
 | Dual-mode / scram cycle | `ventus-scram` stub — stations not modelled |
 
